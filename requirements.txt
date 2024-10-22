@@ -1,0 +1,12 @@
+certifi==2024.8.30
+charset-normalizer==3.4.0
+dimod==0.12.18
+idna==3.10
+jij_cimod==1.6.2
+numpy==1.26.4
+openjij==0.9.2
+requests==2.31.0
+scipy==1.11.4
+typing_extensions==4.12.2
+urllib3==2.2.3
+matplotlib==3.9.2
