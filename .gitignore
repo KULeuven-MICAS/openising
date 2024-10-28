@@ -1,0 +1,11 @@
+# Temporary and log files
+*.log
+*.tmp
+
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# environment stuff
+.env
+.venv
