@@ -1,7 +1,7 @@
 import SCA
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 def add_edges_graph(graph, states, G_orig):
@@ -56,8 +56,8 @@ def problem1():
     G.add_edge(2, 3)
     G.add_edge(2, 4)
     G.add_edge(3, 4)
-    nx.draw_networkx(G)
-    plt.show()
+    #nx.draw_networkx(G)
+    #plt.show()
 
     h = np.zeros((N,))
     J = np.zeros((N,N))
@@ -78,7 +78,7 @@ def problem1():
     energy = compute_energy(J, h, sigma_optim)
     print(f"The optimal energy is: {energy}")
     print(f"The optimal state: {sigma_optim}")
-    plot_solution(sigma_optim, G)
+    #plot_solution(sigma_optim, G)
     
 
 if __name__=="__main__":

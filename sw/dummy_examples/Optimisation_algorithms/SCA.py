@@ -5,7 +5,7 @@ import math
 def SCA(s_init, J, h, S, q_init, T_init, r_q, r_t):
     q = q_init
     T = T_init
-    N = np.length(s_init)
+    N = np.size(s_init)[0]
     sigma = s_init
     tau = sigma
     for s in range(S):
