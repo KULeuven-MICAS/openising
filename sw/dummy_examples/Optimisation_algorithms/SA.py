@@ -3,7 +3,7 @@ import networkx as nx
 import math
 import random
 
-def SA(T, r_T, T_min, J, h, sigma):
+def SA(T, r_T, S, J, h, sigma):
     """
     Performs simulated annealing (SA) as is seen in https://faculty.washington.edu/aragon/pubs/annealing-pt1a.pdf
 
@@ -20,25 +20,26 @@ def SA(T, r_T, T_min, J, h, sigma):
     N = np.shape(sigma)[0]
     sigma_new = np.copy(sigma)
     energies = []
-    header = ['Temperature', 'Energy', 'current state']
-    print("{: >20} {: >20} {: >20}".format(*header))
-    while T > T_min:
+    header = ['Iteration count', 'Energy']
+    print("{: >20} {: >20} ".format(*header))
+    for i in range(S):
         for node in range(N):
             sigma_new[node] = -sigma[node]
             cost_new = -np.inner(sigma_new.T, np.inner(J, sigma_new)) - np.inner(h.T, sigma_new)
             cost_old = -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
             delta = cost_new - cost_old
-            if delta <= 0.:
+            P = delta/T
+            rand = -math.log(random.random())
+            if delta < 0:
+                sigma[node] = sigma_new[node]
+            elif P < rand:
                 sigma[node] = sigma_new[node]
             else:
-                P = math.exp(-delta/T)
-                rand = random.random()
-                if P < rand:
-                    sigma[node] = sigma_new[node]
-        cost = np.inner(sigma.T, np.inner(J, sigma)) + np.inner(h.T, sigma)
+                sigma_new[node] = sigma[node]
+        cost = -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
         energies.append(cost)
-        row = [T, str(cost), str(sigma)]
-        print("{: >20} {: >20} {: >20}".format(*row))
+        row = [i, str(cost)]
+        print("{: >20} {: >20}".format(*row))
         T = r_T*T
         sigma_new = np.copy(sigma)
     return sigma, energies

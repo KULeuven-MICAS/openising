@@ -7,11 +7,11 @@ def SCA(s_init, J, h_init, S, q_init, T_init, r_q, r_t):
     T = T_init
     N = np.shape(s_init)[0]
     sigma = s_init
-    tau = sigma
+    tau = np.copy(s_init)
     h = np.copy(h_init)
     energy_list = []
-    header = ['Iteration Count', 'Energy', 'current state']
-    print("{: >20} {: >20} {: >20}".format(*header))
+    header = ['Iteration Count', 'Energy']
+    print("{: >20} {: >20}".format(*header))
     for s in range(S):
         for x in range(N):
             h[x] = np.inner(J[x,:], sigma) + h[x]
@@ -23,24 +23,24 @@ def SCA(s_init, J, h_init, S, q_init, T_init, r_q, r_t):
             sigma[x] = tau[x]
         q = q*r_q
         T = T*r_t
-        energy = compute_energy(J, h_init, q, sigma, tau)
-        row = [s, str(energy), str(sigma)]
-        print("{: >20} {: >20} {: >20}".format(*row))
+        energy = compute_energy(J, h_init, sigma)
+        row = [s, str(energy)]
+        print("{: >20} {: >20}".format(*row))
         energy_list.append(energy)
 
     return sigma, energy_list
 
 
 def get_prob(Temp, hx, qs, sigmax):
-   x = 1/Temp*(hx*sigmax + qs)/2
-   return 1/(1+math.exp(x))
+   val = hx*sigmax + qs
+   if -2*Temp < val < 2*Temp:
+       return val/(4*Temp) + 0.5
+   elif val > 2*Temp:
+       return 1.
+   else:
+       return 0.
 
 
-def compute_energy(J, h, q, sigma, tau):
-    energy = 0.
-    N = np.shape(sigma)[0]
-    for i in range(N):
-        energy += h[i]*sigma[i]
-        for j in range(i+1, N):
-            energy += J[i, j]*sigma[i]*sigma[j]
-    return energy
+def compute_energy(J, h, sigma):
+    return -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
+    
