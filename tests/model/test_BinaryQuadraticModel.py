@@ -1,9 +1,9 @@
 import pytest
 
-from bqmpy.model import BinaryQuadraticModel, Vartype
+from ising.model import BinaryQuadraticModel, Vartype
 
 class TestClass:
-    
+
     @pytest.fixture
     def simple_bqm(self):
         def _simple_bqm(vartype=Vartype.SPIN):

@@ -11,7 +11,7 @@ RUN apt-get update && \
     wget \
     zsh \
     vim \
-    nano \ 
+    nano \
     python3-pip && \
     # Enable break-system-packages for non-venv package installs
     python3 -m pip config set global.break-system-packages true

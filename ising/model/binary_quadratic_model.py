@@ -1,12 +1,24 @@
 from __future__ import annotations
-from collections.abc import Mapping, Collection, Sequence
-from pathlib import Path
+from collections.abc import Mapping, Collection, Sequence, Hashable
+import enum
 import numpy as np
-from bqmpy.model.typing import Variable, Bias, Vartype
+import numpy.typing as npt
+from pathlib import Path
 
-__all__ = ['BinaryQuadraticModel']
+__all__ = ['BinaryQuadraticModel', 'Variable', 'Bias', 'Vartype']
 
-# Note: We can build a class upon this, which enforces the use of n-bit weights.
+# Identifier for BQM variables
+Variable = Hashable
+
+# Quadratic, linear and offset bias values (any numeric value which is not complex)
+Bias = int | float | np.integer[npt.NBitBase] | np.floating[npt.NBitBase]
+
+# The variable-type (or encoding) of a BQM
+class Vartype(enum.Enum):
+    SPIN = frozenset({-1, 1}) # False, True
+    BINARY = frozenset({0, 1}) # False, True
+
+
 class BinaryQuadraticModel(object):
     """Encodes a binary quadratic model.
 
@@ -20,7 +32,7 @@ class BinaryQuadraticModel(object):
             the BQM) to their quadratic biases. Omitted edges are implicitly zero.
             Every variable present here should have an entry in self.linear.
 
-        offset (Bias): 
+        offset (Bias):
             Offset of the BQM. This constant becomes meaningless in optimization solving
             but is a necessary part for proper QUBO-Ising mapping.
 
@@ -135,7 +147,7 @@ class BinaryQuadraticModel(object):
         for e in list(self.quadratic.keys()):
             if v in e:
                 del self.quadratic[e]
-        
+
     def remove_interaction(self, e: Collection[Variable, Variable]):
         """Remove interaction from the BQM."""
         e = frozenset(e)
@@ -180,20 +192,6 @@ class BinaryQuadraticModel(object):
         quadratic = { e : -4 * bias for (e, bias) in quadratic.items() }
         offset = - sum(quadratic.values()) + sum(linear.values())
         return linear, quadratic, offset
-
-    def eval(self, sample: Mapping[Variable, bool]) -> Bias:
-        """Evaluate the BQM for a given sample."""
-        if self.vartype is Vartype.SPIN:
-            t = { True: -1, False: 1 }
-            q_sign, l_sign = -1, -1
-        if self.vartype is Vartype.BINARY:
-            t = { True: 1, False: 0 }
-            q_sign, l_sign = 1, 1
-        else:
-            raise ValueError(f'Vartype unknown: {Vartype}')
-        quadratic = sum([ bias * t[sample[v]] * t[sample[u]] for (v, u), bias in self.quadratic.items() ])
-        linear = sum([ bias * t[sample[v]] for (v, bias) in self.linear.items() ])
-        return q_sign * quadratic + l_sign * linear + self.offset
 
     def copy(self) -> BinaryQuadraticModel:
         """Create hard-copy of the BQM object"""
