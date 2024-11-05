@@ -15,3 +15,6 @@ ENV/
 
 # C extensions
 *.so
+
+# Output folders
+output/
