@@ -3,7 +3,7 @@ import networkx as nx
 import math
 import random
 
-def SA(T, r_T, S, J, h, sigma):
+def SA(T, r_T, S, J, h, sigma, verbose=False):
     """
     Performs simulated annealing (SA) as is seen in https://faculty.washington.edu/aragon/pubs/annealing-pt1a.pdf
 
@@ -20,8 +20,9 @@ def SA(T, r_T, S, J, h, sigma):
     N = np.shape(sigma)[0]
     sigma_new = np.copy(sigma)
     energies = []
-    header = ['Iteration count', 'Energy']
-    print("{: >20} {: >20} ".format(*header))
+    if verbose:
+        header = ['Iteration count', 'Energy']
+        print("{: >20} {: >20} ".format(*header))
     for i in range(S):
         for node in range(N):
             sigma_new[node] = -sigma[node]
@@ -38,8 +39,9 @@ def SA(T, r_T, S, J, h, sigma):
                 sigma_new[node] = sigma[node]
         cost = -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
         energies.append(cost)
-        row = [i, str(cost)]
-        print("{: >20} {: >20}".format(*row))
+        if verbose:
+            row = [i, str(cost)]
+            print("{: >20} {: >20}".format(*row))
         T = r_T*T
         sigma_new = np.copy(sigma)
     return sigma, energies
