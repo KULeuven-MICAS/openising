@@ -1,11 +1,17 @@
-# Temporary and log files
-*.log
-*.tmp
-
 # Python byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 
+# Temporary and log files
+*.log
+*.tmp
+
 # environment stuff
 .env
 .venv
+.python-version
+venv/
+ENV/
+
+# C extensions
+*.so
