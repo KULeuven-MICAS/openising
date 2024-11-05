@@ -1,0 +1,3 @@
+# Skip all backup (of both data & filenames) recursively from this directory onwards.
+always: .nsr
++skip: * .?*
