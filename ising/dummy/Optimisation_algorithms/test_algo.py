@@ -53,14 +53,14 @@ def get_coeffs_from_array(N, data):
         i, j, weight = int(row[0])-1, int(row[1])-1, row[2]
         J[i, j] = -weight
         J[j, i] = -weight
-    return J, h
+    return J/2, h
 
 def run_solver(solver, s_init, J, h, S, T, r_t, N, G=None, q=0, r_q=0, dir='.'):
     if solver == 'SCA':
         sigma_optim, energies = SCA(s_init=s_init, J=J, h_init=h, S=S, q_init=q, T_init=T, r_q=r_q, r_t=r_t, verbose=VERBOSE_SOLVER)
     else:
         sigma_optim, energies = SA(T, r_t, S, J, h, s_init, verbose=VERBOSE_SOLVER)
-    energy = -1/2*np.inner(sigma_optim.T, np.inner(J, sigma_optim)) - np.inner(h.T, sigma_optim)
+    energy = -np.inner(sigma_optim.T, np.inner(J, sigma_optim)) - np.inner(h.T, sigma_optim)
     print(f"The optimal energy of {solver} is: {energy}")
     if N <=20:
         print(f"The optimal state of {solver}: {sigma_optim}")
@@ -114,7 +114,7 @@ def problem1():
     s_init = get_random_s(N)
     print(f"Initial sigma: {s_init}")
     
-    mat = np.diag(h) - 1/2*J
+    mat = np.diag(h) - J
     bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype='SPIN')
     sampler = oj.SASampler()
     response = sampler.sample(bqm, num_reads=nb_runs)
@@ -289,7 +289,7 @@ def problem2():
     plt.savefig(folder + '/Energy_SCA.png')
 
 
-    mat = np.diag(h) - 1/2*J
+    mat = np.diag(h) - J
     bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype='SPIN')
     sampler = oj.SASampler()
     response = sampler.sample(bqm, num_reads=500)

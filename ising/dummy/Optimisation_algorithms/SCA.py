@@ -48,5 +48,5 @@ def get_prob(Temp, hx, qs, sigmax):
 
 
 def compute_energy(J, h, sigma):
-    return -1/2*np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
+    return -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
     
