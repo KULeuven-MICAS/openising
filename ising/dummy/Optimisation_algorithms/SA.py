@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 import math
 import random
+from SCA import compute_energy
 
 def SA(T, r_T, S, J, h, sigma, verbose=False):
     """
@@ -26,8 +27,8 @@ def SA(T, r_T, S, J, h, sigma, verbose=False):
     for i in range(S):
         for node in range(N):
             sigma_new[node] = -sigma[node]
-            cost_new = -np.inner(sigma_new.T, np.inner(J, sigma_new)) - np.inner(h.T, sigma_new)
-            cost_old = -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
+            cost_new = compute_energy(J, h, sigma_new)
+            cost_old = compute_energy(J, h, sigma)
             delta = cost_new - cost_old
             P = delta/T
             rand = -math.log(random.random())
@@ -37,7 +38,7 @@ def SA(T, r_T, S, J, h, sigma, verbose=False):
                 sigma[node] = sigma_new[node]
             else:
                 sigma_new[node] = sigma[node]
-        cost = -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
+        cost = compute_energy(J, h, sigma)
         energies.append(cost)
         if verbose:
             row = [i, str(cost)]
