@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import openjij as oj
+import helper_functions as hf
 #from  ising.model import BinaryQuadraticModel
 
 VERBOSE = False
@@ -41,20 +42,6 @@ def plot_solution(state, G_orig, solver):
     plt.title(solver)
 
 
-def get_random_s(N):
-    sigma = np.random.choice([-1, 1], N)
-    return sigma
-
-
-def get_coeffs_from_array(N, data):
-    J = np.zeros((N, N))
-    h = np.zeros((N,))
-    for row in data:
-        i, j, weight = int(row[0])-1, int(row[1])-1, row[2]
-        J[i, j] = -weight
-        J[j, i] = -weight
-    return J/2, h
-
 def run_solver(solver, s_init, J, h, S, T, r_t, N, G=None, q=0, r_q=0, dir='.'):
     if solver == 'SCA':
         sigma_optim, energies = SCA(s_init=s_init, J=J, h_init=h, S=S, q_init=q, T_init=T, r_q=r_q, r_t=r_t, verbose=VERBOSE_SOLVER)
@@ -73,9 +60,6 @@ def run_solver(solver, s_init, J, h, S, T, r_t, N, G=None, q=0, r_q=0, dir='.'):
     plt.savefig(f"{dir}\Energy_{solver}.png")
     return sigma_optim, energies
 
-
-def compute_rx(init, end, S):
-    return (end/init)**(1/(S-1))
 
 def problem1():
     print("--------------------------------------")
@@ -102,28 +86,24 @@ def problem1():
     nx.draw_networkx(G)
     folder = '..\output'
 
-    J, h = get_coeffs_from_array(N, data)
-    nb_runs = 15
+    J, h = hf.get_coeffs_from_array_MC(N, data)
+    nb_runs = 20
     S = 500
     T = 50.
     q = 1.
     T_end = 0.05
     q_end = 3.
-    r_t = compute_rx(T, T_end, S)
-    r_q = compute_rx(q, q_end, S)
-    s_init = get_random_s(N)
+    r_t = hf.compute_rx(T, T_end, S)
+    r_q = hf.compute_rx(q, q_end, S)
+    s_init = hf.get_random_s(N)
     print(f"Initial sigma: {s_init}")
     
     mat = np.diag(h) - J
     bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype='SPIN')
     sampler = oj.SASampler()
     response = sampler.sample(bqm, num_reads=nb_runs)
-    plt.figure()
-    plt.hist(response.energies, 10)
-    plt.xlabel('Energy')
-    plt.ylabel('Frequency')
-    plt.title('SA OpenJij energy outline')
-    plt.savefig(folder + '/histogram_sa_openjij.png')
+    hf.plot_energy_dist(response.energies, nb_runs, 'SA OpenJij', folder+'\histogram_sa_openjij.png')
+
 
     print(f"Solution of OpenJij: {response.first.sample}")
     print(f"Optimal energy of OpenJij:  {response.first.energy}")
@@ -137,20 +117,9 @@ def problem1():
         sigma_sca = np.copy(sigma_sca)
         sigma_SA, energies_sa = run_solver("SA", s_init, J, h, S, T, r_t, N=N, G=G, dir=folder)
         energy_sa.append(energies_sa[-1])
-    plt.figure()
-    plt.hist(energy_sca, 10)
-    plt.xlabel('Energy')
-    plt.ylabel('Frequency')
-    plt.title('SCA energy outline')
-    plt.savefig(folder + '/histogram_sca.png')
-    plt.figure()
-    plt.hist(energy_sa, 10)
-    plt.xlabel('Energy')
-    plt.ylabel('Frequency')
-    plt.title('SA energy outline')
-    plt.savefig(folder + '/histogram_sa.png')
+    hf.plot_energy_dist(energy_sca, nb_runs, 'SCA', folder+'\histogram_sca.png')
+    hf.plot_energy_dist(energy_sa, nb_runs, 'SA', folder + '\histogram_sa.png')
     
-
     plt.figure()
     plt.plot(sigma_sca, '^r', label='SCA')
     plt.plot(sigma_SA, "+b", label='SA')
@@ -161,14 +130,8 @@ def problem1():
     plt.legend()
     plt.savefig(folder + '\state_all.png')
 
-    plt.figure()
-    plt.plot(list(range(S)), energies_sca, label='SCA')
-    plt.plot(list(range(S)), energies_sa, label='SA')
-    plt.xlabel("iteration")
-    plt.ylabel("Energy")
-    plt.legend()
-    plt.title('Energy comparison between SCA and SA')
-    plt.savefig(folder + '\energies_all.png')
+    energies = {'SCA':energies_sca, 'SA':energies_sa}
+    hf.plot_energies(energies, S, folder + '\energies_all.png')
 
 
 def importance_hyperparameters_SCA():
@@ -184,8 +147,8 @@ def importance_hyperparameters_SCA():
     nb_edges = int(info[0,1])
     print(f"Graph with {N} nodes and {nb_edges} edges")
     info = info[1:, :]
-    J, h = get_coeffs_from_array(N, info)
-    sigma = get_random_s(N)
+    J, h = hf.get_coeffs_from_array_MC(N, info)
+    sigma = hf.get_random_s(N)
 
 
     print('Influence of r_q')
@@ -267,8 +230,8 @@ def problem2():
     nb_edges = int(info[0,1])
     print(f"Graph with {N} nodes and {nb_edges} edges")
     info = info[1:, :]
-    J, h = get_coeffs_from_array(N, info)
-    s_init = get_random_s(N)
+    J, h = hf.get_coeffs_from_array_MC(N, info)
+    s_init = hf.get_random_s(N)
 
     folder = '../output/algo_problem2'
     S = 10000
@@ -276,8 +239,8 @@ def problem2():
     T = 50.0
     T_end = 0.05
     q_end = 5.
-    r_q = compute_rx(q, q_end, S)
-    r_t = compute_rx(T, T_end, S)
+    r_q = hf.compute_rx(q, q_end, S)
+    r_t = hf.compute_rx(T, T_end, S)
     
     sigma_sca, energies_sca = run_solver("SCA", s_init, J, h, S, T, r_t, N, q=q, r_q=r_q, dir=folder)
     sigma_sca = np.copy(sigma_sca)
