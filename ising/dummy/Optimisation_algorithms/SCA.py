@@ -7,23 +7,27 @@ def SCA(s_init, J, h_init, S, q_init, T_init, r_q, r_t, verbose=False):
     T = T_init
     N = np.shape(s_init)[0]
     sigma = s_init
-    tau = np.copy(s_init)
     h = np.copy(h_init)
+    flipped_states = []
     energy_list = []
     if verbose:
         header = ['Iteration Count', 'Energy']
         print("{: >20} {: >20}".format(*header))
     for s in range(S):
         for x in range(N):
-            h[x] = np.inner(J[x,:], sigma) + h[x]
+            if s==0:
+                h[x] = np.inner(J[x, :], sigma) + h[x]
+            else:
+                h[x] = 2*np.inner(J[x, :], sigma) + h[x]
             P = get_prob(T, h[x], q, sigma[x])
             rand = random.random()
             if P < rand:
-                tau[x] = -sigma[x]
-        for x in range(N):
-            sigma[x] = tau[x]
+                flipped_states.append(x)
+        for x in flipped_states:
+            sigma[x] = -sigma[x]
         q = q*r_q
         T = T*r_t
+        flipped_states = []
         energy = compute_energy(J, h_init, sigma)
         if verbose:
             row = [s, str(energy)]
