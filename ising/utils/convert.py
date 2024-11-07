@@ -63,7 +63,6 @@ GraphLike = int | \
             Mapping[Variable, Iterable[Variable]] | \
             nx.Graph
 
-
 def convert_to_graph(thing: GraphLike) -> tuple[Iterable[Variable], Iterable[Collection[Variable, Variable]]]:
 
     # int

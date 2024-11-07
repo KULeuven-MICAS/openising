@@ -45,7 +45,12 @@ class BinaryQuadraticModel:
         self.set_offset(offset)
 
     def __repr__(self) -> str:
-        return f'BinaryQuadraticModel({self.linear}, {self.quadratic}, {self.offset}, {self.vartype})'
+        return 'BinaryQuadraticModel({linear}, {quadratic}, {offset}, {vartype})'.format(
+            linear = self.linear,
+            quadratic = { tuple(e): b for e, b in self.quadratic.items() },
+            offset = self.offset,
+            vartype = self.vartype
+            )
 
     def __len__(self) -> int:
         return self.num_variables
