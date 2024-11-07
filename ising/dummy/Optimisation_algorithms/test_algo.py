@@ -1,4 +1,4 @@
-from SCA import SCA, compute_energy
+from SCA import SCA
 from SA import SA
 import networkx as nx
 import numpy as np
@@ -9,55 +9,20 @@ import helper_functions as hf
 #from  ising.model import BinaryQuadraticModel
 
 VERBOSE = False
-VERBOSE_SOLVER = True
+VERBOSE_SOLVER = False
 VERBOSE_PLOT = False
-
-
-def add_edges_graph(graph, states, G_orig):
-    red_nodes = []
-    blue_nodes = []
-    labels = {}
-    for i in range(len(states)):
-        graph.add_node(i)
-        labels[i] = i
-        if states[i] == 1:
-            red_nodes.append(i)
-        else:
-            blue_nodes.append(i)
-        for j in range(len(states)):
-            if i != j and states[i] == states[j] and G_orig.has_edge(i, j):
-                graph.add_edge(i, j)
-    return red_nodes, blue_nodes, labels
-
-
-def plot_solution(state, G_orig, solver):     
-    G = nx.Graph()
-    red_nodes, blue_nodes, labels = add_edges_graph(G, state, G_orig)
-    pos = nx.spring_layout(G)
-    plt.figure()
-    nx.draw_networkx_nodes(G, pos, nodelist=red_nodes, node_color='tab:red')
-    nx.draw_networkx_nodes(G, pos, nodelist=blue_nodes, node_color='tab:blue')
-    nx.draw_networkx_edges(G, pos)
-    nx.draw_networkx_labels(G, pos, labels)
-    plt.title(solver)
-
 
 def run_solver(solver, s_init, J, h, S, T, r_t, N, G=None, q=0, r_q=0, dir='.'):
     if solver == 'SCA':
-        sigma_optim, energies = SCA(s_init=s_init, J=J, h_init=h, S=S, q_init=q, T_init=T, r_q=r_q, r_t=r_t, verbose=VERBOSE_SOLVER)
+        sigma_optim, energies = SCA(s_init=s_init, J=J, h_init=h, S=S, q=q, T=T, r_q=r_q, r_t=r_t, verbose=VERBOSE_SOLVER)
     else:
         sigma_optim, energies = SA(T, r_t, S, J, h, s_init, verbose=VERBOSE_SOLVER)
     energy = -np.inner(sigma_optim.T, np.inner(J, sigma_optim)) - np.inner(h.T, sigma_optim)
     print(f"The optimal energy of {solver} is: {energy}")
     if N <=20:
         print(f"The optimal state of {solver}: {sigma_optim}")
-        plot_solution(sigma_optim, G, solver)
-    plt.figure()
-    plt.plot(np.array(list(range(S))), energies)
-    plt.xlabel("iteration")
-    plt.ylabel("Energy")
-    plt.title(f"Energy {solver}")
-    plt.savefig(f"{dir}\Energy_{solver}.png")
+        hf.plot_solution(sigma_optim, G, solver)
+    hf.plot_energies({solver:energies}, S, f'{dir}\Energy_{solver}.png')
     return sigma_optim, energies
 
 
@@ -107,7 +72,7 @@ def problem1():
 
     print(f"Solution of OpenJij: {response.first.sample}")
     print(f"Optimal energy of OpenJij:  {response.first.energy}")
-    plot_solution(response.first.sample, G, 'SA OpenJij')
+    hf.plot_solution(response.first.sample, G, 'SA OpenJij')
 
     energy_sca = []
     energy_sa = []
@@ -150,7 +115,6 @@ def importance_hyperparameters_SCA():
     J, h = hf.get_coeffs_from_array_MC(N, info)
     sigma = hf.get_random_s(N)
 
-
     print('Influence of r_q')
     print("--------------------------------------")
     S = 560
@@ -158,21 +122,17 @@ def importance_hyperparameters_SCA():
     T_init = 50.0
     T_end = 4.
     q_fin = [3., 4., 5., 6.]
-    r_t = (T_end/T_init)**(1/(S-1))
+    r_t = hf.compute_rx(T_init, T_end, S)
 
     for q_end in q_fin:
         r_q = (q_end/q_init)**(1/(S-1))
         print(f"Final q: {q_end}, increase rate: {r_q}")
-        sigma_SCA, energy_SCA = SCA(s_init=sigma, J=J, h_init=h, S=S, q_init=q_init, T_init=T_init, r_q=r_q, r_t=r_t)
-        energy = -np.inner(sigma_SCA.T, np.inner(J, sigma_SCA)) - np.inner(h.T, sigma_SCA)
+        sigma_SCA, energy_SCA = run_solver('SCA', sigma, J, h, S, T_init, r_t, )
+        energy = hf.compute_energy(J, h, sigma_SCA)
         print(f"The optimal energy of SCA is: {energy}")
 
-        plt.plot(np.array(list(range(S))), energy_SCA)
-        plt.xlabel("iteration")
-        plt.ylabel("Energy")
-        plt.savefig(f'Energy_SCA_rq{str(r_q)}.png')
-        plt.show()
-    
+        hf.plot_energies({'SCA': energy_SCA}, S, f'{parent_dir}\output\hyperparameter_test\Energy_SCA_rq{str(r_q)}.png')
+
     print('Influence of r_T')
     print("--------------------------------------")
     S = 560
@@ -189,11 +149,7 @@ def importance_hyperparameters_SCA():
         energy = -np.inner(sigma_SCA.T, np.inner(J, sigma_SCA)) - np.inner(h.T, sigma_SCA)
         print(f"The optimal energy of SCA is: {energy}")
 
-        plt.plot(np.array(list(range(S))), energy_SCA)
-        plt.xlabel("iteration")
-        plt.ylabel("Energy")
-        plt.savefig(f'Energy_SCA_rT{str(r_t)}.png')
-        plt.show()
+        hf.plot_energies({'SCA': energy_SCA}, S, f'{parent_dir}\output\hyperparameter_test\Energy_SCA_rT{str(r_t)}.png')
     
     print('Influence of S')
     print("--------------------------------------")
@@ -205,18 +161,13 @@ def importance_hyperparameters_SCA():
     r_q = (q_end/q_init)**(1/(S-1))
     r_t = (T_end/T_init)**(1/(S-1))
 
-
     for S in S_all:
         print(f"Iterations S: {S}, decrease rate: {r_q}")
         sigma_SCA, energy_SCA = SCA(s_init=sigma, J=J, h_init=h, S=S, q_init=q_init, T_init=T_init, r_q=r_q, r_t=r_t)
         energy = -np.inner(sigma_SCA.T, np.inner(J, sigma_SCA)) - np.inner(h.T, sigma_SCA)
         print(f"The optimal energy of SCA is: {energy}")
-
-        plt.plot(np.array(list(range(S))), energy_SCA)
-        plt.xlabel("iteration")
-        plt.ylabel("Energy")
-        plt.savefig(f'Energy_SCA_S{str(S)}')
-        plt.show()
+       
+        hf.plot_energies({'SCA': energy_SCA}, S, f'{parent_dir}\output\hyperparameter_test\Energy_SCA_S{str(S)}.png')
 
 def problem2():
     print("--------------------------------------")
@@ -310,7 +261,7 @@ def problem3():
 if __name__=="__main__":
     if VERBOSE_PLOT:
         plt.ion()
-    #problem1()
+    problem1()
     #importance_hyperparameters_SCA()
-    problem2()
+    #problem2()
     #problem3()

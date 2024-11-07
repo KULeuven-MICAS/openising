@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import math
+import helper_functions as hf
 
 def SCA(s_init:np.ndarray, J:np.ndarray, h_init:np.ndarray, S:int, q:float, T:float, r_q:float, r_t:float, verbose:bool=False)->tuple[np.ndarray, list]:
     """
@@ -40,7 +41,7 @@ def SCA(s_init:np.ndarray, J:np.ndarray, h_init:np.ndarray, S:int, q:float, T:fl
         q = q*r_q
         T = T*r_t
         flipped_states = []
-        energy = compute_energy(J, h_init, sigma)
+        energy = hf.compute_energy(J, h_init, sigma)
         if verbose:
             row = [s, str(energy)]
             print("{: >20} {: >20}".format(*row))
@@ -57,8 +58,4 @@ def get_prob(Temp, hx, qs, sigmax):
        return 1.
    else:
        return 0.
-
-
-def compute_energy(J, h, sigma):
-    return -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
     

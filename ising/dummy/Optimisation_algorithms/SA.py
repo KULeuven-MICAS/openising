@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 import math
 import random
-from SCA import compute_energy
+import helper_functions as hf
 
 def SA(T:float, r_T:float, S:int, J:np.ndarray, h:np.ndarray, sigma:np.ndarray, verbose:bool=False) -> tuple[np.ndarray, list]:
     """
@@ -28,8 +28,8 @@ def SA(T:float, r_T:float, S:int, J:np.ndarray, h:np.ndarray, sigma:np.ndarray, 
     for i in range(S):
         for node in range(N):
             sigma_new[node] = -sigma[node]
-            cost_new = compute_energy(J, h, sigma_new)
-            cost_old = compute_energy(J, h, sigma)
+            cost_new = hf.compute_energy(J, h, sigma_new)
+            cost_old = hf.compute_energy(J, h, sigma)
             delta = cost_new - cost_old
             P = delta/T
             rand = -math.log(random.random())
@@ -39,7 +39,7 @@ def SA(T:float, r_T:float, S:int, J:np.ndarray, h:np.ndarray, sigma:np.ndarray, 
                 sigma[node] = sigma_new[node]
             else:
                 sigma_new[node] = sigma[node]
-        cost = compute_energy(J, h, sigma)
+        cost = hf.compute_energy(J, h, sigma)
         energies.append(cost)
         if verbose:
             row = [i, str(cost)]

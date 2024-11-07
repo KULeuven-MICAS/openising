@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import networkx as nx
 
 def get_random_s(N: int)-> np.ndarray:
     """
@@ -28,6 +29,7 @@ def get_coeffs_from_array_MC(N: int, data: np.ndarray)-> tuple[np.ndarray, np.nd
         J[j, i] = -weight
     return J/2, h
 
+
 def compute_rx(init: float, end: float, S: int) -> float:
     """
     Computes the change rate needed for hyperparameter control in the SA and SCA algorithm.
@@ -38,6 +40,19 @@ def compute_rx(init: float, end: float, S: int) -> float:
     :return rx (float): change rate of the hyperparameter
     """
     return (end/init)**(1/(S-1))
+
+
+def compute_energy(J:np.ndarray, h:np.ndarray, sigma:np.ndarray)->float:
+    """
+    Computes the Hamiltonian given a sample.
+
+    :param np.ndarray J: interaction coefficients
+    :param np.ndarray h: magnetic field coefficients
+    :param np.ndarray sigma: sample
+    :return H (float): value of the Hamiltonian
+    """
+    return -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
+
 
 def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
     """
@@ -59,6 +74,7 @@ def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
     plt.title('Energy evolution of' + title)
     plt.savefig(filename)
 
+
 def plot_energy_dist(energy:np.ndarray, nb_runs:int, solver:str, filename:str)->None:
     """
     Plots the optimal energies over different runs as a histogram.
@@ -68,8 +84,54 @@ def plot_energy_dist(energy:np.ndarray, nb_runs:int, solver:str, filename:str)->
     :param str filename: absolute directory of the path to the file
     """
     plt.figure()
-    plt.hist(energy, int(nb_runs/10))
+    plt.hist(energy, int(10))
     plt.xlabel('Energy')
     plt.ylabel('Frequency')
     plt.title(f'{solver} energy outline')
     plt.savefig(filename)
+
+
+def add_edges_graph(graph:nx.Graph, states:np.ndarray|list, G_orig:nx.Graph)->tuple[list, list, dict]:
+    """
+    Splits the edges of the graph into two parts according to the state value and adds the edges accordingly.
+
+    :param nx.Graph graph: the new graph
+    :param np.ndarray states: optimal state
+    :param nx.Graph G_orig: original graph
+    :return red_nodes (list): list of all the nodes with value +1
+    :return blue_nodes (list): list of all the nodes with value -1 or 0
+    :return labels (dict): dictionary with all the labels of all the nodes
+    """
+    red_nodes = []
+    blue_nodes = []
+    labels = {}
+    for i in range(len(states)):
+        graph.add_node(i)
+        labels[i] = i
+        if states[i] == 1:
+            red_nodes.append(i)
+        else:
+            blue_nodes.append(i)
+        for j in range(len(states)):
+            if i != j and states[i] == states[j] and G_orig.has_edge(i, j):
+                graph.add_edge(i, j)
+    return red_nodes, blue_nodes, labels
+
+
+def plot_solution(state:np.ndarray|list, G_orig:nx.Graph, solver:str)->None:
+    """
+    Plots the Graph solution of the problem
+
+    :param np.ndarray state: the optimal state of the problem
+    :param nx.Graph G_orig: original graph
+    :param str solver: solver that was used to solve the problem
+    """     
+    G = nx.Graph()
+    red_nodes, blue_nodes, labels = add_edges_graph(G, state, G_orig)
+    pos = nx.spring_layout(G)
+    plt.figure()
+    nx.draw_networkx_nodes(G, pos, nodelist=red_nodes, node_color='tab:red')
+    nx.draw_networkx_nodes(G, pos, nodelist=blue_nodes, node_color='tab:blue')
+    nx.draw_networkx_edges(G, pos)
+    nx.draw_networkx_labels(G, pos, labels)
+    plt.title(solver)
