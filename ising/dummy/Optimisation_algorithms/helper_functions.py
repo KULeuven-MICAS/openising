@@ -53,6 +53,19 @@ def compute_energy(J:np.ndarray, h:np.ndarray, sigma:np.ndarray)->float:
     """
     return -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
 
+def compute_energy_bSB(h, J, y, x, a0, at, c0):
+    if all(map(np.abs(x[i]) <= 1 for i in range(np.shape(x)[0]))):
+        V = (a0-at)/2*np.sum(np.power(x, 2)) - c0/2*np.inner(x.T, np.inner(J, x)) - c0*np.inner(h.T, x)
+    else:
+        V = np.inf
+    return a0/2*np.sum(np.power(y, 2)) + V
+
+def compute_energy_dSB(h, J, y, x, a0, at, c0):
+    if all(map(np.abs(x[i]) <= 1 for i in range(np.shape(x)[0]))):
+        V = (a0-at)/2*np.sum(np.power(x, 2)) - c0/2*np.inner(x.T, np.inner(J, np.sign(x))) - c0*np.inner(h.T, x)
+    else:
+        V = np.inf
+    return a0/2*np.sum(np.power(y, 2)) + V
 
 def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
     """
