@@ -1,25 +1,14 @@
 from __future__ import annotations
-from collections.abc import Mapping, Collection, Sequence, Hashable
-import enum
 import numpy as np
-import numpy.typing as npt
+from collections.abc import Collection, Sequence
 from pathlib import Path
+from ising.typing import Variable, Bias, Vartype
+from ising.utils.convert import LinearLike, convert_to_linear, QuadraticLike, convert_to_quadratic
 
-__all__ = ['BinaryQuadraticModel', 'Variable', 'Bias', 'Vartype']
-
-# Identifier for BQM variables
-Variable = Hashable
-
-# Quadratic, linear and offset bias values (any numeric value which is not complex)
-Bias = int | float | np.integer[npt.NBitBase] | np.floating[npt.NBitBase]
-
-# The variable-type (or encoding) of a BQM
-class Vartype(enum.Enum):
-    SPIN = frozenset({-1, 1}) # False, True
-    BINARY = frozenset({0, 1}) # False, True
+__all__ = ['BinaryQuadraticModel']
 
 
-class BinaryQuadraticModel(object):
+class BinaryQuadraticModel:
     """Encodes a binary quadratic model.
 
     Attributes:
@@ -41,13 +30,9 @@ class BinaryQuadraticModel(object):
 
     """
 
-    def __init__(
-            self,
-            linear: Mapping[Variable, Bias],
-            quadratic: Mapping[Collection[Variable, Variable], Bias],
-            offset: Bias,
-            vartype: Vartype
-            ):
+    __slots__ = ['linear', 'quadratic', 'offset', 'vartype']
+
+    def __init__(self, linear: LinearLike, quadratic: QuadraticLike, offset: Bias, vartype: Vartype):
         if not isinstance(vartype, Vartype):
             raise ValueError(f'Vartype unkown: {vartype}')
         self.linear: dict[Variable, Bias] = {}
@@ -85,6 +70,11 @@ class BinaryQuadraticModel(object):
         """The number of nonzero interactions in the BQM."""
         return len(self.quadratic)
 
+    @property
+    def shape(self) -> tuple[int, int]:
+        """The shape of the BQM, i.e the number of variables and number of edges"""
+        return self.num_variables, self.num_interactions
+
     def set_offset(self, offset: Bias) -> None:
         """Set the offset of the BQM."""
         self.offset = offset
@@ -102,8 +92,9 @@ class BinaryQuadraticModel(object):
                 raise ValueError(f'Vartype unknown: {Vartype}')
         self.linear[v] = bias
 
-    def set_variables_from(self, linear: Mapping[Variable, Bias], vartype: Vartype|None = None):
+    def set_variables_from(self, linear: LinearLike, vartype: Vartype|None = None):
         """Set variables of the BQM."""
+        linear = convert_to_linear(linear)
         for v, bias in linear.items():
             self.set_variable(v, bias, vartype)
 
@@ -132,8 +123,9 @@ class BinaryQuadraticModel(object):
                 raise ValueError(f'Vartype unknown: {Vartype}')
         self.quadratic[frozenset({u, v})] = bias
 
-    def set_interactions_from(self, quadratic: Mapping[Collection[Variable, Variable], Bias], vartype: Vartype|None = None):
+    def set_interactions_from(self, quadratic: QuadraticLike, vartype: Vartype|None = None):
         """Set interactions of the BQM."""
+        quadratic = convert_to_quadratic(quadratic)
         for (u, v), bias in quadratic.items():
             self.set_interaction(u, v, bias, vartype)
 
@@ -200,6 +192,7 @@ class BinaryQuadraticModel(object):
     def to_qubo(self, variable_order: Sequence[Variable]|None = None) -> tuple[np.ndarray, Bias]:
         """Extract a QUBO matrix for this BQM.
         Variable_order may be supplied to fix the order of variables in the matrix.
+        Note: Q is an upper triangular matrix
         """
         self.change_vartype(Vartype.BINARY)
         Q = np.zeros((self.num_variables)*2, dtype=float)
@@ -218,7 +211,6 @@ class BinaryQuadraticModel(object):
                     Q[iv, iu] = bias
         except KeyError:
             raise ValueError(f'variable {v} missing from variable_order')
-        #Q[np.tril_indices_from(Q, k=-1)] = np.triu(Q, k=1)
         return Q, self.offset
 
     @classmethod
@@ -248,9 +240,10 @@ class BinaryQuadraticModel(object):
             raise ValueError('Given variable_order should have the same size as the QUBO matrix')
         return bqm
 
-    def to_ising(self, variable_order: Sequence[Variable]|None = None) -> tuple[np.ndarray, np.ndarray, Bias]:
+    def to_ising(self, variable_order: Sequence[Variable]|None = None) -> tuple[np.ndarray, np.ndarray[Bias]]:
         """Extract Ising matrix/vector representation for this BQM.
         Variable_order may be supplied to fix the order of variables in the matrix.
+        Note: J is an upper triangular matrix.
         """
         self.change_vartype(Vartype.SPIN)
         h = np.zeros((self.num_variables), dtype=float)
