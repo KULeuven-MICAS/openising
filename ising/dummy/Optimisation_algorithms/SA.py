@@ -2,22 +2,23 @@ import numpy as np
 import networkx as nx
 import math
 import random
-from SCA import compute_energy
+import helper_functions as hf
 
-def SA(T, r_T, S, J, h, sigma, verbose=False):
+def SA(T:float, r_T:float, S:int, J:np.ndarray, h:np.ndarray, sigma:np.ndarray, verbose:bool=False) -> tuple[np.ndarray, list]:
     """
     Performs simulated annealing (SA) as is seen in https://faculty.washington.edu/aragon/pubs/annealing-pt1a.pdf
 
-    :param T: initial temperature, should be high enough in the beginning to allow random flipping
-    :param r_T: temperature ratio in (0, 1). Ratio by which the temperature decreases every iteration
-    :param T_min: minimum temperature to stop algorirthm
-    :param J: interaction coefficients of the problem
-    :param h: self-interaction coefficients of the problem
-    :param sigma: initial solution to the problem
+    :param float T: initial temperature, should be high enough in the beginning to allow random flipping
+    :param float r_T: temperature ratio in (0, 1). Ratio by which the temperature decreases every iteration
+    :param int S: maximum number of iterations
+    :param np.ndarray J: interaction coefficients of the problem
+    :param np.ndarray h: self-interaction coefficients of the problem
+    :param np.ndarray sigma: initial solution to the problem
     
-    :return sigma: optimal solution
-    :return energies: energy values during optimization algorithm
+    :return sigma (np.ndarray): optimal solution
+    :return energies (list): energy values during optimization algorithm
     """
+    #TODO: change representation of model to own representation
     N = np.shape(sigma)[0]
     sigma_new = np.copy(sigma)
     energies = []
@@ -27,8 +28,8 @@ def SA(T, r_T, S, J, h, sigma, verbose=False):
     for i in range(S):
         for node in range(N):
             sigma_new[node] = -sigma[node]
-            cost_new = compute_energy(J, h, sigma_new)
-            cost_old = compute_energy(J, h, sigma)
+            cost_new = hf.compute_energy(J, h, sigma_new)
+            cost_old = hf.compute_energy(J, h, sigma)
             delta = cost_new - cost_old
             P = delta/T
             rand = -math.log(random.random())
@@ -38,7 +39,7 @@ def SA(T, r_T, S, J, h, sigma, verbose=False):
                 sigma[node] = sigma_new[node]
             else:
                 sigma_new[node] = sigma[node]
-        cost = compute_energy(J, h, sigma)
+        cost = hf.compute_energy(J, h, sigma)
         energies.append(cost)
         if verbose:
             row = [i, str(cost)]
