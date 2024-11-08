@@ -88,16 +88,15 @@ def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
     plt.savefig(filename)
 
 
-def plot_energy_dist(energy:np.ndarray, nb_runs:int, solver:str, filename:str)->None:
+def plot_energy_dist(energy:np.ndarray, solver:str, filename:str)->None:
     """
     Plots the optimal energies over different runs as a histogram.
 
     :param np.ndarray energy: optimal energies over all the runs
-    :param int nb_runs: number of runs
     :param str filename: absolute directory of the path to the file
     """
     plt.figure()
-    plt.hist(energy, int(10))
+    plt.hist(energy, 10)
     plt.xlabel('Energy')
     plt.ylabel('Frequency')
     plt.title(f'{solver} energy outline')

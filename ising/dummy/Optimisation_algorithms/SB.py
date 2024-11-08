@@ -1,8 +1,8 @@
 import numpy as np
 import helper_functions as hf
-import math
 
-def discreteSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray, dt:float, Nstep:int, a0:float, c0:float, at:function, verbose:bool=False):
+
+def discreteSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray, dt:float, Nstep:int, a0:float, c0:float, at:callable, verbose:bool=False):
     """
     Implements discrete Simulated bifurcation as is seen in the paper of [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953). 
     This implementation is an improved version of the classical adiabatic Simulated Bifurcation algorithm.
@@ -14,7 +14,7 @@ def discreteSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray,
     :param float dt: time step
     :param int Nstep: total amount of steps undertaken
     :param float a0,c0: positive constants
-    :param function at: control parameter that increases from zero
+    :param callable at: control parameter that increases from zero
     :return sigma (np.ndarray): optimal spin configuration
     :return energies (list): energies during the optimisation
     :return time (list): time during simulation
@@ -32,7 +32,7 @@ def discreteSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray,
         for j in range(N):
             y[j] += (-(a0 - at(tk))*x[j] + c0*np.inner(J[j, :], np.sign(x)) + h[j])*dt
             x[j] += a0*y[j]*dt
-            if math.abs(x[j]) > 1:
+            if np.abs(x[j]) > 1:
                 x[j] = np.sign(x[j])
                 y[j] = 0
         times.append(tk)
@@ -46,7 +46,7 @@ def discreteSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray,
     return sigma, energies, times
 
 
-def ballisticSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray, dt:float, Nstep:int, a0:float, c0:float, at:function, verbose:bool=False):
+def ballisticSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray, dt:float, Nstep:int, a0:float, c0:float, at:callable, verbose:bool=False):
     """
     Implements the ballistic Simulated Bifurcation algorithm as seen in the paper of [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953). 
     The implementation is an improved version of the classical adiabatic Simulated Bifurcation algorithm by suppressing analog errors.
@@ -58,7 +58,7 @@ def ballisticSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray
     :param float dt: time step
     :param int Nstep: total amount of steps undertaken
     :param float a0,c0: positive constants
-    :param function at: control parameter that increases from zero
+    :param callable at: control parameter that increases from zero
     :return sigma (np.ndarray): optimal spin configuration
     :return energies (list): energies during the optimisation
     :return times (list): time during simulation
@@ -76,7 +76,7 @@ def ballisticSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray
         for j in range(N):
             y[j] += (-(a0 - at(tk))*x[j] + c0*np.inner(J[j, :], x) + h[j])*dt
             x[j] += a0*y[j]*dt
-            if math.abs(x[j]) > 1:
+            if np.abs(x[j]) > 1:
                 x[j] = np.sign(x[j])
                 y[j] = 0
         times.append(tk)
