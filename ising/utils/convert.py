@@ -1,7 +1,9 @@
-from collections.abc import Iterable, Collection, Mapping
 import itertools
+from collections.abc import Collection, Iterable, Mapping
+
 import networkx as nx
-from ising.typing import Variable, Bias
+
+from ising.typing import Bias, Variable
 
 __all__ = [
     'LinearLike',
@@ -43,8 +45,8 @@ def convert_to_quadratic(thing: QuadraticLike) -> Mapping[Collection[Variable, V
     elif isinstance(thing, Mapping) and \
             all(isinstance(m, Mapping) for m in thing.keys()):
         quadratic = {}
-        for v, map in thing.items():
-            for u, bias in map.items():
+        for v, m in thing.items():
+            for u, bias in m.items():
                 quadratic[frozenset({u, v})] = bias
         return quadratic
 
