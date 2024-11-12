@@ -317,17 +317,19 @@ def problem2():
     q_end = 5.0
     r_q = hf.compute_rx(q, q_end, S)
     r_t = hf.compute_rx(T, T_end, S)
-
+    tend = 1000
+    dt= tend/S
+    a0 = 1
+    c0 = 0.5/(math.sqrt(N)*math.sqrt(np.sum(np.power(J, 2))/(N*(N-1))))
+    def at(t):
+        return a0 / (S * dt) * t
     sigma_sca, energies_sca = run_solver(
-        "SCA", s_init, J, h, S, T, r_t, N, q=q, r_q=r_q, dir=folder
+        solver="SCA", s_init=s_init, J=J, h=h, S=S, T=T, r_t=r_t, N=N, q=q, r_q=r_q, dir=folder
     )
     sigma_sca = np.copy(sigma_sca)
-    sigma_SA, energies_sa = run_solver("SA", s_init, J, h, S, T, r_t, N=N, dir=folder)
-
-    plt.plot(np.array(list(range(S))), energies_sca)
-    plt.xlabel("iteration")
-    plt.ylabel("Energy")
-    plt.savefig(folder + "/Energy_SCA.png")
+    #sigma_SA, energies_sa = run_solver(solver="SA", s_init=s_init, J=J, h=h, S=S, T=T, r_t=r_t, N=N, dir=folder)
+    _, energies_bSB = run_solver(solver='bSB', s_init=s_init, J=J, h=h, S=S, N=N, dir=folder, a0=a0, c0=c0, at=at, dt=dt)
+    _, energies_dSB = run_solver(solver='dSB', s_init=s_init, J=J, h=h, S=S, N=N, dir=folder, a0=a0, c0=c0, at=at, dt=dt)
 
     mat = np.diag(h) - J
     bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype="SPIN")
@@ -335,19 +337,7 @@ def problem2():
     response = sampler.sample(bqm, num_reads=500)
     print(response.first.energy)
 
-    plt.figure()
-    plt.plot(energies_sa)
-    plt.xlabel("iteration")
-    plt.ylabel("Energy")
-    plt.savefig(folder + "/Energy_SA.png")
-
-    plt.figure()
-    plt.plot(energies_sca)
-    plt.plot(energies_sa)
-    plt.xlabel("iteration")
-    plt.ylabel("Energy")
-    plt.legend(["SCA", "SA"])
-    plt.savefig(folder + "/Energy_comparison.png")
+    hf.plot_energies({'SCA': energies_sca, 'bSB':energies_bSB, 'dSB':energies_dSB}, S=S, filename=folder + '\energies_all.png')
 
 
 def problem3():
@@ -390,7 +380,7 @@ def problem3():
 if __name__ == "__main__":
     if VERBOSE_PLOT:
         plt.ion()
-    problem1()
+    #problem1()
     # importance_hyperparameters_SCA()
-    # problem2()
+    problem2()
     # problem3()
