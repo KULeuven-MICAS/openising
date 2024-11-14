@@ -25,9 +25,9 @@ def get_coeffs_from_array_MC(N: int, data: np.ndarray)-> tuple[np.ndarray, np.nd
     h = np.zeros((N,))
     for row in data:
         i, j, weight = int(row[0])-1, int(row[1])-1, row[2]
-        J[i, j] = -weight
-        J[j, i] = -weight
-    return J/2, h
+        J[i, j] = -weight/2
+        J[j, i] = -weight/2
+    return J, h
 
 
 def compute_rx(init: float, end: float, S: int) -> float:
@@ -51,21 +51,22 @@ def compute_energy(J:np.ndarray, h:np.ndarray, sigma:np.ndarray)->float:
     :param np.ndarray sigma: sample
     :return H (float): value of the Hamiltonian
     """
-    return -np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
+    return -1/2*np.inner(sigma.T, np.inner(J, sigma)) - np.inner(h.T, sigma)
 
-def compute_energy_bSB(h, J, y, x, a0, at, c0):
-    if all(map(np.abs(x[i]) <= 1 for i in range(np.shape(x)[0]))):
-        V = (a0-at)/2*np.sum(np.power(x, 2)) - c0/2*np.inner(x.T, np.inner(J, x)) - c0*np.inner(h.T, x)
-    else:
-        V = np.inf
-    return a0/2*np.sum(np.power(y, 2)) + V
+# def compute_energy_bSB(h, J, y, x, a0, at, c0):
+#     if all(list(np.abs(x[i]) <= 1 for i in range(np.shape(x)[0]))):
+#         V = (a0-at)/2*np.sum(np.power(x, 2)) - c0/2*np.inner(x.T, np.inner(J, x)) - c0*np.inner(h.T, x)
+#     else:
+#         V = np.inf
+#     return a0/2*np.sum(np.power(y, 2)) + V
 
-def compute_energy_dSB(h, J, y, x, a0, at, c0):
-    if all(map(np.abs(x[i]) <= 1 for i in range(np.shape(x)[0]))):
-        V = (a0-at)/2*np.sum(np.power(x, 2)) - c0/2*np.inner(x.T, np.inner(J, np.sign(x))) - c0*np.inner(h.T, x)
-    else:
-        V = np.inf
-    return a0/2*np.sum(np.power(y, 2)) + V
+# def compute_energy_dSB(h, J, y, x, a0, at, c0):
+#     if all(list(np.abs(x[i]) <= 1 for i in range(np.shape(x)[0]))):
+#         V = (a0-at)/2*np.sum(np.power(x, 2)) - c0/2*np.inner(x.T, np.inner(J, np.sign(x))) - c0*np.inner(h.T, x)
+#     else:
+#         V = np.inf
+#     return a0/2*np.sum(np.power(y, 2)) + V
+
 
 def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
     """
@@ -78,8 +79,11 @@ def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
     title = ' '
     plt.figure()
     for key in energies.keys():
-        title += f'{key}, '
-        plt.plot(list(range(S)), energies[key], label=key)
+        if key == 'SA OpenJij':
+            plt.plot(list(range(S)), energies[key]*np.ones((S,)), 'k--', label='OpenJij best')
+        else:
+            title += f'{key}, '
+            plt.plot(list(range(S)), energies[key], label=key)
     title = title[:-2]
     plt.xlabel("iteration")
     plt.ylabel("Energy")

@@ -15,7 +15,18 @@ VERBOSE_SOLVER = False
 VERBOSE_PLOT = False
 
 
-def run_solver(solver:str, s_init:np.ndarray, J:np.ndarray, h:np.ndarray, S:int, N:int, dir:str=".", G=None, **hyperparameters):
+def run_solver(
+    solver: str,
+    s_init: np.ndarray,
+    J: np.ndarray,
+    h: np.ndarray,
+    S: int,
+    N: int,
+    dir: str = ".",
+    G=None,
+    plt:bool=False,
+    **hyperparameters,
+):
     """
     Runs the solver and plots the energy during optimisation
 
@@ -36,10 +47,10 @@ def run_solver(solver:str, s_init:np.ndarray, J:np.ndarray, h:np.ndarray, S:int,
             J=J,
             h_init=h,
             S=S,
-            q=hyperparameters['q'],
-            T=hyperparameters['T'],
-            r_q=hyperparameters['r_q'],
-            r_t=hyperparameters['r_t'],
+            q=hyperparameters["q"],
+            T=hyperparameters["T"],
+            r_q=hyperparameters["r_q"],
+            r_t=hyperparameters["r_t"],
             verbose=VERBOSE_SOLVER,
         )
     elif solver[1:] == "SB":
@@ -47,17 +58,17 @@ def run_solver(solver:str, s_init:np.ndarray, J:np.ndarray, h:np.ndarray, S:int,
             np.random.uniform(low=0.0, high=0.5, size=np.shape(s_init)), s_init
         )
         y_init = np.random.uniform(-0.5, 0.5, size=np.shape(s_init))
-        if solver[0] == 'b':
+        if solver[0] == "b":
             sigma_optim, energies, times = ballisticSB(
                 h=h,
                 J=J,
                 x_init=x_init,
                 y_init=y_init,
-                dt=hyperparameters['dt'],
+                dt=hyperparameters["dt"],
                 Nstep=S,
-                a0=hyperparameters['a0'],
-                c0=hyperparameters['c0'],
-                at=hyperparameters['at'],
+                a0=hyperparameters["a0"],
+                c0=hyperparameters["c0"],
+                at=hyperparameters["at"],
                 verbose=VERBOSE_SOLVER,
             )
         else:
@@ -66,32 +77,31 @@ def run_solver(solver:str, s_init:np.ndarray, J:np.ndarray, h:np.ndarray, S:int,
                 J=J,
                 x_init=x_init,
                 y_init=y_init,
-                dt=hyperparameters['dt'],
+                dt=hyperparameters["dt"],
                 Nstep=S,
-                a0=hyperparameters['a0'],
-                c0=hyperparameters['c0'],
-                at=hyperparameters['at'],
+                a0=hyperparameters["a0"],
+                c0=hyperparameters["c0"],
+                at=hyperparameters["at"],
                 verbose=VERBOSE_SOLVER,
             )
 
     else:
         sigma_optim, energies = SA(
-            T=hyperparameters['T'],
-            r_T=hyperparameters['r_t'],
+            T=hyperparameters["T"],
+            r_T=hyperparameters["r_t"],
             S=S,
             J=J,
             h=h,
             sigma=s_init,
             verbose=VERBOSE_SOLVER,
         )
-    energy = -np.inner(sigma_optim.T, np.inner(J, sigma_optim)) - np.inner(
-        h.T, sigma_optim
-    )
+    energy = hf.compute_energy(J, h, sigma_optim) + 1/2*np.sum(J)
     print(f"The optimal energy of {solver} is: {energy}")
     if N <= 20:
         print(f"The optimal state of {solver}: {sigma_optim}")
         hf.plot_solution(sigma_optim, G, solver)
-    hf.plot_energies({solver: energies}, S, f"{dir}\Energy_{solver}.png")
+    if plt:
+        hf.plot_energies({solver: energies}, S, f"{dir}\Energy_{solver}.png")
     return sigma_optim, energies
 
 
@@ -124,7 +134,7 @@ def problem1():
     nx.draw_networkx(G)
     folder = "..\output"
 
-    print('Setting hyperparameters')
+    print("Setting hyperparameters")
     J, h = hf.get_coeffs_from_array_MC(N, data)
     nb_runs = 10
     S = 500
@@ -135,10 +145,12 @@ def problem1():
     r_t = hf.compute_rx(T, T_end, S)
     r_q = hf.compute_rx(q, q_end, S)
     dt = 0.25
-    a0 = 1.
-    c0 = 0.5/(math.sqrt(N)*math.sqrt(np.sum(np.power(J, 2))/(N*(N-1))))
+    a0 = 1.0
+    c0 = 0.5 / (math.sqrt(N) * math.sqrt(np.sum(np.power(J, 2)) / (N * (N - 1))))
+
     def at(t):
         return a0 / (S * dt) * t
+
     s_init = hf.get_random_s(N)
     print(f"Initial sigma: {s_init}")
 
@@ -160,141 +172,79 @@ def problem1():
     energy_dsb = []
     for i in range(nb_runs):
         sigma_sca, energies_sca = run_solver(
-            solver="SCA", s_init=s_init, J=J, h=h, S=S, N=N, G=G, dir=folder, q=q, r_q=r_q, T=T, r_t=r_t
+            solver="SCA",
+            s_init=s_init,
+            J=J,
+            h=h,
+            S=S,
+            N=N,
+            G=G,
+            dir=folder,
+            q=q,
+            r_q=r_q,
+            T=T,
+            r_t=r_t,
         )
         energy_sca.append(energies_sca[-1])
         sigma_SA, energies_sa = run_solver(
-            solver="SA", s_init=s_init, J=J, h=h, S=S, N=N, G=G, dir=folder, T=T, r_t=r_t
+            solver="SA",
+            s_init=s_init,
+            J=J,
+            h=h,
+            S=S,
+            N=N,
+            G=G,
+            dir=folder,
+            T=T,
+            r_t=r_t,
         )
         energy_sa.append(energies_sa[-1])
-        sigma_bsb, energies_bsb = run_solver(solver='bSB', s_init=s_init, J=J, h=h, S=S, N=N, G=G, dir=folder, a0=a0, c0=c0, at=at, dt=dt)
+        sigma_bsb, energies_bsb = run_solver(
+            solver="bSB",
+            s_init=s_init,
+            J=J,
+            h=h,
+            S=S,
+            N=N,
+            G=G,
+            dir=folder,
+            a0=a0,
+            c0=c0,
+            at=at,
+            dt=dt,
+        )
         energy_bsb.append(energies_bsb[-1])
-        sigma_dsb, energies_dsb = run_solver(solver='dSB', s_init=s_init, J=J, h=h, S=S, N=N, G=G, dir=folder, a0=a0, c0=c0, at=at, dt=dt)
+        sigma_dsb, energies_dsb = run_solver(
+            solver="dSB",
+            s_init=s_init,
+            J=J,
+            h=h,
+            S=S,
+            N=N,
+            G=G,
+            dir=folder,
+            a0=a0,
+            c0=c0,
+            at=at,
+            dt=dt,
+        )
         energy_dsb.append(energies_dsb[-1])
 
     hf.plot_energy_dist(energy_sca, "SCA", folder + "\histogram_sca.png")
     hf.plot_energy_dist(energy_sa, "SA", folder + "\histogram_sa.png")
-    hf.plot_energy_dist(energy_bsb, 'bSB', folder+'\histogram_bSB.png')
-    hf.plot_energy_dist(energies_dsb, 'dSB', folder+'\histogram_dSB.png')
+    hf.plot_energy_dist(energy_bsb, "bSB", folder + "\histogram_bSB.png")
+    hf.plot_energy_dist(energies_dsb, "dSB", folder + "\histogram_dSB.png")
 
-    energies = {"SCA": energies_sca, "SA": energies_sa, 'bSB': energies_bsb, 'dSB': energies_dsb}
+    energies = {
+        "SCA": energies_sca,
+        "SA": energies_sa,
+        "bSB": energies_bsb,
+        "dSB": energies_dsb,
+    }
     hf.plot_energies(energies, S, folder + "\energies_all.png")
 
 
-def importance_hyperparameters_SCA():
-    print("--------------------------------------")
-    print("Influence of hyperparameters of SCA")
-    print("--------------------------------------")
-
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-    file = os.path.join(parent_dir, "G1.txt")
-    info = np.genfromtxt(file, delimiter=" ")
-    N = int(info[0, 0])
-    nb_edges = int(info[0, 1])
-    print(f"Graph with {N} nodes and {nb_edges} edges")
-    info = info[1:, :]
-    J, h = hf.get_coeffs_from_array_MC(N, info)
-    sigma = hf.get_random_s(N)
-
-    print("Influence of r_q")
-    print("--------------------------------------")
-    S = 560
-    q_init = 2.0
-    T_init = 50.0
-    T_end = 4.0
-    q_fin = [3.0, 4.0, 5.0, 6.0]
-    r_t = hf.compute_rx(T_init, T_end, S)
-
-    for q_end in q_fin:
-        r_q = (q_end / q_init) ** (1 / (S - 1))
-        print(f"Final q: {q_end}, increase rate: {r_q}")
-        sigma_SCA, energy_SCA = run_solver(
-            "SCA",
-            sigma,
-            J,
-            h,
-            S,
-            T_init,
-            r_t,
-        )
-        energy = hf.compute_energy(J, h, sigma_SCA)
-        print(f"The optimal energy of SCA is: {energy}")
-
-        hf.plot_energies(
-            {"SCA": energy_SCA},
-            S,
-            f"{parent_dir}\output\hyperparameter_test\Energy_SCA_rq{str(r_q)}.png",
-        )
-
-    print("Influence of r_T")
-    print("--------------------------------------")
-    S = 560
-    q_init = 2.0
-    T_init = 50.0
-    T_fin = [4.0, 5.0, 6.0]
-    q_end = 4.0
-    r_q = (q_end / q_init) ** (1 / (S - 1))
-
-    for T_end in T_fin:
-        r_t = (T_end / T_init) ** (1 / (S - 1))
-        print(f"Final T: {q_end}, decrease rate: {r_q}")
-        sigma_SCA, energy_SCA = SCA(
-            s_init=sigma,
-            J=J,
-            h_init=h,
-            S=S,
-            q_init=q_init,
-            T_init=T_init,
-            r_q=r_q,
-            r_t=r_t,
-        )
-        energy = -np.inner(sigma_SCA.T, np.inner(J, sigma_SCA)) - np.inner(
-            h.T, sigma_SCA
-        )
-        print(f"The optimal energy of SCA is: {energy}")
-
-        hf.plot_energies(
-            {"SCA": energy_SCA},
-            S,
-            f"{parent_dir}\output\hyperparameter_test\Energy_SCA_rT{str(r_t)}.png",
-        )
-
-    print("Influence of S")
-    print("--------------------------------------")
-    S_all = [560, 760, 960, 1160, 1360]
-    q_init = 2.0
-    T_init = 50.0
-    T_end = 4.0
-    q_end = 4.0
-    r_q = (q_end / q_init) ** (1 / (S - 1))
-    r_t = (T_end / T_init) ** (1 / (S - 1))
-
-    for S in S_all:
-        print(f"Iterations S: {S}, decrease rate: {r_q}")
-        sigma_SCA, energy_SCA = SCA(
-            s_init=sigma,
-            J=J,
-            h_init=h,
-            S=S,
-            q_init=q_init,
-            T_init=T_init,
-            r_q=r_q,
-            r_t=r_t,
-        )
-        energy = -np.inner(sigma_SCA.T, np.inner(J, sigma_SCA)) - np.inner(
-            h.T, sigma_SCA
-        )
-        print(f"The optimal energy of SCA is: {energy}")
-
-        hf.plot_energies(
-            {"SCA": energy_SCA},
-            S,
-            f"{parent_dir}\output\hyperparameter_test\Energy_SCA_S{str(S)}.png",
-        )
-
-
-def problem2():
+def G1():
     print("--------------------------------------")
     print("Not-fully connected graph from G1 benchmark")
     print("--------------------------------------")
@@ -318,18 +268,53 @@ def problem2():
     r_q = hf.compute_rx(q, q_end, S)
     r_t = hf.compute_rx(T, T_end, S)
     tend = 1000
-    dt= tend/S
+    dt = tend / S
     a0 = 1
-    c0 = 0.5/(math.sqrt(N)*math.sqrt(np.sum(np.power(J, 2))/(N*(N-1))))
+    c0 = 0.5 / (math.sqrt(N) * math.sqrt(np.sum(np.power(J, 2)) / (N * (N - 1))))
+
     def at(t):
         return a0 / (S * dt) * t
+
     sigma_sca, energies_sca = run_solver(
-        solver="SCA", s_init=s_init, J=J, h=h, S=S, T=T, r_t=r_t, N=N, q=q, r_q=r_q, dir=folder
+        solver="SCA",
+        s_init=s_init,
+        J=J,
+        h=h,
+        S=S,
+        T=T,
+        r_t=r_t,
+        N=N,
+        q=q,
+        r_q=r_q,
+        dir=folder,
     )
     sigma_sca = np.copy(sigma_sca)
-    #sigma_SA, energies_sa = run_solver(solver="SA", s_init=s_init, J=J, h=h, S=S, T=T, r_t=r_t, N=N, dir=folder)
-    _, energies_bSB = run_solver(solver='bSB', s_init=s_init, J=J, h=h, S=S, N=N, dir=folder, a0=a0, c0=c0, at=at, dt=dt)
-    _, energies_dSB = run_solver(solver='dSB', s_init=s_init, J=J, h=h, S=S, N=N, dir=folder, a0=a0, c0=c0, at=at, dt=dt)
+    _, energies_bSB = run_solver(
+        solver="bSB",
+        s_init=s_init,
+        J=J,
+        h=h,
+        S=S,
+        N=N,
+        dir=folder,
+        a0=a0,
+        c0=c0,
+        at=at,
+        dt=dt,
+    )
+    _, energies_dSB = run_solver(
+        solver="dSB",
+        s_init=s_init,
+        J=J,
+        h=h,
+        S=S,
+        N=N,
+        dir=folder,
+        a0=a0,
+        c0=c0,
+        at=at,
+        dt=dt,
+    )
 
     mat = np.diag(h) - J
     bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype="SPIN")
@@ -337,50 +322,173 @@ def problem2():
     response = sampler.sample(bqm, num_reads=500)
     print(response.first.energy)
 
-    hf.plot_energies({'SCA': energies_sca, 'bSB':energies_bSB, 'dSB':energies_dSB}, S=S, filename=folder + '\energies_all.png')
+    hf.plot_energies(
+        {"SCA": energies_sca, "bSB": energies_bSB, "dSB": energies_dSB},
+        S=S,
+        filename=folder + "\energies_all.png",
+    )
 
 
-def problem3():
+def k2000():
     print("--------------------------------------")
-    print("Test with bqmpy code")
+    print("Test K2000 benchmark")
     print("--------------------------------------")
-    # Q = np.array(
-    #     [
-    #         [2, -2, -2, 0, 0, 0, 0, 0, 0, 0],
-    #         [0, 2, -2, 0, 0, 0, 0, 0, 0, 0],
-    #         [0, 0, 3, -2, 0, 0, 0, 0, 0, 0],
-    #         [0, 0, 0, 3, -2, -2, 0, 0, 0, 0],
-    #         [0, 0, 0, 0, 3, -2, -2, 0, 0, 0],
-    #         [0, 0, 0, 0, 0, 3, -2, 0, 0, 0],
-    #         [0, 0, 0, 0, 0, 0, 3, -2, 0, 0],
-    #         [0, 0, 0, 0, 0, 0, 0, 3, -2, -2],
-    #         [0, 0, 0, 0, 0, 0, 0, 0, 2, -2],
-    #         [0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
-    #     ]
-    # )
 
-    # bqm = bqmpy.BinaryQuadraticModel.from_qubo(-Q)
-    # h, J = bqm.to_ising()
-    # N = bqm.num_variables
-    # sigma = get_random_s(N)
-    # T = 50
-    # S = 200
-    # r_t = (0.05/T)**(1/(S-1))
-    # print(f"Hyperparameters: initial temperature {T}, iteration {S}, temperature decrease {r_t}")
-    # sigma_SA, energies_SA = SA(T, r_t, S, J, h, sigma)
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-    # plt.figure()
-    # plt.plot(energies_SA)
-    # plt.xlabel("iteration")
-    # plt.ylabel("Energy")
-    # plt.savefig('Energy_SA')
-    # plt.show()
+    file = os.path.join(parent_dir, "WK2000_1.txt")
+    info = np.genfromtxt(file, delimiter=" ")
+    N = int(info[0, 0])
+    nb_edges = int(info[0, 1])
+    print(f"Graph with {N} nodes and {nb_edges} edges")
+    info = info[1:, :]
+    J, h = hf.get_coeffs_from_array_MC(N, info)
+    s_init = hf.get_random_s(N)
 
+    print("Hyperparameter setup")
+    S = 1000
+    T = 50.0
+    T_end = 0.05
+    r_t = hf.compute_rx(T, T_end, S)
+    q = 2.0
+    q_end = 7.0
+    r_q = hf.compute_rx(q, q_end, S)
+    c0 = 0.5 / (math.sqrt(N) * math.sqrt(np.sum(np.power(J, 2)) / (N * (N - 1))))
+    a0 = 1
+    dt = 0.25
+
+    def at(t):
+        return a0 / (S * dt) * t
+
+    print("SCA solver")
+    _, energies_SCA = run_solver(
+        solver="SCA",
+        s_init=s_init,
+        J=J/2,
+        h=h,
+        S=S,
+        N=N,
+        dir=parent_dir + "\output\K2000_test",
+        T=T,
+        r_t=r_t,
+        q=q,
+        r_q=r_q,
+    )
+    print("bSB solver")
+    _, energies_bSB = run_solver(
+        solver="bSB",
+        s_init=s_init,
+        J=J,
+        h=h,
+        S=S,
+        N=N,
+        dir=parent_dir + "\output\K2000_test",
+        a0=a0,
+        c0=c0,
+        dt=dt,
+        at=at,
+    )
+    print("dSB solver")
+    _, energies_dSB = run_solver(
+        solver="dSB",
+        s_init=s_init,
+        J=J,
+        h=h,
+        S=S,
+        N=N,
+        dir=parent_dir + "\output\K2000_test",
+        a0=a0,
+        c0=c0,
+        dt=dt,
+        at=at,
+    )
+
+    print("SA OpenJij solver")
+    mat = np.diag(h) - J/2
+    bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype="SPIN")
+    sampler = oj.SASampler()
+    response = sampler.sample(bqm, num_reads=10)
+    print("OpenJij best energy: " + str(response.first.energy))
+
+    hf.plot_energies(
+        energies={
+            "SCA": energies_SCA,
+            "bSB": energies_bSB,
+            "dSB": energies_dSB,
+            'SA OpenJij': response.first.energy
+        },
+        S=S,
+        filename=parent_dir + "\output\K2000_test\energies_all.png",
+    )
+
+def test_SB():
+    print("--------------------------------------")
+    print("Test SB implementation")
+    print("--------------------------------------")
+
+    print('load K2000 max-cut benchmark')
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+    file = os.path.join(parent_dir, "WK2000_1.txt")
+    info = np.genfromtxt(file, delimiter=" ")
+    N = int(info[0, 0])
+    nb_edges = int(info[0, 1])
+    print(f"Graph with {N} nodes and {nb_edges} edges")
+    info = info[1:, :]
+    J, h = hf.get_coeffs_from_array_MC(N, info)
+    s_init = hf.get_random_s(N)
+
+    Nstep_list = [500, 1000, 5000]
+    dt = 1
+    a0 = 1
+    c0 = 0.5 / (math.sqrt(N) * math.sqrt(np.sum(np.power(J, 2)) / (N * (N - 1))))
+    def at(t):
+        return a0 / (dt * Nstep) * t
+    folder = parent_dir + '\output\SB_test'
+
+    nb_runs = 20
+    energies_bSB = {500: [], 1000: [], 5000: []}
+    averages_bSB = []
+    min_bSB = []
+    max_bSB = []
+    energies_dSB = {500: [], 1000: [], 5000: []}
+    averages_dSB = []
+    min_dSB = []
+    max_dSB = []
+    for Nstep in Nstep_list:
+        for i in range(nb_runs):
+            print('run: ' + str(i))
+            _, energy_bSB = run_solver(solver='bSB', s_init=s_init, J=J, h=h, S=Nstep, N=N, dir=folder, dt=dt, a0=a0, c0=c0, at=at)
+            _, energy_dSB = run_solver(solver='dSB', s_init=s_init, J=J, h=h, S=Nstep, N=N, dir=folder, dt=dt, a0=a0, c0=c0, at=at)
+            energies_bSB[Nstep].append(energy_bSB[-1] + 1/2*np.sum(J))
+            energies_dSB[Nstep].append(energy_dSB[-1] + 1/2*np.sum(J))
+        averages_bSB.append(np.mean(energies_bSB[Nstep]))
+        averages_dSB.append(np.mean(energies_dSB[Nstep]))
+        min_bSB.append(np.min(energies_bSB[Nstep]))
+        max_bSB.append(np.max(energies_bSB[Nstep]))
+        min_dSB.append(np.min(energies_dSB[Nstep]))
+        max_dSB.append(np.max(energies_dSB[Nstep]))
+
+    bestknown = -33337
+    plt.figure()
+    plt.plot(Nstep_list, averages_bSB, 'b--', label='bSB')
+    plt.plot(Nstep_list, averages_dSB, 'r--', label='dSB')
+    plt.fill_between(Nstep_list, min_bSB, max_bSB, color='blue', alpha=.1)
+    plt.fill_between(Nstep_list, min_dSB, max_dSB, color='red', alpha=.1)
+    plt.plot(Nstep_list, [bestknown]*len(Nstep_list), '--k')
+    plt.xlabel('Nstep')
+    plt.ylabel('Energy')
+    plt.legend()
+    plt.savefig(folder + '\SB_nstep_Test.png')
+    plt.show()
+
+    
 
 if __name__ == "__main__":
     if VERBOSE_PLOT:
         plt.ion()
-    #problem1()
-    # importance_hyperparameters_SCA()
-    problem2()
-    # problem3()
+    # problem1()
+    # G1()
+    # k2000()
+    test_SB()
+
