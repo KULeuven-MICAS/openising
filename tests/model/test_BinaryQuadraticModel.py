@@ -1,6 +1,6 @@
 import pytest
-
-from ising.model import BinaryQuadraticModel, Vartype
+from ising.typing import Vartype
+from ising.model import BinaryQuadraticModel
 
 class TestClass:
 
@@ -132,10 +132,10 @@ class TestClass:
         bqm = simple_bqm()
         v = 0
         assert v in bqm.linear
-        assert any([v in e for e in bqm.quadratic])
+        assert any(v in e for e in bqm.quadratic)
         bqm.remove_variable(v)
         assert v not in bqm.linear
-        assert not any([v in e for e in bqm.quadratic])
+        assert not any(v in e for e in bqm.quadratic)
 
 
     def test_remove_interaction(self, simple_bqm):

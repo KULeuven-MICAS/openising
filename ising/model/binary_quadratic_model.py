@@ -13,7 +13,7 @@ class BinaryQuadraticModel:
 
     Attributes:
         linear (dict[Variable, Bias]):
-            A dictionary mapping variables in the BQM to its linear bias. 
+            A dictionary mapping variables in the BQM to its linear bias.
             Biasless variables have bias zero.
 
         quadratic (dict[frozenset[Variable, Variable], Bias]):
@@ -45,12 +45,7 @@ class BinaryQuadraticModel:
         self.set_offset(offset)
 
     def __repr__(self) -> str:
-        return 'BinaryQuadraticModel({linear}, {quadratic}, {offset}, {vartype})'.format(
-            linear = self.linear,
-            quadratic = { tuple(e): b for e, b in self.quadratic.items() },
-            offset = self.offset,
-            vartype = self.vartype
-            )
+        return f'BinaryQuadraticModel({self.linear}, {self.quadratic}, {self.offset}, {self.vartype})'
 
     def __len__(self) -> int:
         return self.num_variables
@@ -171,21 +166,27 @@ class BinaryQuadraticModel:
             raise ValueError(f'Vartype unknown: {Vartype}')
 
     @staticmethod
-    def spin_to_binary(linear: dict[Variable, Bias], quadratic: dict[frozenset[Variable, Variable], Bias], offset: Bias):
+    def spin_to_binary(linear: dict[Variable, Bias],
+                       quadratic: dict[frozenset[Variable, Variable], Bias],
+                       offset: Bias):
         """Calculate spin-to-binary conversion.
         Static method to convert a given linear, quadratic and offset from spin encoding to their binary counterpart.
         """
-        linear = { v : 1/4 * sum([ bias for (e, bias) in quadratic.items() if v in e ]) - 1/2 * bias for (v, bias) in linear.items() }
+        linear = { v : 1/4 * sum([ bias for (e, bias) in quadratic.items() if v in e ]) - 1/2 * bias \
+            for (v, bias) in linear.items() }
         quadratic = { e : -1/4 * bias for (e, bias) in quadratic.items() }
         offset = 1/4 * sum(quadratic.values()) + 1/2 * sum(linear.values())
         return linear, quadratic, offset
 
     @staticmethod
-    def binary_to_spin(linear: dict[Variable, Bias], quadratic: dict[frozenset[Variable, Variable], Bias], offset: Bias):
+    def binary_to_spin(linear: dict[Variable, Bias],
+                       quadratic: dict[frozenset[Variable, Variable], Bias],
+                       offset: Bias):
         """Calculate binary-to-spin conversion.
         Static method to convert a given linear, quadratic and offset from binary encoding to their spin counterpart.
         """
-        linear = { v : 2 * sum([ bias for (e, bias) in quadratic.items() if v in e ]) - 2 * bias for (v, bias) in linear.items() }
+        linear = { v : 2 * sum([ bias for (e, bias) in quadratic.items() if v in e ]) - 2 * bias \
+            for (v, bias) in linear.items() }
         quadratic = { e : -4 * bias for (e, bias) in quadratic.items() }
         offset = - sum(quadratic.values()) + sum(linear.values())
         return linear, quadratic, offset
@@ -219,7 +220,10 @@ class BinaryQuadraticModel:
         return Q, self.offset
 
     @classmethod
-    def from_qubo(cls, Q: np.ndarray, offset: Bias = 0.0, variable_order: Sequence[Variable]|None = None) -> BinaryQuadraticModel:
+    def from_qubo(cls,
+                  Q: np.ndarray,
+                  offset: Bias = 0.0,
+                  variable_order: Sequence[Variable]|None = None) -> BinaryQuadraticModel:
         """Create BQM from a QUBO matrix.
         Variable_order may be supplied to label the nodes of the BQM.
         If not supplied, integers (starting at 0) will be used as variable names.
@@ -271,7 +275,11 @@ class BinaryQuadraticModel:
         return h, J
 
     @classmethod
-    def from_ising(cls, h: np.ndarray, J: np.ndarray, offset: Bias = 0.0, variable_order: Sequence[Variable]|None = None) -> BinaryQuadraticModel:
+    def from_ising(cls,
+                   h: np.ndarray,
+                   J: np.ndarray,
+                   offset: Bias = 0.0,
+                   variable_order: Sequence[Variable]|None = None) -> BinaryQuadraticModel:
         """Create BQM from Ising matrix/vector represenation.
         Variable_order may be supplied to label the nodes of the BQM.
         If not supplied, integers (starting at 0) will be used as variable names.
