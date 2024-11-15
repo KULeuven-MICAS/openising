@@ -8,6 +8,8 @@ import os
 import openjij as oj
 import helper_functions as hf
 import math
+import BLIM
+from scipy.integrate import solve_ivp
 # from  ising.model import BinaryQuadraticModel
 
 VERBOSE = False
@@ -482,6 +484,54 @@ def test_SB():
     plt.savefig(folder + '\SB_nstep_Test.png')
     plt.show()
 
+
+def test_BLIM():
+    print("--------------------------------------")
+    print("Test BLIM")
+    print("--------------------------------------")
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    folder = parent_dir + '\output\BLIM_test'
+    file = os.path.join(parent_dir, "WK2000_1.txt")
+    info = np.genfromtxt(file, delimiter=" ")
+    N = int(info[0, 0])
+    nb_edges = int(info[0, 1])
+    print(f"Graph with {N} nodes and {nb_edges} edges")
+    info = info[1:, :]
+    J, h = hf.get_coeffs_from_array_MC(N, info)
+    S = 10000
+    tend = 3e-6
+    dt = tend/S
+    C = 1e-6
+    G = 1e-1
+    v_init = np.random.uniform(-1, 1, N)
+    print('Changing k(t)')
+    def changing_kt(t):
+        kmin = 0.1
+        kmax = 5.
+        cycle_duration = tend / 10
+        return kmax if int(t // (cycle_duration/2)) % 2 == 0 else kmin
+    v_optim, energies_ch, times_ch, v_list_ch = BLIM.BLIM(J, v_init, dt, S, changing_kt, N, C, G, verbose=True)
+    optim_energy = hf.compute_energy(J, h, np.sign(v_optim))
+    print(f'Optimal energy changing k: {optim_energy}')
+
+    print('Fixed k(t)')
+    def constant_k(t):
+        return 2.5
+    v_optim, energies, times, v_list = BLIM.BLIM(J, v_init, dt, S, constant_k, N, C, G, verbose=True)
+    optim_energy = hf.compute_energy(J, h, np.sign(v_optim))
+    print(f'Optimal energy constant k: {optim_energy}')
+
+    hf.plot_energies({'BLIM changing k': energies_ch, 'BLIM constant k': energies}, S+1, filename=folder + '\energies_all.png')
+    plt.figure()
+    plt.imshow(v_list_ch, interpolation='nearest')
+    plt.title('Changing k')
+    plt.show()
+
+    plt.figure()
+    plt.imshow(v_list, interpolation='nearest')
+    plt.title('constant k')
+    plt.show()    
+
     
 
 if __name__ == "__main__":
@@ -490,5 +540,6 @@ if __name__ == "__main__":
     # problem1()
     # G1()
     # k2000()
-    test_SB()
+    #test_SB()
+    test_BLIM()
 
