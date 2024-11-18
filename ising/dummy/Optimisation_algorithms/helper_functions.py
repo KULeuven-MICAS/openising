@@ -68,24 +68,25 @@ def compute_energy(J:np.ndarray, h:np.ndarray, sigma:np.ndarray)->float:
 #     return a0/2*np.sum(np.power(y, 2)) + V
 
 
-def plot_energies(energies:dict[str:np.ndarray], S:int, filename:str)->None:
+def plot_energies(energies:dict[str:np.ndarray], x:list, xname:str, filename:str)->None:
     """
     Plots the given energies and stores them in directory filename.
 
     :param dict[str:np.ndarray] energies: all the energies of solvers stored in a dictionary with the structure [solver, energy]
-    :param int S: total amount of iterations
+    :param list x: x-axis values
+    :param str xname: x-axis label
     :param str filename: absolute directory of the path to the file
     """
     title = ' '
     plt.figure()
     for key in energies.keys():
         if key == 'SA OpenJij':
-            plt.plot(list(range(S)), energies[key]*np.ones((S,)), 'k--', label='OpenJij best')
+            plt.plot(x, energies[key]*np.ones((S,)), 'k--', label='OpenJij best')
         else:
             title += f'{key}, '
-            plt.plot(list(range(S)), energies[key], label=key)
+            plt.plot(x, energies[key], label=key)
     title = title[:-2]
-    plt.xlabel("iteration")
+    plt.xlabel(xname)
     plt.ylabel("Energy")
     plt.legend()
     plt.title('Energy evolution of' + title)

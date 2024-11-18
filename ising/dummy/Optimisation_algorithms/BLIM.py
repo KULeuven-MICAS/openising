@@ -1,9 +1,27 @@
 import numpy as np
-from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
+# from scipy.integrate import solve_ivp
+# import matplotlib.pyplot as plt
 import helper_functions as hf
 
-def BLIM(J:np.ndarray, v_init:np.ndarray, dt:float, S:int, k:callable, N:int, C:float, G:float, verbose:bool=False):
+def BLIM(J:np.ndarray, v_init:np.ndarray, dt:float, S:int, k:callable, N:int, C:float, G:float, verbose:bool=False) -> tuple[np.ndarray, list[float], list[float], np.ndarray]:
+    """Performs the BLIM algorithm.
+
+    Args:
+        J (np.ndarray): interaction coefficient matrix
+        v_init (np.ndarray): initial voltages
+        dt (float): time step needed for RK4 integration
+        S (int): amount of iterations
+        k (callable): function describing the sharpness of the inverter characteristics
+        N (int): size of the problem
+        C, G (float): capacitor and resistance parameters
+        verbose (bool, optional): Whether to print out information or not. Defaults to False.
+
+    Returns:
+        v (np.ndarray): optimal voltages
+        energies (list[float]): all the energies during simulation
+        times (list[float]): time points during simulation
+        v_list (np.ndarray): values of all the spins at every iteration
+    """    
     v = np.copy(v_init)
     tk = 0.
     def dvdt(t, v, k):
@@ -20,7 +38,7 @@ def BLIM(J:np.ndarray, v_init:np.ndarray, dt:float, S:int, k:callable, N:int, C:
     v_list[0,:]
     if verbose:
         row = ['Iteration', 'Time', 'Energy']
-        print("{: >20} {: >20} {: >20} ".format(*row))
+        print("{: ^20} {: ^20} {: ^20} ".format(*row))
     for i in range(S):
         times.append(tk)
         kt = k(tk)
@@ -35,7 +53,7 @@ def BLIM(J:np.ndarray, v_init:np.ndarray, dt:float, S:int, k:callable, N:int, C:
         energies.append(energy)
         if verbose and i%100 == 0:
             row = [i, tk, energy]
-            print("{: >20} {:.3 >20} {:.3 >20} ".format(*row))
+            print("{:^20} {:^20.3e} {:^20.3f} ".format(*row))
         tk += dt
     return v, energies, times, v_list
 

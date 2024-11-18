@@ -498,7 +498,7 @@ def test_BLIM():
     print(f"Graph with {N} nodes and {nb_edges} edges")
     info = info[1:, :]
     J, h = hf.get_coeffs_from_array_MC(N, info)
-    S = 10000
+    S = 1000
     tend = 3e-6
     dt = tend/S
     C = 1e-6
@@ -506,29 +506,34 @@ def test_BLIM():
     v_init = np.random.uniform(-1, 1, N)
     print('Changing k(t)')
     def changing_kt(t):
-        kmin = 0.1
-        kmax = 5.
+        kmin = 5.
+        kmax = 20.
         cycle_duration = tend / 10
         return kmax if int(t // (cycle_duration/2)) % 2 == 0 else kmin
-    v_optim, energies_ch, times_ch, v_list_ch = BLIM.BLIM(J, v_init, dt, S, changing_kt, N, C, G, verbose=True)
+    v_optim, energies_ch, _, v_list_ch = BLIM.BLIM(J, v_init, dt, S, changing_kt, N, C, G, verbose=True)
     optim_energy = hf.compute_energy(J, h, np.sign(v_optim))
     print(f'Optimal energy changing k: {optim_energy}')
 
     print('Fixed k(t)')
-    def constant_k(t):
-        return 2.5
-    v_optim, energies, times, v_list = BLIM.BLIM(J, v_init, dt, S, constant_k, N, C, G, verbose=True)
-    optim_energy = hf.compute_energy(J, h, np.sign(v_optim))
-    print(f'Optimal energy constant k: {optim_energy}')
+    k_list = np.linspace([5.], [30.], 6)
+    energies = []
+    def constant_k(t, k):
+        return k
+    for k in k_list:
+        const_k = lambda t: constant_k(t, k)
+        v_optim, energy, times, v_list = BLIM.BLIM(J, v_init, dt, S, const_k, N, C, G, verbose=True)
+        energies.append(energy)
+        optim_energy = hf.compute_energy(J, h, np.sign(v_optim))
+        print(f'Optimal energy constant k: {optim_energy}')
 
-    hf.plot_energies({'BLIM changing k': energies_ch, 'BLIM constant k': energies}, S+1, filename=folder + '\energies_all.png')
+    hf.plot_energies({'changing k' : energies_ch, 'k = 5.': energies[0], 'k=10':energies[1], 'k=15':energies[2], 'k=20':energies[3], 'k=25':energies[4], 'k=30':energies[5]}, times, 'time',  filename=folder + '\energies_all.png')
     plt.figure()
-    plt.imshow(v_list_ch, interpolation='nearest')
+    plt.imshow(np.sign(v_list_ch), interpolation='nearest')
     plt.title('Changing k')
     plt.show()
 
     plt.figure()
-    plt.imshow(v_list, interpolation='nearest')
+    plt.imshow(np.sign(v_list), interpolation='nearest')
     plt.title('constant k')
     plt.show()    
 
