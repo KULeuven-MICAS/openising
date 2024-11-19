@@ -81,7 +81,7 @@ def plot_energies(energies:dict[str:np.ndarray], x:list, xname:str, filename:str
     plt.figure()
     for key in energies.keys():
         if key == 'SA OpenJij':
-            plt.plot(x, energies[key]*np.ones((S,)), 'k--', label='OpenJij best')
+            plt.plot(x, energies[key]*np.ones((len(x),)), 'k--', label='OpenJij best')
         else:
             title += f'{key}, '
             plt.plot(x, energies[key], label=key)
