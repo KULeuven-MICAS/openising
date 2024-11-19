@@ -419,7 +419,8 @@ def k2000():
             "dSB": energies_dSB,
             'SA OpenJij': response.first.energy
         },
-        S=S,
+        x=list(range(S)),
+        xname='iteration',
         filename=parent_dir + "\output\K2000_test\energies_all.png",
     )
 
@@ -544,7 +545,7 @@ if __name__ == "__main__":
         plt.ion()
     # problem1()
     # G1()
-    # k2000()
+    k2000()
     #test_SB()
-    test_BLIM()
+    # test_BLIM()
 
