@@ -5,11 +5,10 @@ import math
 
 class SA(Solver):
     def __init__(self, sigma, model, file, S, T, r_t, verbose):
-        Solver.__init__(sigma, model, file)
+        Solver.__init__(sigma, model, file, verbose)
         self.S = S
         self.T = T
         self.r_t = r_t
-        self.verbose = verbose
 
     def set_T(self, T):
         self.T = T
