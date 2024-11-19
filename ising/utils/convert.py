@@ -104,3 +104,19 @@ def convert_to_graph(thing: GraphLike) -> tuple[Iterable[Variable], Iterable[Col
 
     else:
         raise TypeError('Input is not valid for conversion to "graph" argument')
+
+
+SampleLike = Mapping[Variable, bool] | Iterable[bool]
+
+def convert_to_sample(thing: SampleLike) -> Mapping[Variable, bool]:
+
+    # Mapping[Variable, bool]
+    if isinstance(thing, Mapping):
+        return thing
+
+    # Iterable[bool]
+    elif isinstance(thing, Iterable):
+        return dict(enumerate(thing))
+
+    else:
+        raise TypeError('Input is not valid for conversion to "sample" argument')

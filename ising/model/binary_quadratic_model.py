@@ -3,7 +3,8 @@ import numpy as np
 from collections.abc import Collection, Sequence
 from pathlib import Path
 from ising.typing import Variable, Bias, Vartype
-from ising.utils.convert import LinearLike, convert_to_linear, QuadraticLike, convert_to_quadratic
+from ising.utils.convert import LinearLike, convert_to_linear, QuadraticLike, \
+                                convert_to_quadratic, SampleLike, convert_to_sample
 
 __all__ = ['BinaryQuadraticModel']
 
@@ -262,6 +263,34 @@ class BinaryQuadraticModel:
             BQM (BinaryQuadraticModel): copy of the original object
         """
         return BinaryQuadraticModel(self.linear, self.quadratic, self.offset, self.vartype)
+
+    def evaluate(self, sample: SampleLike) -> Bias:
+        """Evaluate the model for a given sample."""
+        sample = convert_to_sample(sample)
+        if self.vartype is Vartype.SPIN:
+            energy = self.offset
+            for v, bias in self.linear.items():
+                if sample[v]:
+                    energy -= bias
+                else:
+                    energy += bias
+            for (u, v), bias in self.quadratic.items():
+                if sample[u] == sample[v]:
+                    energy -= bias
+                else:
+                    energy += bias
+            return energy
+        elif self.vartype is Vartype.BINARY:
+            energy = self.offset
+            for v, bias in self.linear.items():
+                if sample[v]:
+                    energy += bias
+            for (u, v), bias in self.quadratic.items():
+                if sample[u] and sample[v]:
+                    energy += bias
+            return energy
+        else:
+            raise NotImplementedError(f"Evaluate not available for vartype: {self.vartype}")
 
     def to_qubo(self, variable_order: Sequence[Variable]|None = None) -> tuple[np.ndarray, Bias]:
         """Extract a QUBO matrix for this BQM.
