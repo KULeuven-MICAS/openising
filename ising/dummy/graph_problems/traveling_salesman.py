@@ -171,6 +171,6 @@ def plot_energies(energies):
     plt.show()
 
 if __name__ == '__main__':
-    #example1()
+    example1()
     #example2()
     example3()
