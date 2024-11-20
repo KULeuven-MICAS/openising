@@ -40,3 +40,6 @@ class Solver(ABC):
 
     def open_log(file: pathlib.Path|None, bqm: BinaryQuadraticModel):
         return SolverLogger(file, bqm)
+
+    def change_node(self, node:int):
+        self.sigma[node] = -self.sigma[node]
