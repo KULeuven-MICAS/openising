@@ -30,7 +30,7 @@ def discreteSB(h:np.ndarray, J:np.ndarray, x_init:np.ndarray, y_init:np.ndarray,
         print("{: >20} {: >20}".format(*header))
     for i in range(Nstep):
         for j in range(N):
-            y[j] += (-(a0 - at(tk))*x[j] + c0/2*np.inner(J[:, j], np.sign(x)) + c0*h[j])*dt
+            y[j] += (-(a0 - at(tk))*x[j] + c0*np.inner(J[:, j], np.sign(x)) + c0*h[j])*dt
             x[j] += a0*y[j]*dt
             if np.abs(x[j]) > 1:
                 x[j] = np.sign(x[j])
