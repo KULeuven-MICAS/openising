@@ -17,7 +17,7 @@ cache-dir = ".cache/ruff"
 [tool.ruff.lint]
 #select = ["E4", "E7", "E9", "F"]
 select = ["F", "E", "W", "UP", "PT", "TID252", "A", "PTH", "PLC", "PLE"]
-ignore = ["PT"]
+ignore = ["PT", "E731"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]
