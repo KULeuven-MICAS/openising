@@ -1,0 +1,13 @@
+# Common source file to set up project environment
+
+# Pointer to repo-top
+export REPO_TOP=$(git rev-parse --show-toplevel)
+
+# Make sure to include 
+export PYTHONPATH="${REPO_TOP}:${PYTHONPATH}"
+
+# If a python virtual env is present, activate it
+[[ -e $REPO_TOP/.venv/bin/python ]] && VIRTUAL_ENV_DISABLE_PROMPT=1; source $REPO_TOP/.venv/bin/activate
+
+# Load requirements.txt (should usually not update anything)
+pip install --upgrade --quiet -r ./requirements.txt
