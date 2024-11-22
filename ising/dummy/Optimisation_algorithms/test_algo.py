@@ -8,14 +8,14 @@ import os
 import openjij as oj
 import helper_functions as hf
 import math
-import BLIM
+from BLIM import BLIM
 from scipy.integrate import solve_ivp
 # from  ising.model import BinaryQuadraticModel
 
 VERBOSE = False
 VERBOSE_SOLVER = False
 VERBOSE_PLOT = False
-
+np.random.seed(1)
 
 def run_solver(
     solver: str,
@@ -55,6 +55,19 @@ def run_solver(
             r_t=hyperparameters["r_t"],
             verbose=VERBOSE_SOLVER,
         )
+    elif solver == 'BLIM':
+        v_init = s_init*np.random.uniform(0, 1, size=(N,))
+        v_optim, energies, _, _ = BLIM(
+            J=J, 
+            v_init=v_init, 
+            dt=hyperparameters['dt'], 
+            S=S, 
+            k=hyperparameters['k'], 
+            N=N, 
+            C=hyperparameters['C'], 
+            G=hyperparameters['G_BRIM']
+            )
+        sigma_optim = np.sign(v_optim)
     elif solver[1:] == "SB":
         x_init = np.multiply(
             np.random.uniform(low=0.0, high=0.5, size=np.shape(s_init)), s_init
@@ -98,8 +111,9 @@ def run_solver(
             verbose=VERBOSE_SOLVER,
         )
     energy = hf.compute_energy(J, h, sigma_optim) + 1/2*np.sum(J)
-    print(f"The optimal energy of {solver} is: {energy}")
-    if N <= 20:
+    if VERBOSE:
+        print(f"The optimal energy of {solver} is: {energy}")
+    if N <= 20 and G is not None:
         print(f"The optimal state of {solver}: {sigma_optim}")
         hf.plot_solution(sigma_optim, G, solver)
     if plt:
@@ -538,14 +552,130 @@ def test_BLIM():
     plt.title('constant k')
     plt.show()    
 
+def accuracy_check():
+    Nlist = list(range(10, 1000, 50))
+    nb_runs = 20
+    S = 1000
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + '/output'
+
+    # SA and SCA hyperparameters
+    T = 50.
+    r_t = hf.compute_rx(T, 0.05, S)
+    q = 5.
+    r_q = hf.compute_rx(q, 8., S)
+
+    # SB hyperparameters
+    a0 = 1.
+    dt = 0.25
+    def at(t):
+        return a0 / (dt*S) * t
+
+    # BRIM hyperparameters
+    tend = 3e-5
+    dt_BRIM = tend/S
+    C = 1e-5
+    G = 1e-1
+    def k(t):
+        return 20.
+
+    SA_results = dict()
+    SCA_results = dict()
+    BRIM_results = dict()
+    bSB_results = dict()
+    dSB_results = dict()
+    oj_best = []
+    for N in Nlist:
+        J = np.random.choice([-1/2, 0., 1/2], (N, N))
+        h = np.zeros((N,))
+        sigma = hf.get_random_s(N)
+        np.fill_diagonal(J, 0.)
+        c0 = 0.5 / (math.sqrt(N) * math.sqrt(np.sum(np.power(J, 2)) / (N * (N - 1))))
+
+        SA_results[N] = list()
+        SCA_results[N] = list()
+        BRIM_results[N] = list()
+        bSB_results[N] = list()
+        dSB_results[N] = list()
+        print(f'N =  {N}')
+        for run in range(nb_runs):
+            print(f'run: {run}')
+            _, energies = run_solver(solver='SA', s_init=sigma, J=J, h=h, S=S, N=N, dir=parent_dir, T=T, r_t=r_t)
+            SA_results[N].append(energies[-1])
+            _, energies = run_solver(solver='SCA', s_init=sigma, J=J, h=h, S=S, N=N, dir=parent_dir, T=T, r_t=r_t, q=q, r_q=r_q)
+            SCA_results[N].append(energies[-1])
+            _, energies = run_solver(solver='bSB', s_init=sigma, J=J, h=h, S=S, N=N, dir=parent_dir, a0=a0, c0=c0, at=at, dt=dt)
+            bSB_results[N].append(energies[-1])
+            _, energies = run_solver(solver='dSB', s_init=sigma, J=J, h=h, S=S, N=N, dir=parent_dir, a0=a0, c0=c0, at=at, dt=dt)
+            dSB_results[N].append(energies[-1])
+            _, energies = run_solver(solver='BLIM', s_init=sigma, J=J, h=h, S=S, N=N, dir=parent_dir, C=C, G_BRIM=G, dt=dt_BRIM, k=k)
+            BRIM_results[N].append(energies[-1])
+        mat = np.diag(h) - J
+        bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat, vartype="SPIN")
+        sampler = oj.SASampler()
+        response = sampler.sample(bqm, num_reads=10)
+        oj_best.append(response.first.energy)
+
+    averages_SA = []
+    min_SA = []
+    max_SA = []
+    averages_SCA = []
+    min_SCA = []
+    max_SCA = []
+    averages_bSB = []
+    min_bSB = []
+    max_bSB = []
+    averages_dSB = []
+    min_dSB = []
+    max_dSB = []
+    averages_BRIM = []
+    min_BRIM = []
+    max_BRIM = []
+
+    for key in SA_results.keys():
+        averages_SA.append(np.average(SA_results[key]))
+        min_SA.append(np.min(SA_results[key]))
+        max_SA.append(np.max(SA_results[key]))
+        averages_SCA.append(np.average(SCA_results[key]))
+        min_SCA.append(np.min(SCA_results[key]))
+        max_SCA.append(np.max(SCA_results[key]))
+        averages_bSB.append(np.average(bSB_results[key]))
+        min_bSB.append(np.min(bSB_results[key]))
+        max_bSB.append(np.max(bSB_results[key]))
+        averages_dSB.append(np.average(dSB_results[key]))
+        min_dSB.append(np.min(dSB_results[key]))
+        max_dSB.append(np.max(dSB_results[key]))
+        averages_BRIM.append(np.average(BRIM_results[key]))
+        min_BRIM.append(np.min(BRIM_results[key]))
+        max_BRIM.append(np.max(BRIM_results[key]))
     
+    
+    plt.figure()
+    plt.plot(Nlist, averages_SA, 'b--', label='SA')
+    plt.plot(Nlist, averages_SCA, 'r--', label='SCA')
+    plt.plot(Nlist, averages_bSB, 'g--', label='bSB')
+    plt.plot(Nlist, averages_dSB, 'c--', label='dSB')
+    plt.plot(Nlist, averages_BRIM, 'm--', label='BRIM')
+    plt.plot(Nlist, oj_best, 'k--', label='OpenJij Best')
+    plt.fill_between(Nlist, min_SA, max_SA, color='red', alpha=.1)
+    plt.fill_between(Nlist, min_SCA, max_SCA, color='blue', alpha=.1)
+    plt.fill_between(Nlist, min_bSB, max_bSB, color='green', alpha=.1)
+    plt.fill_between(Nlist, min_dSB, max_dSB, color='cyan', alpha=.1)
+    plt.fill_between(Nlist, min_BRIM, max_BRIM, color='magenta', alpha=.1)
+    plt.legend()
+    plt.xlabel('Graph size N')
+    plt.ylabel('H(s_optim)')
+    plt.savefig(parent_dir + '/test_graph_size.png')
+    plt.show()
+
+
 
 if __name__ == "__main__":
     if VERBOSE_PLOT:
         plt.ion()
     # problem1()
     # G1()
-    k2000()
+    # k2000()
     #test_SB()
     # test_BLIM()
+    accuracy_check()
 

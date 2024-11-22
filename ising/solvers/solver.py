@@ -45,3 +45,6 @@ class Solver(ABC):
     def change_node(self, sample: np.ndarray, node:int):
         sample[node] = -sample[node]
         return sample
+
+    def set_sample(self, constant_var):
+        return np.sign(constant_var)

@@ -1,5 +1,5 @@
-from ising.solvers.solver import Solver#, SolverLogger
-from ising.model import BinaryQuadraticModel
+from ising.solvers.solver import Solver
+from ising.model.ising import IsingModel
 import numpy as np
 import random
 import pathlib
@@ -12,45 +12,10 @@ class SA(Solver):
 
     Inherits Solver abstract base class.
     """
-    def __init__(
-        self,
-        sigma: np.ndarray,
-        file: pathlib.Path,
-        S: int,
-        T: float,
-        r_t: float,
-    ):
-        """ Initializes object.
-        Args:
-            sigma (np.ndarray): initial sample
-            file (pathlib.Path): full path to file in which to log information
-            S (int): amount of iterations
-            T (float): initial temperature
-            r_t (float): temperature decrease rate
-        """
-        self.sigma = sigma
-        self.S = S
-        self.T = T
-        self.r_t = r_t
-        self.file = file
 
-    def set_T(self, T:float) -> None:
-        """Changes temperature T
-
-        Args:
-            T (float): new temperature
-        """
-        self.T = T
-
-    def change_node(self, node:int)->None:
-        """Changes the spin of the node.
-
-        Args:
-            node (int): the node that needs to be changed. Should be in the range [0, N).
-        """
-        self.sigma[node] = -self.sigma[node]
-
-    def solve(self, bqm:BinaryQuadraticModel, seed: int) -> tuple[np.ndarray, float]:
+    def solve(
+        self, model: IsingModel, file: pathlib.Path, seed: int, sample: np.ndarray, S: int, T: float, r_t: float
+    ) -> tuple[np.ndarray, float]:
         """Performs the SA algorithm on the given model.
 
         Args:
@@ -60,24 +25,24 @@ class SA(Solver):
             sigma (np.ndarray): the optimal solution
             cost_new (float): the optimal energy
         """
-        N = bqm.num_variables
+        N = model.num_variables
         random.seed(seed)
-        with self.open_log(self.file, bqm) as log:
-            for i in range(self.S):
+        with self.open_log(file, model) as log:
+            for i in range(S):
                 chosen_nodes = set()
-                cost_old = bqm.eval(self.sigma)
+                cost_old = model.evaluate(sample)
                 for j in range(N):
                     node = random.choice(list(set(range(N)) - chosen_nodes))
-                    self.change_node(node)
-                    cost_new = bqm.eval(self.sigma)
+                    sample = self.change_node(sample, node)
+                    cost_new = model.evaluate(sample)
                     delta = cost_new - cost_old
-                    P = delta / self.T
+                    P = delta / T
                     rand = -math.log(random.random())
                     if delta < 0 or P < rand:
                         cost_old = cost_new
                     else:
                         self.change_node(node)
                     chosen_nodes.add(node)
-                self.set_T(self.r_t * self.T)
-                log.write(i, cost_new, self.sigma)
-        return self.sigma, cost_new
+                T = r_t * T
+                log.write(i, cost_new, sample)
+        return sample, cost_new
