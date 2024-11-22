@@ -3,6 +3,7 @@ from collections.abc import Iterable
 import pathlib
 import csv
 import itertools
+import numpy as np
 
 from ising.model.ising import IsingModel
 
@@ -41,5 +42,6 @@ class Solver(ABC):
     def open_log(self, file: pathlib.Path|None, model: IsingModel, *extra_fields):
         return SolverLogger(file, model, *extra_fields)
 
-    def change_node(self, node:int):
-        self.sigma[node] = -self.sigma[node]
+    def change_node(self, sample: np.ndarray, node:int):
+        sample[node] = -sample[node]
+        return sample
