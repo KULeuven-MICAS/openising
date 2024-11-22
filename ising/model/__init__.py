@@ -1,1 +1,1 @@
-from ising.model.binary_quadratic_model import *
+from ising.model.ising import *
