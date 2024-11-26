@@ -9,7 +9,6 @@ __pycache__/
 # environment stuff
 .env
 .venv
-.python-version
 venv/
 ENV/
 

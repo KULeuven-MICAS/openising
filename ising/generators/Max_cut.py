@@ -3,8 +3,9 @@ from ising.model.ising import IsingModel
 import os
 import pathlib
 
+
 def MaxCut(benchmark:pathlib.Path|str):
-    folder = REPO_TOP + '.ising/generators/Max-Cut_benchmarks'
+    folder = '.ising/generators/Max-Cut_benchmarks'
     file = folder + benchmark
     if file not in os.walk(folder)[2]:
         raise OSError('benchmark is not available')
