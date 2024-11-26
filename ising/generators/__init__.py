@@ -1,1 +1,1 @@
-from ising.generators.random import *
+from ising.generators.gen_random import *
