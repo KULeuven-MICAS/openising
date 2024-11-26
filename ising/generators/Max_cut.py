@@ -1,20 +1,24 @@
 import numpy as np
 from ising.model.ising import IsingModel
-import os
-import pathlib
+import networkx as nx
 
+def MaxCut(graph:nx.Graph) -> IsingModel:
+    """Generates an Ising model from the given undirected graph
 
-def MaxCut(benchmark:pathlib.Path|str):
-    folder = '.ising/generators/Max-Cut_benchmarks'
-    file = folder + benchmark
-    if file not in os.walk(folder)[2]:
-        raise OSError('benchmark is not available')
-    data = np.genfromtxt(file, delimiter=' ')
-    N = int(data[0, 0])
+    Args:
+        graph (nx.Graph): graph on which the max-cut problem will be solved
+
+    Returns:
+        model (IsingModel): generated model from the graph
+    """
+    N = len(graph.nodes)
     J = np.zeros((N, N))
     h = np.zeros((N,))
-    for row in data:
-        i, j, weight = int(row[0])-1, int(row[1])-1, row[2]
-        J[i, j] = -weight/2
-        J[j, i] = -weight/2
-    return IsingModel(J, h)
+    c = 0.
+    for (node1, node2) in graph.edges:
+        weight = graph[node1][node2]['weight']
+        J[node1, node2] = -weight/2
+        J[node2, node1] = -weight/2
+        c += weight
+    J = np.triu(J)
+    return IsingModel(J, h, -1/2*c)
