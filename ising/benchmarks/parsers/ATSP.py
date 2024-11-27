@@ -1,8 +1,5 @@
 import networkx as nx
 import pathlib
-import os
-
-REPO_TOP = os.getenv("TOP")
 
 def ATSP_parser(benchmark:pathlib.Path|str) -> nx.DiGraph:
     """creates a networkx instance fromthe given benchmark.

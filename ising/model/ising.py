@@ -1,7 +1,8 @@
 from __future__ import annotations
-import numpy as np
 import pathlib
 from collections.abc import Callable, Iterable
+import numpy as np
+import h5py
 
 import ising.utils.numpy as npu
 
@@ -16,8 +17,10 @@ class IsingModel:
     def __init__(self, J: np.ndarray, h: np.ndarray, c: Bias = 0):
         if not isinstance(h, np.ndarray) or not h.ndim == 1:
             raise ValueError("h must be a vector")
-        if not isinstance(J, np.ndarray) or not npu.is_square(J) or not npu.is_triu(J, k=1):
-            raise ValueError("J must be a square strictly upper triangular matrix")
+        if not isinstance(J, np.ndarray) or not npu.is_square(J):
+            raise ValueError("J must be a square matrix")
+        if not npu.is_triu(J, k=1):
+            raise ValueError("J must be a strictly upper triangular matrix")
         if not len(h) == J.shape[0]:
             raise ValueError(f"h ({h.shape}) and J ({J.shape}) are not compatible")
         self.J = J
@@ -91,10 +94,21 @@ class IsingModel:
 
     @classmethod
     def from_file(cls, file: pathlib.Path):
-        raise NotImplementedError()
+        with h5py.File(file) as f:
+            J_dset = f.get("J")
+            h = f.get("h")
+            c = f.get("c", 0)
+            size = f.attrs.get("size", h.size)
+            J = np.zeros((size, size), dtype=J_dset.dtype)
+            J[np.triu_indices(size, k=1)] = J_dset
+            return cls(J, h, c)
 
     def to_file(self, file: pathlib.Path):
-        raise NotImplementedError()
+        with h5py.File(file) as f:
+            f.create_dataset("J", data=self.J[np.triu_indices(self.num_variables, k=1)])
+            f.create_dataset("h", data=self.h)
+            f.create_dataset("c", data=self.c)
+            f.attrs["size"] = self.num_variables
 
     @classmethod
     def from_adjacency(

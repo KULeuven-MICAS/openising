@@ -1,10 +1,11 @@
-from ising.generators.TSP import TSP
-from ising.benchmarks.ATSP.ATSP_Parser import ATSP_parser
 import numpy as np
 import pathlib
 import os
 
-benchmark = pathlib.Path(os.getenv('TOP')) / 'ising/benchmarks/ATSP/dummy_benchmark.txt'
+import ising.generators as gen
+from ising.benchmarks.parsers import ATSP_parser
+
+benchmark = pathlib.Path(os.getenv('TOP')) / 'ising/benchmarks/ATSP/ATSP_dummy.txt'
 G = ATSP_parser(benchmark)
 N = 4
 assert len(G.nodes) == N
@@ -12,7 +13,7 @@ assert len(G.edges) == 10
 A =8.
 B=4.
 C=2.
-model = TSP(G, A=A, B=B, C=C)
+model = gen.TSP(G, A=A, B=B, C=C)
 
 J = model.J
 h = model.h

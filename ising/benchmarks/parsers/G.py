@@ -1,7 +1,6 @@
 import pathlib
 import networkx as nx
 
-
 def G_parser(benchmark: pathlib.Path | str):
     """Creates undirected graph from G benchmark
 

@@ -2,7 +2,7 @@ import numpy as np
 from ising.model.ising import IsingModel
 import networkx as nx
 
-def MaxCut(graph:nx.Graph) -> IsingModel:
+def MaxCut(graph: nx.Graph) -> IsingModel:
     """Generates an Ising model from the given undirected graph
 
     Args:

@@ -3,8 +3,9 @@ import networkx as nx
 
 from ising.model.ising import IsingModel
 
+__all__ = ["TSP"]
 
-def TSP(graph: nx.DiGraph, A:float, B:float, C:float)->IsingModel:
+def TSP(graph: nx.DiGraph, A: float, B: float, C: float) -> IsingModel:
     """Generates an Ising model of the TSP from the given directed graph
 
     Args:

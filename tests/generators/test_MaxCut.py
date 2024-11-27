@@ -1,18 +1,19 @@
-from ising.benchmarks.G_benchmarks.G_Parser import G_parser
-from ising.generators.Max_cut import MaxCut
 import os
 import pathlib
 import numpy as np
 
+import ising.generators as gen
+from ising.benchmarks.parsers import G_parser
+
 
 TOP = os.getenv('TOP')
-benchmark = pathlib.Path(TOP) / 'ising/benchmarks/G_benchmarks/dummy_G.txt'
+benchmark = pathlib.Path(TOP) / 'ising/benchmarks/G/G_dummy.txt'
 G = G_parser(benchmark)
 N = 5
 assert len(G.nodes) == N
 assert len(G.edges) == 6
 
-model = MaxCut(G)
+model = gen.MaxCut(G)
 
 J = model.J
 h = model.h
