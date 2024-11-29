@@ -45,7 +45,7 @@ class ballisticSB(SB):
                     x[j] += self.update_x(y, dt, a0, j)
                     if np.abs(x[j]) > 1:
                         x, y = self.update_rule(x, y, j)
-                sample = self.set_sample(x)
+                sample = np.sign(x)
                 energy = model.evaluate(sample)
                 log.write(tk, energy, sample, x)
                 tk += dt
@@ -78,7 +78,7 @@ class discreteSB(SB):
                     x[j] += self.update_x(y, dt, a0, j)
                     if np.abs(x[j]) > 1:
                         x, y = self.update_rule(x, y, j)
-                sample = self.set_sample()
+                sample = np.sign()  # TODO: I think this is broken
                 energy = model.evaluate(sample)
                 tk += dt
                 log.write(tk, energy, sample, x)

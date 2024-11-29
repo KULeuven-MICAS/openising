@@ -44,7 +44,7 @@ class BRIM(Solver):
                 k4 = dvdt(tk + dt, v + dt * k3)
 
                 v += dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
-                sample = self.set_sample(v)
+                sample = np.sign(v)
                 energy = model.evaluate(sample)
                 tk += dt
                 log.write(tk, energy, sample, v)
