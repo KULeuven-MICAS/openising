@@ -6,6 +6,13 @@ import numpy as np
 from ising.postprocessing.helper_functions import return_data
 
 def plot_graph_solution(fileName:pathlib.Path, save:bool=True, save_folder:pathlib.Path='.'):
+    """Plots the solution state of a TSP problem.
+
+    Args:
+        fileName (pathlib.Path): absolute path to the logfile of the optimisation process.
+        save (bool, optional): whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): where to save the figure. Defaults to '.'.
+    """
     G = nx.DiGraph()
     solutions_state = return_data(fileName=fileName, data="solution_state")
     solver = return_data(fileName=fileName, data="solver")
@@ -33,5 +40,5 @@ def plot_graph_solution(fileName:pathlib.Path, save:bool=True, save_folder:pathl
     nx.draw_networkx_edges(G, pos, edgelist=edges)
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
-        plt.savefig(f"{save_folder}/{solver}_solution_state.png")
+        plt.savefig(f"{save_folder}/{solver}_TSP_solution_state.png")
     plt.show()
