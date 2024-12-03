@@ -10,7 +10,7 @@ def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
 
 def plot_energies(fileName: pathlib.Path, save: bool = True, save_folder: pathlib.Path = "."):
     energies, best_energy, solver_name = (
-        return_data(fileName=fileName, data="energies"),
+        return_data(fileName=fileName, data="energy"),
         return_data(fileName, data="solution_energy"),
         return_data(fileName, data="solver"),
     )
@@ -30,9 +30,10 @@ def plot_energies(fileName: pathlib.Path, save: bool = True, save_folder: pathli
 def plot_energies_multiple(fileName_list: list[pathlib.Path], save: bool = True, save_folder: pathlib.Path = "."):
     plt.figure()
     title = ""
+    # TODO solution_energy doesn't work --> work with return_metadata?
     for fileName in fileName_list:
         energies, best_energy, solver_name = (
-            return_data(fileName=fileName, data="energies"),
+            return_data(fileName=fileName, data="energy"),
             return_data(fileName, data="solution_energy"),
             return_data(fileName, data="solver"),
         )
