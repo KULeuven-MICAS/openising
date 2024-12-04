@@ -22,5 +22,5 @@ Please refer to this resource for a complete breakdown of the directories and th
 ```bash
 git clone git@gitlab.esat.kuleuven.be:ising-project/ising.git
 cd ising
-source ./setup
+source .setup
 ```
