@@ -19,8 +19,6 @@ class IsingModel:
         c (Bias): A constant term in the Hamiltonian.
     """
 
-    __slots__ = ["J", "h", "c"]
-
     def __init__(self, J: np.ndarray, h: np.ndarray, c: Bias = 0) -> None:
         """
         Initialize an Ising model with the specified interaction matrix, bias vector, and constant.
@@ -41,6 +39,7 @@ class IsingModel:
         self.J = J
         self.h = h
         self.c = c
+        self.transformation_history = []
 
     def __repr__(self) -> str:
         return f"IsingModel(\n J={str(self.J).replace('\n ', '\n    ')},\n h={self.h},\n c={self.c}\n)"
@@ -74,9 +73,31 @@ class IsingModel:
         The shape of the Ising model, i.e the number of variables and number of edges.
 
         Returns:
-            typle[int, int]: A tuple representing the shape of the model (N, |J|)
+            typle[int, int]: A tuple representing the shape of the model (N, |J|).
         """
         return self.num_variables, self.num_interactions
+
+    @property
+    def mean(self) -> Bias:
+        """
+        The mean of biases in the Ising model.
+
+        Returns:
+            Bias: the mean value of all linear and quadratic biases.
+        """
+        biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
+        return np.mean(biases)
+
+    @property
+    def variance(self) -> Bias:
+        """
+        The variance of biases in the Ising model.
+
+        Returns:
+            Bias: the variance value of all linear and quadratic biases.
+        """
+        biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
+        return np.var(biases)
 
     def copy(self) -> IsingModel:
         """
@@ -87,27 +108,33 @@ class IsingModel:
         """
         return IsingModel(self.J, self.h)
 
-    def translate(self, displacement: float) -> None:
+    def translate(self, displacement: float, track: bool = True) -> None:
         """
         Translate the Ising model by a given displacement value.
 
         Args:
             displacement (float): The value to add to both the J and h matrices, as well as the constant term.
         """
-        self.J += displacement
-        self.h += displacement
-        self.c += displacement
+        triu = np.triu_indices(self.num_variables, k=1)
+        self.J[triu] = np.add(self.J[triu], displacement, casting="safe")
+        self.h = np.add(self.h, displacement, casting="safe")
+        self.c = np.add(self.c, displacement, casting="safe")
+        if track:
+            self.transformation_history.append(("translate", displacement))
 
-    def scale(self, factor: float) -> None:
+    def scale(self, factor: float, track: bool = True) -> None:
         """
         Scale the Ising model by a given factor.
 
         Args:
             factor (float): The scaling factor to apply to J, h, and c.
         """
-        self.J *= factor
-        self.h *= factor
-        self.c *= factor
+        triu = np.triu_indices(self.num_variables, k=1)
+        self.J[triu] = np.multiply(self.J[triu], factor, casting="safe")
+        self.h = np.multiply(self.h, factor, casting="safe")
+        self.c = np.multiply(self.c, factor, casting="safe")
+        if track:
+            self.transformation_history.append(("scale", factor))
 
     def normalize(self, mean: float = 0, variance: float = 1) -> None:
         """
@@ -117,11 +144,30 @@ class IsingModel:
             mean (float, optional): The desired mean for the normalized values (default is 0)
             variance (float, optional): The desired variance for the normalized values (default is 1)
         """
-        biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
-        displacement = mean - np.mean(biases)
-        factor = np.sqrt(variance/np.var(biases) if np.var(biases) != 0 else np.sqrt(variance))
+        displacement = mean - self.mean
+        factor = np.sqrt(variance/self.variance) if self.variance != 0 else np.sqrt(variance)
         self.translate(displacement)
         self.scale(factor)
+
+    def reconstruct(self, steps: int|None = None) -> None:
+        """
+        Reconstruct the Ising model, reversing the transformation history one-by-one.
+
+        Args:
+            steps (int, optional): The number of transformation steps that should be reversed,
+                                   all if None (default is None).
+        """
+        if steps is None:
+            steps = len(self.transformation_history)
+        for _ in range(steps):
+            if len(self.transformation_history) == 0:
+                break
+            transformation = self.transformation_history.pop()
+            if transformation[0] == "translate":
+                self.translate(-transformation[1], track=False)
+            if transformation[0] == "scale":
+                self.scale(1/transformation[1], track=False)
+
 
     def evaluate(self, sample: np.ndarray) -> Bias:
         """
