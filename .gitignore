@@ -1,10 +1,8 @@
-# Python byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
 # Temporary and log files
 *.log
 *.tmp
+**/log
+**/tmp
 
 # environment stuff
 .env
@@ -12,8 +10,6 @@ __pycache__/
 venv/
 ENV/
 
-# C extensions
-*.so
-
-# Output folders
-output/
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
