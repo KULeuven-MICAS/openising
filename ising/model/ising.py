@@ -10,11 +10,24 @@ Bias = int | float
 
 
 class IsingModel:
-    """Encodes a binary quadratic model."""
+    """
+    A class representing an Ising model.
 
-    __slots__ = ["J", "h", "c"]
+    Attributes:
+        J (np.ndarray): A square strictly upper triangular matrix representing interactions between variables.
+        h (np.ndarray): A vector of bias values for each variable.
+        c (Bias): A constant term in the Hamiltonian.
+    """
 
-    def __init__(self, J: np.ndarray, h: np.ndarray, c: Bias = 0):
+    def __init__(self, J: np.ndarray, h: np.ndarray, c: Bias = 0) -> None:
+        """
+        Initialize an Ising model with the specified interaction matrix, bias vector, and constant.
+
+        Args:
+            J (np.ndarray): The interaction matrix (square strictly upper triangular matrix).
+            h (np.ndarray): The bias vector.
+            c (Bias): The constant term (default is 0).
+        """
         if not isinstance(h, np.ndarray) or not h.ndim == 1:
             raise ValueError("h must be a vector")
         if not isinstance(J, np.ndarray) or not npu.is_square(J):
@@ -26,6 +39,7 @@ class IsingModel:
         self.J = J
         self.h = h
         self.c = c
+        self.transformation_history = []
 
     def __repr__(self) -> str:
         return f"IsingModel(\n J={str(self.J).replace('\n ', '\n    ')},\n h={self.h},\n c={self.c}\n)"
@@ -36,49 +50,148 @@ class IsingModel:
     @property
     def num_variables(self) -> int:
         """
-        The number of variables in the BQM.
+        The number of variables in the Ising model.
 
-        :return N (int): the number of variables (nodes)
+        Returns:
+            int: the number of variables (nodes).
         """
         return len(self.h)
 
     @property
     def num_interactions(self) -> int:
         """
-        The number of nonzero interactions in the BQM.
+        The number of nonzero interactions in the Ising model.
 
-        :return |J| (int): the size of the set of edges
+        Returns:
+            int: the size of the set of edges.
         """
         return np.count_nonzero(self.J)
 
     @property
     def shape(self) -> tuple[int, int]:
         """
-        The shape of the BQM, i.e the number of variables and number of edges.
+        The shape of the Ising model, i.e the number of variables and number of edges.
 
-        :return (N, |J|) (tuple[int, int]): the shape of the model
+        Returns:
+            typle[int, int]: A tuple representing the shape of the model (N, |J|).
         """
         return self.num_variables, self.num_interactions
 
+    @property
+    def mean(self) -> Bias:
+        """
+        The mean of biases in the Ising model.
+
+        Returns:
+            Bias: the mean value of all linear and quadratic biases.
+        """
+        biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
+        return np.mean(biases)
+
+    @property
+    def variance(self) -> Bias:
+        """
+        The variance of biases in the Ising model.
+
+        Returns:
+            Bias: the variance value of all linear and quadratic biases.
+        """
+        biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
+        return np.var(biases)
+
     def copy(self) -> IsingModel:
         """
-        Create hard-copy of the BQM object.
+        Create hard copy of the IsingModel object.
 
-        :return model (IsingModel): hard-copy of the original object
+        Returns:
+            IsingModel: A new IsingModel instance with the same J, h, and c values.
         """
         return IsingModel(self.J, self.h)
 
+    def translate(self, displacement: float, track: bool = True) -> None:
+        """
+        Translate the Ising model by a given displacement value.
+
+        Args:
+            displacement (float): The value to add to both the J and h matrices, as well as the constant term.
+        """
+        triu = np.triu_indices(self.num_variables, k=1)
+        self.J[triu] = np.add(self.J[triu], displacement, casting="safe")
+        self.h = np.add(self.h, displacement, casting="safe")
+        self.c = np.add(self.c, displacement, casting="safe")
+        if track:
+            self.transformation_history.append(("translate", displacement))
+
+    def scale(self, factor: float, track: bool = True) -> None:
+        """
+        Scale the Ising model by a given factor.
+
+        Args:
+            factor (float): The scaling factor to apply to J, h, and c.
+        """
+        triu = np.triu_indices(self.num_variables, k=1)
+        self.J[triu] = np.multiply(self.J[triu], factor, casting="safe")
+        self.h = np.multiply(self.h, factor, casting="safe")
+        self.c = np.multiply(self.c, factor, casting="safe")
+        if track:
+            self.transformation_history.append(("scale", factor))
+
+    def normalize(self, mean: float = 0, variance: float = 1) -> None:
+        """
+        Normalize the Ising model such that the biases have the given mean and variance.
+
+        Args:
+            mean (float, optional): The desired mean for the normalized values (default is 0)
+            variance (float, optional): The desired variance for the normalized values (default is 1)
+        """
+        displacement = mean - self.mean
+        factor = np.sqrt(variance/self.variance) if self.variance != 0 else np.sqrt(variance)
+        self.translate(displacement)
+        self.scale(factor)
+
+    def reconstruct(self, steps: int|None = None) -> None:
+        """
+        Reconstruct the Ising model, reversing the transformation history one-by-one.
+
+        Args:
+            steps (int, optional): The number of transformation steps that should be reversed,
+                                   all if None (default is None).
+        """
+        if steps is None:
+            steps = len(self.transformation_history)
+        for _ in range(steps):
+            if len(self.transformation_history) == 0:
+                break
+            transformation = self.transformation_history.pop()
+            if transformation[0] == "translate":
+                self.translate(-transformation[1], track=False)
+            if transformation[0] == "scale":
+                self.scale(1/transformation[1], track=False)
+
+
     def evaluate(self, sample: np.ndarray) -> Bias:
         """
-        Compute the Hamiltonian given a sample.
+        Compute the Hamiltonian given a sample of spin values.
 
-        :param np.ndarray sample: vector of spin values (1 or -1)
-        :return H (float): value of the Hamiltonian
+        Args:
+            sample (np.ndarray): A vector of spin values (1 or -1)
+
+        Returns:
+            Bias: The calculated Hamiltonian value for the given sample.
         """
         return -np.dot(sample.T, np.dot(self.J, sample)) - np.dot(self.h.T, sample) + self.c
 
     @classmethod
     def from_qubo(cls, Q: np.ndarray) -> IsingModel:
+        """
+        Create an IsingModel from a QUBO matrix.
+
+        Args:
+            Q (np.ndarray): A square upper triangular matrix representing the QUBO problem.
+
+        Returns:
+            IsingModel: The corresponding IsingModel instance.
+        """
         if not isinstance(Q, np.ndarray) or not npu.is_square(Q) or not npu.is_triu(Q):
             raise ValueError("Q must be a square upper triangular matrix")
         J = -(1 / 4) * Q.copy()
@@ -87,13 +200,28 @@ class IsingModel:
         return cls(J, h, c)
 
     def to_qubo(self) -> tuple[np.ndarray, Bias]:
+        """
+        Convert the IsingModel to a QUBO matrix representation.
+
+        Returns:
+            tuple[np.ndarray, Bias]: The QUBO matrix and the constant term c.
+        """
         Q = (-4) * self.J
         Q.diagonal()[:] = 2 * (np.sum(npu.triu_to_symm(self.J), axis=1) + self.h)
         c = -np.sum(self.J) + np.sum(self.h)
         return Q, c
 
     @classmethod
-    def from_file(cls, file: pathlib.Path):
+    def from_file(cls, file: pathlib.Path) -> IsingModel:
+        """
+        Load an IsingModel from an HDF5 file.
+
+        Args:
+            file (pathlib.Path): The path to the HDF5 file.
+
+        Returns:
+            IsingModel: The loaded IsingModel instance.
+        """
         with h5py.File(file) as f:
             J_dset = f.get("J")
             h = f.get("h")
@@ -103,7 +231,14 @@ class IsingModel:
             J[np.triu_indices(size, k=1)] = J_dset
             return cls(J, h, c)
 
-    def to_file(self, file: pathlib.Path):
+    def to_file(self, file: pathlib.Path) -> None:
+        """
+        Save the IsingModel to an HDF5 file.
+
+        Args:
+            file (pathlib.Path): The path to the HDF5 file.
+
+        """
         with h5py.File(file) as f:
             f.create_dataset("J", data=self.J[np.triu_indices(self.num_variables, k=1)])
             f.create_dataset("h", data=self.h)
@@ -116,6 +251,18 @@ class IsingModel:
             adj: np.ndarray,
             linear: np.ndarray | None = None,
             bias_generator: Bias | Callable | Iterable = 1) -> IsingModel:
+        """
+        Create an IsingModel from an adjacency matrix and linear bias vector by
+        filling the biases with values taken from a bias_generator.
+
+        Args:
+            adj (np.ndarray): The adjacency matrix (transformable to bool-dtype).
+            linear (np.ndarray, optional): A vector denoting the presence of linear biases (default is None).
+            bias_generator (Bias | Callable | Iterable, optional): A value or generator function to sample biases from.
+
+        Returns:
+            IsingModel: The corresponding IsingModel instance.
+        """
         if isinstance(bias_generator, Bias):
             f = lambda: bias_generator
         elif isinstance(bias_generator, Callable):

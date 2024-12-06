@@ -1,0 +1,12 @@
+// variable Vth latch
+simulator lang=spectre
+
+// libraries
+include "$TOP/lib/components/inv.scs"
+
+// subckt definition
+subckt latch (L R vdd vss)
+  parameters vth=0.6
+  inv1 (L R vdd vss) inv vth=vth
+  inv2 (R L vdd vss) inv vth=vth
+ends latch
