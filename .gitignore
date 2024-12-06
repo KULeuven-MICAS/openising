@@ -17,3 +17,4 @@ ENV/
 
 # Output folders
 output/
+*.png
