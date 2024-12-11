@@ -32,7 +32,7 @@ figure_folder = TOP / "ising/flow/plots/BLIM_test"
 logfiles = dict()
 best_found_list = []
 for N in range(int(args.Nlist[0]), int(args.Nlist[1]), int(args.Njump)):
-    print("Generating random problem...")
+    print(f"Generating random problem of size {N}...")
     problem = random_MaxCut(N)
     print("the generated problem: ", problem)
     print("Done generating random problem")
@@ -40,11 +40,12 @@ for N in range(int(args.Nlist[0]), int(args.Nlist[1]), int(args.Njump)):
     bqm = oj.BinaryQuadraticModel.from_numpy_matrix(np.diag(problem.h) - triu_to_symm(problem.J))
     sampler = oj.SASampler()
     response = sampler.sample(bqm, num_reads=int(args.nb_runs))
-    best_found = response.first.energy + problem.c
+    best_found = response.first.energy
     print("Best OpenJij solution: ", best_found)
+    print("best OpenJij state:", response.first.sample)
     best_found_list.append(best_found)
 
-    v = np.random.uniform(-1, 1, (N,))
+    v = np.random.choice([-1, 1], (N,))
     logfiles[N] = []
     for i in range(int(args.nb_runs)):
         print(f"Run {i+1}/{args.nb_runs}")
@@ -62,6 +63,7 @@ for N in range(int(args.Nlist[0]), int(args.Nlist[1]), int(args.Njump)):
         )
         # print(f"state={state}, energy={energy}")
         logfiles[N].append(logfile)
+    plot_state_continuous(logfile, f"BRIM_N{N}_state.png", save_folder=figure_folder)
 plot_energy_accuracy_check(
     logfiles, figName="BRIM_energy_dist.png", best_found=best_found_list, save_folder=figure_folder
 )
@@ -71,10 +73,9 @@ print("Testing on G1 benchmark")
 benchmark = TOP / "ising/benchmarks/G/G1.txt"
 graph_g = G_parser(benchmark)
 problem = MaxCut(graph_g)
-
 best_found = -11624.0
 
-v = np.random.uniform(-1, 1, (problem.num_variables,))
+v = np.random.choice([-0.5, 0.5], (problem.num_variables,))
 logfile = logfile_top / "BRIM_G1benchmark.log"
 state_energy = BRIM().solve(
     model=problem,
