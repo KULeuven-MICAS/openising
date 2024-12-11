@@ -13,3 +13,7 @@ ENV/
 # Python byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+
+# Figures
+*.png
+*.jpg
