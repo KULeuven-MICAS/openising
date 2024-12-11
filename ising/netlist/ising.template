@@ -1,0 +1,34 @@
+// Latch-based Ising Machine
+simulator lang=spectre
+global 0 vdd!
+
+//<START_LIBRARY>
+// (P) P_supply | supply of the circuit
+//<END_LIBRARY>
+include "$ANALOG_SETUP"
+
+// latch and cu
+include ${include_latch}
+include ${include_cu}
+
+// supply power
+Vdd (vdd 0) vsource dc=P_supply
+
+//---------------------------
+// Ising machine
+//---------------------------
+
+// latches
+${latch}
+
+// coupling units
+${cu}
+
+// initial conditions
+${ic}
+
+//---------------------------
+// Analysis
+//---------------------------
+mytran tran stop=${simulation_time}
+
