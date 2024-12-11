@@ -26,7 +26,7 @@ def plot_energies(
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
-    """Plots the energies of a given optimisaiton process using the logfile.
+    """Plots the energies of a given optimisation process using the logfile.
 
     Args:
         fileName (pathlib.Path): absolute path to the logfile.
@@ -58,6 +58,7 @@ def plot_energies_multiple(
     best_found: float = 0.0,
     save: bool = True,
     save_folder: pathlib.Path = ".",
+    diff_metadata:str|None = None
 ):
     """PLots the energies of multiple optimisation processes.
 
@@ -69,20 +70,20 @@ def plot_energies_multiple(
         save_folder (pathlib.Path, optional): where the figure should be stored. Defaults to ".".
     """
     plt.figure()
-    title = ""
     for fileName in fileName_list:
         energies, best_energy, solver_name = (
             return_data(fileName=fileName, data="energy"),
             return_metadata(fileName, metadata="solution_energy"),
             return_metadata(fileName, metadata="solver"),
         )
-
+        if diff_metadata is not None:
+            diff = return_metadata(fileName, metadata=diff_metadata)
+            solver_name += f" {diff_metadata}: {diff}"
         plot_energies_on_figure(energies, label=f"{solver_name} (Best: {best_energy})")
-        title += solver_name + ", "
     if best_found != 0.0:
         plot_energies_on_figure(np.ones(energies.shape) * best_found, label="Best found")
     plt.legend()
-    plt.title(f"Energies of {title[:-2]}")
+    plt.title("Energy comparison of different optimisation processes")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:

@@ -63,7 +63,8 @@ class BRIM(SolverBase):
             "time_step": dt,
             "C": C,
             "G": G,
-            "(kmin, kmax)": (kmin, kmax),
+            "kmin": kmin,
+            "kmax": kmax
         }
 
         def dvdt(t, v):

@@ -4,10 +4,9 @@ import numpy as np
 import argparse
 import openjij as oj
 
-from ising.generators.MaxCut import random_MaxCut, MaxCut
-from ising.benchmarks.parsers.G import G_parser
+from ising.generators.MaxCut import random_MaxCut
 from ising.solvers.BRIM import BRIM
-from ising.postprocessing.energy_plot import plot_energy_accuracy_check, plot_energies
+from ising.postprocessing.energy_plot import plot_energy_accuracy_check
 from ising.postprocessing.plot_solutions import plot_state_continuous
 
 # from ising.postprocessing.MC_plot import plot_MC_solution
@@ -68,25 +67,3 @@ plot_energy_accuracy_check(
     logfiles, figName="BRIM_energy_dist.png", best_found=best_found_list, save_folder=figure_folder
 )
 
-print("Testing on G1 benchmark")
-
-benchmark = TOP / "ising/benchmarks/G/G1.txt"
-graph_g = G_parser(benchmark)
-problem = MaxCut(graph_g)
-best_found = -11624.0
-
-v = np.random.choice([-0.5, 0.5], (problem.num_variables,))
-logfile = logfile_top / "BRIM_G1benchmark.log"
-state_energy = BRIM().solve(
-    model=problem,
-    num_iterations=int(args.num_iter),
-    v=v,
-    dt=dt,
-    kmin=float(args.kmin),
-    kmax=float(args.kmax),
-    C=float(args.C),
-    G=float(args.G),
-    file=logfile,
-)
-plot_energies(fileName=logfile, figName="BRIM_G1benchmark.png", best_found=best_found, save_folder=figure_folder)
-plot_state_continuous(logfile, "BRIM_G1benchmark_state.png", save_folder=figure_folder)
