@@ -147,7 +147,7 @@ class discreteSB(SB):
         }
 
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(metadata)
+            log.write_metadata(**metadata)
             for i in range(num_iterations):
                 atk = at(tk)
                 for j in range(N):
