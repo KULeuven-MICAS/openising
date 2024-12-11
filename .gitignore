@@ -14,5 +14,6 @@ ENV/
 __pycache__/
 *.py[cod]
 
-# Plots
+# Figures
 *.png
+*.jpg
