@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import openjij as oj
 import random
+import matplotlib.pyplot as plt
 
 from ising.generators.MaxCut import random_MaxCut
 
@@ -13,9 +14,10 @@ from ising.solvers.DSA import DSASolver
 from ising.solvers.SA import SASolver
 from ising.solvers.SB import ballisticSB, discreteSB
 from ising.solvers.SCA import SCA
+from ising.solvers.exhaustive import ExhaustiveSolver
 
-from ising.postprocessing.energy_plot import plot_energy_accuracy_check_mult_solvers
-
+from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers
+from ising.postprocessing.plot_solutions import plot_state_continuous
 
 from ising.utils.numpy import triu_to_symm
 
@@ -24,6 +26,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--Nlist", help="tuple containing min and max problem size", default=(10, 100), nargs="+")
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-num_iter", help="Number of iterations for each run", default=1000)
+parser.add_argument("-figName", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
+parser.add_argument("-plot", help="Whether to plot the results", default=False)
 
 # BRIM parameters
 parser.add_argument("-tend", help="End time for the simulation", default=3e-5)
@@ -44,12 +48,15 @@ parser.add_argument("-q_final", help="final penalty value", default=10.0)
 # SB parameters
 parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0.25)
 
+
 print("parsing args")
 args = parser.parse_args()
 Nlist = tuple(args.Nlist)
 nb_runs = int(args.nb_runs)
 Nlist = np.linspace(Nlist[0], Nlist[1], nb_runs, dtype=int)
 random.seed(int(args.seed))
+if bool(args.plot):
+    plt.ion()
 
 num_iter = int(args.num_iter)
 
@@ -91,13 +98,18 @@ for N in Nlist:
     print("Generating MaxCut problem of size", N)
     problem = random_MaxCut(N)
 
-    print("Solving with OpenJij")
-    mat = np.diag(problem.h) - triu_to_symm(problem.J)
-    bqm = oj.BinaryQuadraticModel.from_numpy_matrix(mat)
-    sampler = oj.SASampler()
-    response = sampler.sample(bqm, num_reads=nb_runs)
-    best_found.append(response.first.energy)
-
+    if N < 30:
+        print("Solving with Exhaustive solver")
+        best_state, energy_best = ExhaustiveSolver().solve(model=problem, file=None)
+        best_found.append(energy_best)
+        print("Found best solution: ", best_state)
+    else:
+        print("Solving with OpenJij")
+        bqm = oj.BinaryQuadraticModel.from_numpy_matrix(np.diag(problem.h) - triu_to_symm(problem.J))
+        sampler = oj.SASampler()
+        response = sampler.sample(bqm, num_reads=nb_runs)
+        best_found.append(response.first.energy)
+        print("Found best solution: ", response.first.sample)
     v = np.random.choice([-0.5, 0.5], (N,))
     x = np.random.uniform(-0.1, 0.1, (N,))
     y = np.zeros((N,))
@@ -124,6 +136,9 @@ for N in Nlist:
             file=logfile,
         )
         logfiles[N]["BRIM"].append(logfile)
+        plot_state_continuous(
+            logfile, figname=f"BRIM_N{N}_run{run}.png", save_folder=TOP / "ising/flow/plots/Solvers_comparison"
+        )
 
         print("running DSA")
         logfile = logtop / f"DSA_N{N}_run{run}.log"
@@ -155,10 +170,16 @@ for N in Nlist:
         logfile = logtop / f"bSB_N{N}_run{run}.log"
         ballisticSB().solve(model=problem, x=x, y=y, num_iterations=num_iter, at=at, a0=1.0, c0=c0, dt=dt, file=logfile)
         logfiles[N]["bSB"].append(logfile)
+        plot_state_continuous(
+            logfile, figname=f"bSB_N{N}_run{run}.png", save_folder=TOP / "ising/flow/plots/Solvers_comparison"
+        )
 
         logfile = logtop / f"dSB_N{N}_run{run}.log"
         discreteSB().solve(model=problem, x=x, y=y, num_iterations=num_iter, at=at, a0=1.0, c0=c0, dt=dt, file=logfile)
         logfiles[N]["dSB"].append(logfile)
+        plot_state_continuous(
+            logfile, figname=f"dSB_N{N}_run{run}.png", save_folder=TOP / "ising/flow/plots/Solvers_comparison"
+        )
 
         print("running SCA")
         logfile = logtop / f"SCA_N{N}_run{run}.log"
@@ -174,6 +195,10 @@ for N in Nlist:
             file=logfile,
         )
         logfiles[N]["SCA"].append(logfile)
-plot_energy_accuracy_check_mult_solvers(
-    logfiles, best_found, save_folder=TOP / "ising/flow/plots", figName="Energy_accuracy_check_multiple_solvers.png"
+plot_energy_dist_multiple_solvers(
+    logfiles,
+    xlabel="problem size",
+    best_found=best_found,
+    save_folder=TOP / "ising/flow/plots/Solvers_comparison",
+    figName=str(args.figName),
 )
