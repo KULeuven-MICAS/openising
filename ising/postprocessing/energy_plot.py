@@ -196,7 +196,7 @@ def plot_energy_dist_multiple_solvers(
         color = color_cycle[color_index % len(color_cycle)]
         color_index += 1
 
-        plt.plot(num_iters, avg_best_energies, label=f"{solver} Average Best Energy", color=color)
+        plt.plot(num_iters, avg_best_energies, label=f"{solver}", color=color)
         plt.fill_between(num_iters, min_best_energies, max_best_energies, color=color, alpha=0.2)
     if best_found != 0.0:
         plt.plot(num_iters, np.ones(len(num_iters)) * best_found, label="Best found")
@@ -217,7 +217,7 @@ def plot_energy_accuracy_check(
     figName: str = "energy_accuracy_check.png",
 ):
     """Plots the best found energy distribution compared to the best found from OpenJij.
-    This plot does not care about iteration length but about proble size.
+    This plot does not care about iteration length but about problem size.
 
     Args:
         logfiles (list[pathlib.Path]): Dictionary of all the absolute paths to the logfiles linked to the problem size.
@@ -260,3 +260,49 @@ def plot_energy_accuracy_check(
         plt.savefig(save_folder / figName)
     plt.show()
 
+def plot_energy_accuracy_check_mult_solvers(
+    logfiles:dict[int:dict[str:pathlib.Path]],
+    best_found:list[float]|None=None,
+    save: bool = True,
+    save_folder: pathlib.Path = ".",
+    figName: str = "energy_accuracy_check.png"  ):
+
+    energies = dict()
+    for N, solver in logfiles.items():
+        energies[N] = {}
+        for solver_name, logfile_list in solver.items():
+            for logfile in logfile_list:
+                if solver_name not in energies[N]:
+                    energies[N][solver_name] = []
+                energies[N][solver_name].append(return_metadata(fileName=logfile, metadata="solution_energy"))
+
+    average_energies = dict()
+    min_energies = dict()
+    max_energies = dict()
+    problem_sizes = []
+
+    for N, solver in energies.items():
+        for solver_name, energy in solver.items():
+            if solver_name not in average_energies:
+                average_energies[solver_name] = []
+                min_energies[solver_name] = []
+                max_energies[solver_name] = []
+            average_energies[solver_name].append(np.mean(np.array(energy), axis=0))
+            std = np.std(energy)
+            min_energies[solver_name].append(average_energies[solver_name][-1] - std)
+            max_energies[solver_name].append(average_energies[solver_name][-1] + std)
+        problem_sizes.append(N)
+
+    plt.figure()
+    for solver_name, _ in average_energies.items():
+        plt.plot(problem_sizes, average_energies[solver_name], label=f"{solver_name} Average Best Energy")
+        plt.fill_between(problem_sizes, min_energies[solver_name], max_energies[solver_name], alpha=0.2)
+    if best_found is not None:
+        plt.plot(problem_sizes, best_found, 'k.-', label="Best found")
+    plt.xlabel('problem size')
+    plt.ylabel('Best Energy')
+    plt.legend()
+    plt.title("Average energy with std for different solvers")
+    if save:
+        plt.savefig(save_folder / figName)
+    plt.show()

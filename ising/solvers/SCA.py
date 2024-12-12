@@ -67,7 +67,7 @@ class SCA(SolverBase):
             "initial_state": sample
         }
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(metadata)
+            log.write_metadata(**metadata)
 
             for s in range(num_iterations):
                 for x in range(N):

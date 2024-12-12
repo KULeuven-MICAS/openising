@@ -34,7 +34,7 @@ def random_MaxCut(N: int) -> IsingModel:
     Returns:
         IsingModel: generated problem.
     """
-    J = np.random.choice([-1/2, 0.0, 1/2], (N, N))
+    J = np.random.choice([-0.5,0., 0.5], (N,N))
     J = np.triu(J, k=1)
     h = np.zeros((N,))
     c = np.sum(J)
