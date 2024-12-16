@@ -24,4 +24,6 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     plt.plot(list(range(num_iterations)), states)
     if save:
         plt.savefig(save_folder / figname)
+    plt.xlabel('Iteration')
+    plt.ylabel('continuous state')
     plt.show()

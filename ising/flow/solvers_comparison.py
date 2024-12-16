@@ -23,7 +23,8 @@ from ising.utils.numpy import triu_to_symm
 
 TOP = pathlib.Path(os.getenv("TOP"))
 parser = argparse.ArgumentParser()
-parser.add_argument("--Nlist", help="tuple containing min and max problem size", default=(10, 100), nargs="+")
+parser.add_argument("--Nlist", help="tuple containing min and max problem size", default=(10, 100), nargs="+", type=int)
+parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-num_iter", help="Number of iterations for each run", default=1000)
 parser.add_argument("-figName", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
@@ -51,6 +52,10 @@ parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0
 
 print("parsing args")
 args = parser.parse_args()
+solvers = list(args.solvers)
+if solvers == ["all"]:
+    solvers = ["BRIM", "DSA", "SA", "bSB", "dSB", "SCA"]
+
 Nlist = tuple(args.Nlist)
 nb_runs = int(args.nb_runs)
 Nlist = np.linspace(Nlist[0], Nlist[1], nb_runs, dtype=int)
@@ -80,23 +85,18 @@ dt = float(args.dt)
 
 
 def at(t):
-    return 1.0 / (dt * num_iter) * t
+    return 1.0 / (dt * num_iter)**2 * t**2
 
 
 logfiles = dict()
 logtop = TOP / "ising/flow/logs"
+figtop = TOP / "ising/flow/plots/Solvers_comparison"
 best_found = []
 for N in Nlist:
     logfiles[N] = dict()
-    logfiles[N]["BRIM"] = []
-    logfiles[N]["DSA"] = []
-    logfiles[N]["SA"] = []
-    logfiles[N]["bSB"] = []
-    logfiles[N]["dSB"] = []
-    logfiles[N]["SCA"] = []
-
     print("Generating MaxCut problem of size", N)
     problem = random_MaxCut(N)
+    print("generated problem", problem)
 
     if N < 30:
         print("Solving with Exhaustive solver")
@@ -120,81 +120,96 @@ for N in Nlist:
         * np.sqrt(np.sum(np.power(problem.J, 2)) / (problem.num_variables * (problem.num_variables - 1)))
     )
 
-    for run in range(nb_runs):
-        print("run ", run)
-        print("Running BRIM")
-        logfile = logtop / f"BRIM_N{N}_run{run}.log"
-        BRIM().solve(
-            model=problem,
-            v=v,
-            num_iterations=num_iter,
-            dt=tend / num_iter,
-            kmin=kmin,
-            kmax=kmax,
-            C=C,
-            G=G,
-            file=logfile,
-        )
-        logfiles[N]["BRIM"].append(logfile)
-        plot_state_continuous(
-            logfile, figname=f"BRIM_N{N}_run{run}.png", save_folder=TOP / "ising/flow/plots/Solvers_comparison"
-        )
+    for solver in solvers:
+        logfiles[N][solver] = []
+        for run in range(nb_runs):
+            print("run ", run)
+            if solver == "BRIM":
+                logfile = logtop / f"BRIM_N{N}_run{run}.log"
+                BRIM().solve(
+                    model=problem,
+                    v=v,
+                    num_iterations=num_iter,
+                    dt=tend / num_iter,
+                    kmin=kmin,
+                    kmax=kmax,
+                    C=C,
+                    G=G,
+                    file=logfile,
+                )
+                logfiles[N]["BRIM"].append(logfile)
+                plot_state_continuous(logfiles[N]["BRIM"][-1], figname=f"BRIM_N{N}.png", save_folder=figtop)
+            elif solver == "DSA":
+                logfile = logtop / f"DSA_N{N}_run{run}.log"
+                DSASolver().solve(
+                    model=problem,
+                    initial_state=sigma,
+                    num_iterations=num_iter,
+                    initial_temp=T,
+                    cooling_rate=r_T,
+                    file=logfile,
+                    seed=int(args.seed),
+                )
+                logfiles[N]["DSA"].append(logfile)
+            elif solver == "SA":
+                logfile = logtop / f"SA_N{N}_run{run}.log"
+                SASolver().solve(
+                    model=problem,
+                    initial_state=sigma,
+                    num_iterations=num_iter,
+                    initial_temp=T,
+                    cooling_rate=r_T,
+                    file=logfile,
+                    seed=int(args.seed),
+                )
+                logfiles[N]["SA"].append(logfile)
+            elif solver == "bSB":
+                logfile = logtop / f"bSB_N{N}_run{run}.log"
+                s_optim, energy = ballisticSB().solve(
+                    model=problem,
+                    x=np.copy(x),
+                    y=np.copy(y),
+                    num_iterations=num_iter,
+                    at=at,
+                    a0=1.0,
+                    c0=c0,
+                    dt=dt,
+                    file=logfile,
+                )
+                logfiles[N]["bSB"].append(logfile)
+                plot_state_continuous(logfiles[N]["bSB"][-1], figname=f"bSB_N{N}.png", save_folder=figtop)
+                print(s_optim)
+            elif solver == "dSB":
+                logfile = logtop / f"dSB_N{N}_run{run}.log"
+                s_optim, energy = discreteSB().solve(
+                    model=problem,
+                    x=np.copy(x),
+                    y=np.copy(y),
+                    num_iterations=num_iter,
+                    at=at,
+                    a0=1.0,
+                    c0=c0,
+                    dt=dt,
+                    file=logfile,
+                )
+                logfiles[N]["dSB"].append(logfile)
+                plot_state_continuous(logfiles[N]["dSB"][-1], figname=f"dSB_N{N}.png", save_folder=figtop)
+                print(s_optim)
+            elif solver == "SCA":
+                logfile = logtop / f"SCA_N{N}_run{run}.log"
+                SCA().solve(
+                    model=problem,
+                    sample=sigma,
+                    num_iterations=num_iter,
+                    T=T,
+                    r_t=r_T,
+                    q=q,
+                    r_q=r_q,
+                    seed=int(args.seed),
+                    file=logfile,
+                )
+                logfiles[N]["SCA"].append(logfile)
 
-        print("running DSA")
-        logfile = logtop / f"DSA_N{N}_run{run}.log"
-        DSASolver().solve(
-            model=problem,
-            initial_state=sigma,
-            num_iterations=num_iter,
-            initial_temp=T,
-            cooling_rate=r_T,
-            file=logfile,
-            seed=int(args.seed),
-        )
-        logfiles[N]["DSA"].append(logfile)
-
-        print("running SA")
-        logfile = logtop / f"SA_N{N}_run{run}.log"
-        SASolver().solve(
-            model=problem,
-            initial_state=sigma,
-            num_iterations=num_iter,
-            initial_temp=T,
-            cooling_rate=r_T,
-            file=logfile,
-            seed=int(args.seed),
-        )
-        logfiles[N]["SA"].append(logfile)
-
-        print("running SB")
-        logfile = logtop / f"bSB_N{N}_run{run}.log"
-        ballisticSB().solve(model=problem, x=x, y=y, num_iterations=num_iter, at=at, a0=1.0, c0=c0, dt=dt, file=logfile)
-        logfiles[N]["bSB"].append(logfile)
-        plot_state_continuous(
-            logfile, figname=f"bSB_N{N}_run{run}.png", save_folder=TOP / "ising/flow/plots/Solvers_comparison"
-        )
-
-        logfile = logtop / f"dSB_N{N}_run{run}.log"
-        discreteSB().solve(model=problem, x=x, y=y, num_iterations=num_iter, at=at, a0=1.0, c0=c0, dt=dt, file=logfile)
-        logfiles[N]["dSB"].append(logfile)
-        plot_state_continuous(
-            logfile, figname=f"dSB_N{N}_run{run}.png", save_folder=TOP / "ising/flow/plots/Solvers_comparison"
-        )
-
-        print("running SCA")
-        logfile = logtop / f"SCA_N{N}_run{run}.log"
-        SCA().solve(
-            model=problem,
-            sample=sigma,
-            num_iterations=num_iter,
-            T=T,
-            r_t=r_T,
-            q=q,
-            r_q=r_q,
-            seed=int(args.seed),
-            file=logfile,
-        )
-        logfiles[N]["SCA"].append(logfile)
 plot_energy_dist_multiple_solvers(
     logfiles,
     xlabel="problem size",
