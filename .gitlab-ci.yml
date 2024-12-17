@@ -28,8 +28,3 @@ Ruff Check:
   artifacts:
     reports:
       codequality: $CI_PROJECT_DIR/code-quality-report.json
-
-Ruff Format:
-  extends: .base_ruff
-  script:
-    - ruff format --diff
