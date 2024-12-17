@@ -1,5 +1,14 @@
+image: python:3.12.7
+
+
 stages:
   - build
+
+before_script:
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - source .setup
 
 # artifacts:reports:codequality
 
@@ -9,7 +18,6 @@ stages:
   image:
     name: ghcr.io/astral-sh/ruff:0.8.3-alpine
   before_script:
-    - . .setup
     - cd $CI_PROJECT_DIR
     - ruff --version
 
