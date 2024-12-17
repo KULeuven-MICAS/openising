@@ -1,6 +1,12 @@
 import numpy as np
-from ising.model.ising import IsingModel
 import networkx as nx
+import pathlib
+import os
+
+from ising.model.ising import IsingModel
+from ising.benchmarks.parsers.G import G_parser
+
+TOP = pathlib.Path(os.getenv("TOP"))
 
 
 def MaxCut(graph: nx.Graph) -> IsingModel:
@@ -20,13 +26,14 @@ def MaxCut(graph: nx.Graph) -> IsingModel:
         weight = graph[node1][node2]["weight"]
         J[node1, node2] = -weight / 2
         J[node2, node1] = -weight / 2
-        c += weight
+        c -= weight/2
     J = np.triu(J)
-    return IsingModel(J, h, -1 / 2 * c)
+    return IsingModel(J, h, c)
 
 
 def random_MaxCut(N: int) -> IsingModel:
-    """Generates a random Max Cut problem.
+    """Generates a random Max Cut problem. If there is a benchmark present for the given amount of nodes,
+    the dummy benchmark is used.
 
     Args:
         N (int): size of the problem.
@@ -34,8 +41,13 @@ def random_MaxCut(N: int) -> IsingModel:
     Returns:
         IsingModel: generated problem.
     """
-    J = np.random.choice([-1/2, 0.0, 1/2], (N, N))
-    J = np.triu(J, k=1)
-    h = np.zeros((N,))
-    c = np.sum(J)
-    return IsingModel(J, h, c)
+    filePath = TOP / f"ising/benchmarks/Maxcut_dummy/Dummy_N{N}.txt"
+    if filePath.exists():
+        graph = G_parser(filePath)
+        return MaxCut(graph)
+    else:
+        J = np.random.choice([-0.5,0., 0.5], (N,N))
+        J = np.triu(J, k=1)
+        h = np.zeros((N,))
+        c = np.sum(J)
+        return IsingModel(J, h, c)
