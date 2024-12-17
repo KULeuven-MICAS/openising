@@ -5,6 +5,7 @@ from scipy.integrate import solve_ivp
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
+from ising.utils.numpy import triu_to_symm
 
 
 class BRIM(SolverBase):
@@ -33,6 +34,8 @@ class BRIM(SolverBase):
         C: float,
         G: float,
         file: pathlib.Path | None = None,
+        random_flip:bool=False,
+        seed:int=1
     ) -> tuple[np.ndarray, float]:
         """Simulates the BLIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
 
@@ -53,6 +56,8 @@ class BRIM(SolverBase):
         """
         N = model.num_variables
         tend = dt * num_iterations
+        J = triu_to_symm(model.J)
+        np.random.seed(seed)
 
         schema = {"time": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
@@ -64,16 +69,21 @@ class BRIM(SolverBase):
             "C": C,
             "G": G,
             "kmin": kmin,
-            "kmax": kmax
+            "kmax": kmax,
+            "random_flip": random_flip,
+            "seed": seed
         }
 
         def dvdt(t, v):
             V = np.array([v] * N)
             k = self.k(kmax, kmin, t, tend)
-            dv = 1 / C * (G * np.tanh(k * np.tanh(k * v)) - G * v - np.sum(model.J * (V - V.T), 0))
+            dv = 1 / C * (G * np.tanh(k * np.tanh(k * v)) - G * v - np.sum(J * (V - V.T), 0))
 
             dv = np.where(np.all(np.array([dv > 0.0, v >= 1.0]), 0), np.zeros((N,)), dv)
             dv = np.where(np.all(np.array([dv < 0.0, v <= -1.0]), 0), np.zeros((N,)), dv)
+            if random_flip and t % (100 * dt) == 0:
+                flip = np.random.choice(N)
+                dv[flip] = -2.*v[flip]
             return dv
 
         with HDF5Logger(file, schema) as log:

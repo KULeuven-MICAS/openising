@@ -6,6 +6,7 @@ import time
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
+from ising.utils.numpy import triu_to_symm
 
 class SCA(SolverBase):
     def change_hyperparam(self, param: float, rate: float) -> float:
@@ -45,6 +46,7 @@ class SCA(SolverBase):
         """
         N = model.num_variables
         hs = np.copy(model.h)
+        J = triu_to_symm(model.J)
         flipped_states = []
 
         if seed is None:
@@ -69,15 +71,18 @@ class SCA(SolverBase):
         with HDF5Logger(file, schema) as log:
             log.write_metadata(**metadata)
 
-            for s in range(num_iterations):
-                for x in range(N):
-                    hs[x] += np.dot(model.J[x, :], sample)
-                    P = self.get_prob(hs[x], sample[x], q, T)
-                    rand = random.random()
-                    if P < rand:
-                        flipped_states.append(x)
-                for x in flipped_states:
-                    sample[x] = -sample[x]
+            for _ in range(num_iterations):
+                hs += np.matmul(J, sample)
+                Prob = self.get_prob(hs, sample, q, T)
+                rand = np.random.rand(N)
+                flipped_states = [y for y in range(N) if Prob[y] < rand[y]]
+                # for y in range(N):
+                #     hs[y] += np.dot(J[:, y], sample)
+                #     Prob = self.get_prob(hs[y], sample[y], q, T)
+                #     rand = np.random.rand((N,))
+                #     if Prob < rand:
+                #         flipped_states.append(y)
+                sample[flipped_states] = -sample[flipped_states]
                 energy = model.evaluate(sample)
                 log.log(energy=energy, state=sample)
 
@@ -90,23 +95,18 @@ class SCA(SolverBase):
 
         return sample, energy
 
-    def get_prob(self, hsx:float, samplex:int, q:float, T:float)->float:
-        """Calculates the probability of changing the value of a certain node
+    def get_prob(self, hs:np.ndarray, sample:np.ndarray, q:float, T:float)->np.ndarray:
+        """Calculates the probability of changing the value of the spins
            according to SCA annealing process.
 
         Args:
-            hsx (float): local field influence on the node.
-            samplex (int): node
+            hs (np.ndarray): local field influence.
+            sample (np.ndarray): spin of the nodes.
             q (float): penalty parameter
             T (float): temperature
 
         Returns:
-            probability (float): probability of accepting the change.
+            probability (np.ndarray): probability of accepting the change of all nodes.
         """
-        val = hsx * samplex + q
-        if -2 * T < val < 2 * T:
-            return val / (4 * T) + 0.5
-        elif val > 2 * T:
-            return 1.0
-        else:
-            return 0.0
+        val = 1/T*(hs * sample + q)/2
+        return 1 / (1 + np.exp(-val))

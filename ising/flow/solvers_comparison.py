@@ -3,7 +3,6 @@ import pathlib
 import numpy as np
 import argparse
 import openjij as oj
-import random
 import matplotlib.pyplot as plt
 
 from ising.generators.MaxCut import random_MaxCut
@@ -36,10 +35,11 @@ parser.add_argument("-C", help="capacitor parameter", default=1e-5)
 parser.add_argument("-G", help="Resistor parameter", default=1e-1)
 parser.add_argument("-kmin", help="Minimum latch strength", default=0.01)
 parser.add_argument("-kmax", help="Maximum latch strength", default=2.5)
+parser.add_argument("-flip", help="Whether to activate random flipping in BRIM", default=False)
 
 # SA parameters
 parser.add_argument("-T", help="Initial temperature", default=50.0)
-parser.add_argument("-r_T", help="Temperature reduction rate", default=0.99)
+parser.add_argument("-Tfin", help="Final temperature of the annealing process", default=0.05)
 parser.add_argument("-seed", help="Seed for random number generator", default=1)
 
 # SCA parameters
@@ -59,7 +59,8 @@ if solvers == ["all"]:
 Nlist = tuple(args.Nlist)
 nb_runs = int(args.nb_runs)
 Nlist = np.linspace(Nlist[0], Nlist[1], nb_runs, dtype=int)
-random.seed(int(args.seed))
+seed = int(args.seed)
+np.random.seed(seed)
 if bool(args.plot):
     plt.ion()
 
@@ -71,10 +72,12 @@ C = float(args.C)
 G = float(args.G)
 kmin = float(args.kmin)
 kmax = float(args.kmax)
+flip = bool(args.flip)
 
 # SA parameters
 T = float(args.T)
-r_T = float(args.r_T)
+Tfin = float(args.Tfin)
+r_T = (Tfin / T) ** (1 / (num_iter + 1))
 
 # SCA parameters
 q = float(args.q)
@@ -83,9 +86,8 @@ r_q = (float(args.q_final) / q) ** (1 / (num_iter + 1))
 # SB parameters
 dt = float(args.dt)
 
-
 def at(t):
-    return 1.0 / (dt * num_iter)**2 * t**2
+    return 1.0 / (dt * num_iter) * t
 
 
 logfiles = dict()
@@ -96,7 +98,10 @@ for N in Nlist:
     logfiles[N] = dict()
     print("Generating MaxCut problem of size", N)
     problem = random_MaxCut(N)
+    sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
+    G = np.average(sumJ)*2
     print("generated problem", problem)
+    print("G: ", G)
 
     if N < 30:
         print("Solving with Exhaustive solver")
@@ -136,6 +141,8 @@ for N in Nlist:
                     C=C,
                     G=G,
                     file=logfile,
+                    random_flip=flip,
+                    seed=seed
                 )
                 logfiles[N]["BRIM"].append(logfile)
                 plot_state_continuous(logfiles[N]["BRIM"][-1], figname=f"BRIM_N{N}.png", save_folder=figtop)

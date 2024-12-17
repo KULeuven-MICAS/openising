@@ -26,9 +26,9 @@ def MaxCut(graph: nx.Graph) -> IsingModel:
         weight = graph[node1][node2]["weight"]
         J[node1, node2] = -weight / 2
         J[node2, node1] = -weight / 2
-        c += weight
+        c -= weight/2
     J = np.triu(J)
-    return IsingModel(J, h, -1 / 2 * c)
+    return IsingModel(J, h, c)
 
 
 def random_MaxCut(N: int) -> IsingModel:
