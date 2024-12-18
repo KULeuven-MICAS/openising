@@ -16,7 +16,7 @@ from ising.solvers.SCA import SCA
 from ising.solvers.exhaustive import ExhaustiveSolver
 
 from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers
-from ising.postprocessing.plot_solutions import plot_state_continuous
+from ising.postprocessing.plot_solutions import plot_state_continuous, plot_state_discrete
 
 from ising.utils.numpy import triu_to_symm
 
@@ -52,9 +52,10 @@ parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0
 
 print("parsing args")
 args = parser.parse_args()
-solvers = list(args.solvers)
-if solvers == ["all"]:
+if args.solvers == "all":
     solvers = ["BRIM", "DSA", "SA", "bSB", "dSB", "SCA"]
+else:
+    solvers = list(args.solvers)
 
 Nlist = tuple(args.Nlist)
 nb_runs = int(args.nb_runs)
@@ -128,7 +129,7 @@ for N in Nlist:
     for solver in solvers:
         logfiles[N][solver] = []
         for run in range(nb_runs):
-            print("run ", run)
+            print(solver, " run ", run)
             if solver == "BRIM":
                 logfile = logtop / f"BRIM_N{N}_run{run}.log"
                 BRIM().solve(
@@ -158,6 +159,7 @@ for N in Nlist:
                     seed=int(args.seed),
                 )
                 logfiles[N]["DSA"].append(logfile)
+                plot_state_discrete(logfiles[N]["DSA"][-1], figName=f"DSA_N{N}.png", save_folder=figtop)
             elif solver == "SA":
                 logfile = logtop / f"SA_N{N}_run{run}.log"
                 SASolver().solve(
@@ -170,6 +172,7 @@ for N in Nlist:
                     seed=int(args.seed),
                 )
                 logfiles[N]["SA"].append(logfile)
+                plot_state_discrete(logfiles[N]["SA"][-1], figName=f"SA_N{N}.png", save_folder=figtop)
             elif solver == "bSB":
                 logfile = logtop / f"bSB_N{N}_run{run}.log"
                 s_optim, energy = ballisticSB().solve(
@@ -216,6 +219,7 @@ for N in Nlist:
                     file=logfile,
                 )
                 logfiles[N]["SCA"].append(logfile)
+                plot_state_discrete(logfiles[N]["SCA"][-1], figName=f"SCA_N{N}.png", save_folder=figtop)
 
 plot_energy_dist_multiple_solvers(
     logfiles,
