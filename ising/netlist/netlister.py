@@ -2,7 +2,7 @@ import string
 from pathlib import Path
 import numpy as np
 
-from ising.model.ising import IsingModel, Bias
+from ising.model.ising import IsingModel
 
 
 class Netlister:
@@ -44,7 +44,7 @@ class Netlister:
             out += f" vth={vth}"
         return out
 
-    def gen_cu(self, i: int, j: int, J: Bias) -> str:
+    def gen_cu(self, i: int, j: int, J: float) -> str:
         R = 1/J * 10_000
         return f"cu_{i}_{j} (L{i} R{i} L{j} R{j}) cu R={R}"
 

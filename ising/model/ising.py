@@ -6,8 +6,7 @@ import h5py
 
 import ising.utils.numpy as npu
 
-Bias = int | float
-
+__all__ = ["IsingModel", "float"]
 
 class IsingModel:
     """
@@ -16,17 +15,17 @@ class IsingModel:
     Attributes:
         J (np.ndarray): A square strictly upper triangular matrix representing interactions between variables.
         h (np.ndarray): A vector of bias values for each variable.
-        c (Bias): A constant term in the Hamiltonian.
+        c (float): A constant term in the Hamiltonian.
     """
 
-    def __init__(self, J: np.ndarray, h: np.ndarray, c: Bias = 0) -> None:
+    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0) -> None:
         """
         Initialize an Ising model with the specified interaction matrix, bias vector, and constant.
 
         Args:
             J (np.ndarray): The interaction matrix (square strictly upper triangular matrix).
             h (np.ndarray): The bias vector.
-            c (Bias): The constant term (default is 0).
+            c (float): The constant term (default is 0).
         """
         if not isinstance(h, np.ndarray) or not h.ndim == 1:
             raise ValueError("h must be a vector")
@@ -78,23 +77,23 @@ class IsingModel:
         return self.num_variables, self.num_interactions
 
     @property
-    def mean(self) -> Bias:
+    def mean(self) -> float:
         """
         The mean of biases in the Ising model.
 
         Returns:
-            Bias: the mean value of all linear and quadratic biases.
+            float: the mean value of all linear and quadratic biases.
         """
         biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
         return np.mean(biases)
 
     @property
-    def variance(self) -> Bias:
+    def variance(self) -> float:
         """
         The variance of biases in the Ising model.
 
         Returns:
-            Bias: the variance value of all linear and quadratic biases.
+            float: the variance value of all linear and quadratic biases.
         """
         biases = np.concatenate([self.J[np.triu_indices(self.num_variables, k=1)], self.h])
         return np.var(biases)
@@ -169,7 +168,7 @@ class IsingModel:
                 self.scale(1/transformation[1], track=False)
 
 
-    def evaluate(self, sample: np.ndarray) -> Bias:
+    def evaluate(self, sample: np.ndarray) -> float:
         """
         Compute the Hamiltonian given a sample of spin values.
 
@@ -177,7 +176,7 @@ class IsingModel:
             sample (np.ndarray): A vector of spin values (1 or -1)
 
         Returns:
-            Bias: The calculated Hamiltonian value for the given sample.
+            float: The calculated Hamiltonian value for the given sample.
         """
         return -np.dot(sample.T, np.dot(self.J, sample)) - np.dot(self.h.T, sample) + self.c
 
@@ -199,12 +198,12 @@ class IsingModel:
         c = (1 / 4) * np.sum(Q) + (1 / 4) * np.sum(Q.diagonal())
         return cls(J, h, c)
 
-    def to_qubo(self) -> tuple[np.ndarray, Bias]:
+    def to_qubo(self) -> tuple[np.ndarray, float]:
         """
         Convert the IsingModel to a QUBO matrix representation.
 
         Returns:
-            tuple[np.ndarray, Bias]: The QUBO matrix and the constant term c.
+            tuple[np.ndarray, float]: The QUBO matrix and the constant term c.
         """
         Q = (-4) * self.J
         Q.diagonal()[:] = 2 * (np.sum(npu.triu_to_symm(self.J), axis=1) + self.h)
@@ -250,7 +249,7 @@ class IsingModel:
             cls,
             adj: np.ndarray,
             linear: np.ndarray | None = None,
-            bias_generator: Bias | Callable | Iterable = 1) -> IsingModel:
+            bias_generator: float | Callable | Iterable = 1) -> IsingModel:
         """
         Create an IsingModel from an adjacency matrix and linear bias vector by
         filling the biases with values taken from a bias_generator.
@@ -258,12 +257,12 @@ class IsingModel:
         Args:
             adj (np.ndarray): The adjacency matrix (transformable to bool-dtype).
             linear (np.ndarray, optional): A vector denoting the presence of linear biases (default is None).
-            bias_generator (Bias | Callable | Iterable, optional): A value or generator function to sample biases from.
+            bias_generator (float | Callable | Iterable, optional): A value or generator function to sample biases from.
 
         Returns:
             IsingModel: The corresponding IsingModel instance.
         """
-        if isinstance(bias_generator, Bias):
+        if isinstance(bias_generator, (float, int)):
             f = lambda: bias_generator
         elif isinstance(bias_generator, Callable):
             f = bias_generator
