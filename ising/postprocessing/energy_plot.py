@@ -2,121 +2,131 @@ import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ising.postprocessing.helper_functions import return_data
+from ising.postprocessing.helper_functions import (
+    return_data,
+    return_metadata,
+    get_bestEnergy_from_dict,
+    compute_averages_energies,
+)
+
 
 def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
-    plt.plot(energies, label=label)
+    """PLots the energies on a given figure.
+
+    Args:
+        energies (np.ndarray): the energies that need to be plotted.
+        label (str | None, optional): label of the plot. Defaults to None.
+    """
+    if label == "Best found":
+        shape = "--"
+    else:
+        shape = "-"
+    plt.plot(energies, shape, label=label)
 
 
-def plot_energies(fileName: pathlib.Path, save: bool = True, save_folder: pathlib.Path = "."):
+def plot_energies(
+    fileName: pathlib.Path,
+    figName: str = "energies.png",
+    best_found: float = 0.0,
+    save: bool = True,
+    save_folder: pathlib.Path = ".",
+):
+    """Plots the energies of a given optimisation process using the logfile.
+
+    Args:
+        fileName (pathlib.Path): absolute path to the logfile.
+        figName (str, optional): name of the figure that should be saved. Defaults to "energies.png".
+        best_found (float, optional): Best found energy value of the problem. Defaults to 0.0.
+        save (bool, optional): Whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): Folder to which the figure should be saved. Defaults to ".".
+    """
     energies, best_energy, solver_name = (
-        return_data(fileName=fileName, data="energies"),
-        return_data(fileName, data="solution_energy"),
-        return_data(fileName, data="solver"),
+        return_data(fileName=fileName, data="energy"),
+        return_metadata(fileName, metadata="solution_energy"),
+        return_metadata(fileName, metadata="solver"),
     )
 
     plt.figure()
-    plot_energies_on_figure(energies)
+    plot_energies_on_figure(energies, label=solver_name)
+    plot_energies_on_figure(np.ones(energies.shape) * best_found, label="Best found")
     plt.title(f"Best energy: {best_energy}")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
-
     if save:
-        plt.savefig(f"{save_folder}/{solver_name}_energy.png")
-
+        plt.savefig(save_folder / figName)
     plt.show()
 
 
-def plot_energies_multiple(fileName_list: list[pathlib.Path], save: bool = True, save_folder: pathlib.Path = "."):
+def plot_energies_multiple(
+    fileName_list: list[pathlib.Path],
+    figName: str = "multiple_energies.png",
+    best_found: float = 0.0,
+    save: bool = True,
+    save_folder: pathlib.Path = ".",
+    diff_metadata: str | None = None,
+):
+    """PLots the energies of multiple optimisation processes.
+
+    Args:
+        fileName_list (list[pathlib.Path]): list of all the absolute paths to the logfiles.
+        figName (str, optional): name of the figure that will be saved. Defaults to "multiple_energies.png".
+        best_found (float, optional): best found energy value of the problem. Defaults to 0.0.
+        save (bool, optional): whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): where the figure should be stored. Defaults to ".".
+    """
     plt.figure()
-    title = ""
     for fileName in fileName_list:
         energies, best_energy, solver_name = (
-            return_data(fileName=fileName, data="energies"),
-            return_data(fileName, data="solution_energy"),
-            return_data(fileName, data="solver"),
+            return_data(fileName=fileName, data="energy"),
+            return_metadata(fileName, metadata="solution_energy"),
+            return_metadata(fileName, metadata="solver"),
         )
-
+        if diff_metadata is not None:
+            diff = return_metadata(fileName, metadata=diff_metadata)
+            solver_name += f" {diff_metadata}: {diff}"
         plot_energies_on_figure(energies, label=f"{solver_name} (Best: {best_energy})")
-        title += solver_name + ", "
-        plt.legend()
-    plt.title(f"Energies of {title[:-2]}")
+    if best_found != 0.0:
+        plot_energies_on_figure(np.ones(energies.shape) * best_found, label="Best found")
+    plt.legend()
+    plt.title("Energy comparison of different optimisation processes")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder + "/multiple_energies.png")
-    plt.show()
-
-
-def plot_energy_dist(fileName_list: list[pathlib.Path], save: bool = True, save_folder: pathlib.Path = "."):
-    data = dict()
-    solver = ""
-    for fileName in fileName_list:
-        best_energy = return_data(fileName=fileName, data="solution_energy")
-        num_iter = return_data(fileName=fileName, data="num_iterations")
-        solvername = return_data(fileName=fileName, data="solver")
-        if solver == "":
-            solver = solvername
-        if solver == solvername:
-            if num_iter not in data:
-                data[num_iter] = [best_energy]
-            else:
-                data[num_iter].append(best_energy)
-        else:
-            print("Only one solver is allowed")
-    avg_best_energies = []
-    std_best_energies = []
-    num_iters = []
-    for num_iter, best_energies in data.items():
-        all_best_energies = np.array(best_energies)
-        avg_best_energies.append(np.mean(all_best_energies, axis=0))
-        std_best_energies.append(np.std(all_best_energies, axis=0))
-        num_iters.append(num_iter)
-
-    plt.figure()
-    plt.errorbar(num_iters, avg_best_energies, yerr=std_best_energies, fmt="-o")
-    plt.title(f"Average Best Energy of {solver} with Standard Deviation")
-    plt.xlabel("iteration")
-    plt.ylabel("Best Energy")
-    plt.legend()
-    if save:
-        plt.savefig(f"{save_folder}/{solver}_best_energy_distribution.png")
+        plt.savefig(save_folder / figName)
     plt.show()
 
 
 def plot_energy_dist_multiple_solvers(
-    fileName_list: list[pathlib.Path], save: bool = True, save_folder: pathlib.Path = "."
+    fileName_list: dict[int : dict[str : list[pathlib.Path]]],
+    xlabel: str,
+    figName: str = "multiple_solvers_energy_dist.png",
+    best_found: list[float]|None = None,
+    save: bool = True,
+    save_folder: pathlib.Path = ".",
 ):
-    data = dict()
-    for fileName in fileName_list:
-        best_energy = return_data(fileName=fileName, data="solution_energy")
-        num_iter = return_data(fileName=fileName, data="num_iterations")
-        solvername = return_data(fileName=fileName, data="solver")
-        if solvername not in data:
-            data[solvername] = {}
-        if num_iter not in data[solvername]:
-            data[solvername][num_iter] = [best_energy]
-        else:
-            data[solvername][num_iter].append(best_energy)
+    """Plots the best found energy distribution from multiple runs and iteration lengths for multiple solvers.
+
+    Args:
+        fileName_list (list[pathlib.Path]): list of all the absolute paths to the logfiles.
+        figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
+        best_found (float, optional): best found solution of the problem. Defaults to 0.0.
+        save (bool, optional): whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
+    """
+    data = get_bestEnergy_from_dict(logfiles=fileName_list, y_data="solution_energy")
+
+    avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure()
-    for solver, iter_data in data.items():
-        avg_best_energies = []
-        std_best_energies = []
-        num_iters = []
-        for num_iter, best_energies in iter_data.items():
-            all_best_energies = np.array(best_energies)
-            avg_best_energies.append(np.mean(all_best_energies, axis=0))
-            std_best_energies.append(np.std(all_best_energies, axis=0))
-            num_iters.append(num_iter)
-        plt.errorbar(
-            num_iters, avg_best_energies, yerr=std_best_energies, fmt="-o", label=f"{solver} Average Best Energy"
-        )
-
+    for solver_Name, _ in avg_energies.items():
+        plt.plot(x_data, avg_energies[solver_Name], label=f"{solver_Name}")
+        plt.fill_between(x_data, min_energies[solver_Name], max_energies[solver_Name], alpha=0.2)
+    if best_found is not None:
+        plt.plot(x_data, best_found, '.-k', label="Best found")
     plt.title("Average Best Energy with Standard Deviation for Multiple Solvers")
-    plt.xlabel("iteration")
+    plt.xlabel(xlabel)
     plt.ylabel("Best Energy")
     plt.legend()
     if save:
-        plt.savefig(f"{save_folder}/best_energy_distribution_multiple_solvers.png")
+        plt.savefig(save_folder / figName)
     plt.show()

@@ -5,6 +5,7 @@ from abc import abstractmethod
 from ising.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
+from ising.utils.numpy import triu_to_symm
 
 
 class SB(SolverBase):
@@ -61,7 +62,7 @@ class ballisticSB(SB):
         """
         tk = 0.0
         N = model.num_variables
-
+        J = triu_to_symm(model.J)
         schema = {
             "time": float,
             "energy": np.float32,
@@ -82,9 +83,9 @@ class ballisticSB(SB):
             log.write_metadata(**metadata)
             for i in range(num_iterations):
                 atk = at(tk)
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0*model.h) * dt
+                x += a0*y*dt
                 for j in range(N):
-                    y[j] += (-(a0 - atk) * x[j] + c0 * np.dot(model.J[:, j], x) + c0 * model.h[j]) * dt
-                    x[j] += self.update_x(y, dt, a0, j)
                     if np.abs(x[j]) > 1:
                         x, y = self.update_rule(x, y, j)
                 sample = np.sign(x)
@@ -128,7 +129,7 @@ class discreteSB(SB):
         """
         N = model.num_variables
         tk = 0.0
-
+        J = triu_to_symm(model.J)
         schema = {
             "time": float,
             "energy": np.float32,
@@ -147,12 +148,14 @@ class discreteSB(SB):
         }
 
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(metadata)
+            log.write_metadata(**metadata)
             for i in range(num_iterations):
                 atk = at(tk)
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0*model.h) * dt
+                x += a0*y*dt
                 for j in range(N):
-                    y[j] += (-(a0 - atk) * x[j] + c0 * np.inner(model.J[:, j], np.sign(x)) + c0 * model.h[j]) * dt
-                    x[j] += self.update_x(y, dt, a0, j)
+                #     y[j] += (-(a0 - atk) * x[j] + c0 * np.inner(model.J[:, j], np.sign(x)) + c0 * model.h[j]) * dt
+                #     x[j] += self.update_x(y, dt, a0, j)
                     if np.abs(x[j]) > 1:
                         x, y = self.update_rule(x, y, j)
                 sample = np.sign(x)
