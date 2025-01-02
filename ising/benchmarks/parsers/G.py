@@ -1,5 +1,6 @@
 import pathlib
 import networkx as nx
+import os
 
 def G_parser(benchmark: pathlib.Path | str):
     """Creates undirected graph from G benchmark
@@ -15,30 +16,25 @@ def G_parser(benchmark: pathlib.Path | str):
     with benchmark.open() as f:
         for line in f:
             if not data:
-                row = list(line)
-                N = ""
-                for i in range(len(row)):
-                    if row[i] == " " and len(N) > 0:
-                        N = int(N)
-                        break
-                    elif row[i] != " ":
-                        N += row[i]
+                row = line.split()
+                N = int(row[0])
                 G.add_nodes_from(list(range(N)))
                 data = True
             else:
-                line = list(line)
-                first_node = True
-                number = ""
-                for i in range(len(line)):
-                    if line[i] == " " and len(number) > 0:
-                        if first_node:
-                            u = int(number) - 1
-                            first_node = False
-                        else:
-                            v = int(number) - 1
-                        number = ""
-                    elif line[i] != " ":
-                        number += line[i]
-                weight = int(number)
+                line = line.split()
+                u = int(line[0]) - 1
+                v = int(line[1]) - 1
+                weight = int(line[2])
                 G.add_edge(u, v, weight=weight)
-    return G
+
+    best_found = None
+    optim_file = pathlib.Path(os.getenv("TOP") / "ising/benchmarks/G/optimal_energy.txt")
+    benchmark = str(benchmark).split("/")[-1][:-4]
+    with optim_file.open() as f:
+        for line in f:
+            line = line.split()
+            if line[0] == benchmark:
+                best_found = int(line[1])
+                break
+
+    return G, best_found
