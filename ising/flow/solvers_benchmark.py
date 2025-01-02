@@ -1,20 +1,18 @@
 import numpy as np
 import os
 import argparse
-import openjij as oj
 import pathlib
 
 from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
-from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers
+from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers, plot_energy_time_multiple
 
-from ising.ising.utils.helper_solvers import run_solver, return_c0, return_rx
+from ising.utils.helper_solvers import run_solver, return_c0, return_rx
 from ising.utils.numpy import triu_to_symm
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
 parser = argparse.ArgumentParser()
-parser.add_argument()
 parser.add_argument("-benchmark", help="Name of the benchmark to run", default="K2000")
 parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
@@ -48,15 +46,18 @@ benchmark = args.benchmark
 print("Generating benchmark: ", benchmark)
 graph, best_found = G_parser(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
 model = MaxCut(graph=graph)
+print("Best found energy: ", -best_found)
 print("Generated benchmark")
 
-solvers = list(args.solvers)
-if solvers[0] == "all":
+if args.solvers == "all":
     solvers = ["BRIM", "SA", "SCA", "bSB", "dSB"]
+else:
+    solvers = (args.solvers).split()
+print("Solving with following solvers: ", solvers)
 
 num_iter = tuple(args.num_iter)
 nb_runs = int(args.nb_runs)
-iter_list = np.linspace(num_iter[0], num_iter[1], nb_runs, dtype=int)
+iter_list = np.linspace(int(num_iter[0]), int(num_iter[1]), nb_runs, dtype=int)
 
 print("Retrieving parameter info")
 # BRIM params
@@ -79,7 +80,7 @@ q = float(args.q)
 qfin = float(args.q_final)
 
 # SB params
-dt = float(args.BRIM)
+dt = float(args.dt)
 a0 = float(args.a0)
 c0 = return_c0(model=model)
 
@@ -111,11 +112,12 @@ for num_iter in iter_list:
                 dtSB=dt, a0=a0, at=at, c0=c0                                         # SB parameters
             )
             logfiles[num_iter][solver].append(logfile)
-
+print("Plotting energy distribution of solver in function of number of iterations and time")
 plot_energy_dist_multiple_solvers(
     logfiles,
     xlabel="Number of iterations",
     figName="energy_dist_iter.png",
-    best_found=np.ones((len(iter_list),)) * best_found,
+    best_found=-np.ones((len(iter_list),)) * best_found,
     save_folder=figpath,
 )
+plot_energy_time_multiple(logfiles, best_found, save_folder=figpath)

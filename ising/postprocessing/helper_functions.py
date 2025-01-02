@@ -32,7 +32,7 @@ def compute_averages_energies(data:dict[int:dict[str:np.ndarray]]):
     return avg_energies, min_energies, max_energies, x_data
 
 
-def get_bestEnergy_from_dict(logfiles:dict[int, dict[str, list[pathlib.Path]]], y_data:str):
+def get_data_from_dict(logfiles:dict[int, dict[str, list[pathlib.Path]]], y_data:str):
     data = dict()
     for xdata, solver in logfiles.items():
         data[xdata] = {}

@@ -5,7 +5,7 @@ import numpy as np
 from ising.postprocessing.helper_functions import (
     return_data,
     return_metadata,
-    get_bestEnergy_from_dict,
+    get_data_from_dict,
     compute_averages_energies,
 )
 
@@ -113,7 +113,7 @@ def plot_energy_dist_multiple_solvers(
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
-    data = get_bestEnergy_from_dict(logfiles=fileName_list, y_data="solution_energy")
+    data = get_data_from_dict(logfiles=fileName_list, y_data="solution_energy")
 
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
@@ -127,6 +127,48 @@ def plot_energy_dist_multiple_solvers(
     plt.xlabel(xlabel)
     plt.ylabel("Best Energy")
     plt.legend()
+    if save:
+        plt.savefig(save_folder / figName)
+    plt.show()
+
+
+def plot_energy_time(logfile:pathlib.Path, best_found:float|None=None, save:bool=True, save_folder:pathlib.Path=".", figName:str="energy_time.png"):
+    time = return_data(logfile, "time_clock")
+    energy = return_data(logfile, "energy")
+
+    plt.figure()
+    plt.plot(time, energy)
+    plt.plot(time, np.ones((len(time),))*best_found, '.-k', label="Best found")
+    plt.title("Energy evolution over time")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Energy")
+    if save:
+        plt.savefig(save_folder / figName)
+    plt.show()
+
+def plot_energy_time_multiple(logfiles:dict[int:dict[str:pathlib.Path]], best_found:float|None=None, save:bool=True, save_folder:pathlib.Path='.', figName:str="energy_time.png"):
+    """Plots the average energy of multiple solvers over the run time.
+
+    Args:
+        logfiles (dict[int:dict[int:pathlib.Path]]): dictionary of the all the logfiles sorted by solver name and amount of iterations.
+        best_found (float | None, optional): best found solution of the problem. Defaults to None.
+        save (bool, optional): _description_. Defaults to True.
+        save_folder (pathlib.Path, optional): _description_. Defaults to '.'.
+        figName (str, optional): _description_. Defaults to "energy_time.png".
+    """
+    data = get_data_from_dict(logfiles, y_data="solution_energy")
+    avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
+
+    time = get_data_from_dict(logfiles, y_data="total_time")
+    time_dict, _ = compute_averages_energies(time)
+
+    for solver_name, energies in avg_energies:
+        plt.plot(time_dict[solver_name], energies, label=f"{solver_name}")
+        plt.fill_between(time_dict[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
+    if best_found is not None:
+        plt.plot(time_dict[solver_name], np.ones(len(time_dict[solver_name],))*best_found, '.-k', label="Best found")
+    plt.xlabel("time [s]")
+    plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
     plt.show()

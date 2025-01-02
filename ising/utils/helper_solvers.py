@@ -29,6 +29,8 @@ def run_solver(
     Returns:
         tuple[np.ndarray, float]: optimal state and energy of the specified solver.
     """
+    optim_state = np.zeros((model.num_variables,))
+    optim_energy = None
     if solver == "BRIM":
         v = 0.5 * np.ones((model.num_variables,)) * s_init
         optim_state, optim_energy = BRIM().solve(
