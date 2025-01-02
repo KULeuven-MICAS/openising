@@ -109,7 +109,7 @@ def plot_energy_dist_multiple_solvers(
     Args:
         fileName_list (list[pathlib.Path]): list of all the absolute paths to the logfiles.
         figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
-        best_found (float, optional): best found solution of the problem. Defaults to 0.0.
+        best_found (list[float],None, optional): list of the best found solutions of the problem. Defaults to None.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """

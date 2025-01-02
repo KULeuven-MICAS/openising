@@ -6,6 +6,7 @@ import pathlib
 
 from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
+from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers
 
 from ising.ising.utils.helper_solvers import run_solver, return_c0, return_rx
 from ising.utils.numpy import triu_to_symm
@@ -45,7 +46,7 @@ args = parser.parse_args()
 
 benchmark = args.benchmark
 print("Generating benchmark: ", benchmark)
-graph, best_found = G_parser(benchmark = TOP / f"ising/benchmarks/G/{benchmark}.txt")
+graph, best_found = G_parser(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
 model = MaxCut(graph=graph)
 print("Generated benchmark")
 
@@ -61,7 +62,7 @@ print("Retrieving parameter info")
 # BRIM params
 dtBRIM = float(args.dtBRIM)
 C = float(args.C)
-G = np.average(np.sum(np.abs(triu_to_symm(model.J)), axis=0))*2
+G = np.average(np.sum(np.abs(triu_to_symm(model.J)), axis=0)) * 2
 print("G: ", str(G))
 kmin = float(args.kmin)
 kmax = float(args.kmax)
@@ -92,15 +93,29 @@ for num_iter in iter_list:
     s_init = np.random.choice([-1, 1], (model.num_variables,))
     r_T = return_rx(num_iter=num_iter, r_init=T, r_final=Tfin)
     r_q = return_rx(num_iter=num_iter, r_init=q, r_final=qfin)
-    at = lambda t: a0/(dt*num_iter)*t
+    at = lambda t: a0 / (dt * num_iter) * t
 
     for solver in solvers:
         logfiles[num_iter][solver] = []
         for run in range(nb_runs):
+            print(f"Run {run} for {solver} with {num_iter} iterations")
             logfile = logpath / f"{solver}_nbiter{num_iter}_run{run}.log"
-            run_solver(solver, num_iter=num_iter, s_init=s_init, logfile=logfile, model=model,
-                       dtBRIM=dtBRIM, kmin=kmin, kmax=kmax, C=C, G=G, flip=flip, seed=seed,
-                       T=T, r_T=r_T,
-                       q=q, r_q=r_q,
-                       dtSB=dt, a0=a0, at=at, c0=c0)
+            run_solver(
+                solver,
+                num_iter=num_iter,
+                s_init=s_init,
+                logfile=logfile,
+                model=model,
+                dtBRIM=dtBRIM, kmin=kmin, kmax=kmax, C=C, G=G, flip=flip, seed=seed, # BRIM parameters
+                T=T, r_T=r_T, q=q, r_q=r_q,                                          # SA and SCA parameters
+                dtSB=dt, a0=a0, at=at, c0=c0                                         # SB parameters
+            )
             logfiles[num_iter][solver].append(logfile)
+
+plot_energy_dist_multiple_solvers(
+    logfiles,
+    xlabel="Number of iterations",
+    figName="energy_dist_iter.png",
+    best_found=np.ones((len(iter_list),)) * best_found,
+    save_folder=figpath,
+)
