@@ -106,5 +106,5 @@ class BRIM(SolverBase):
             #     energy = model.evaluate(sample)
             #     log.log(time=tk, energy=energy, state=sample, voltages=v)
             #     tk += dt
-            log.write_metadata(solution_state=sample, solution_energy=energy)
+            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy
