@@ -12,7 +12,7 @@ class clock:
         self.frequency = frequency
         self.nb_operations = nb_operations
         self.cycle_count = 0
-    
+
 
     def perform_operations(self, operations: int) -> float:
         """Performs the given amount of operations and returns the time passed since creation.
@@ -24,8 +24,8 @@ class clock:
         """
         self.cycle_count += math.ceil(operations / self.nb_operations)
         return self.cycle_count / self.frequency
-    
-    
+
+
     def get_time(self)-> float:
         """Get time of the clock at a given moment without adding operations.
 
