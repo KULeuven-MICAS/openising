@@ -17,7 +17,6 @@ parser.add_argument("-benchmark", help="Name of the benchmark to run", default="
 parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("--num_iter", help="Range for number of iterations", default=(1000, 5000), nargs="+")
-parser.add_argument("-figName", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
 
 # BRIM parameters
 parser.add_argument("-dtBRIM", help="Time step for BRIM", default=1e-6)
