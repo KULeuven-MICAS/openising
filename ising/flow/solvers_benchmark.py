@@ -116,8 +116,8 @@ print("Plotting energy distribution of solver in function of number of iteration
 plot_energy_dist_multiple_solvers(
     logfiles,
     xlabel="Number of iterations",
-    figName="energy_dist_iter.png",
+    figName=f"energy_dist_iter_{benchmark}.png",
     best_found=-np.ones((len(iter_list),)) * best_found,
     save_folder=figpath,
 )
-plot_energy_time_multiple(logfiles, best_found, save_folder=figpath)
+plot_energy_time_multiple(logfiles, best_found, save_folder=figpath, figName=f'energy_time_{benchmark}.png')
