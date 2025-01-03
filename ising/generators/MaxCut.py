@@ -43,7 +43,7 @@ def random_MaxCut(N: int) -> IsingModel:
     """
     filePath = TOP / f"ising/benchmarks/Maxcut_dummy/Dummy_N{N}.txt"
     if filePath.exists():
-        graph = G_parser(filePath)
+        graph, _ = G_parser(filePath)
         return MaxCut(graph)
     else:
         J = np.random.choice([-0.5,0., 0.5], (N,N))

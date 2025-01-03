@@ -20,7 +20,7 @@ class clock:
         Args:
             operations (int): amount of operations to add
         """
-        self.operations += operations
+        self.operation_count += operations
 
     def perform_operations(self) -> float:
         """Performs the given amount of operations and returns the time passed since creation.
@@ -30,8 +30,8 @@ class clock:
         Returns:
             time (float): the time after performing the operations
         """
-        self.cycle_count += math.ceil(self.operations / self.nb_operations)
-        self.operations = 0
+        self.cycle_count += math.ceil(self.operation_count / self.nb_operations)
+        self.operation_count = 0
         return self.get_time()
 
 
