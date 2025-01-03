@@ -94,27 +94,29 @@ class ballisticSB(SB):
             log.write_metadata(**metadata)
             for _ in range(num_iterations):
                 atk = at(tk)
-                operations = 1
+                clocker.add_operations(1)
+                clocker.perform_operations()
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0*model.h) * dt
 
-                operations += 2*N**2 + 5*N
-                clocker.perform_operations(operations)
+                clocker.add_operations(2*N**2 + 5*N)
+                clocker.perform_operations()
 
                 x += a0*y*dt
-                operations = 2*N + 1
-                clocker.perform_operations(operations)
+                clocker.add_operations(2*N + 1)
+                clocker.perform_operations()
 
-                operations = 0
                 for j in range(N):
                     if np.abs(x[j]) > 1:
                         x, y = self.update_rule(x, y, j)
-                        operations += 2
+                        clocker.add_operations(2)
 
-                time = clocker.perform_operations(operations+1)
+                clocker.add_operations(1)
+                time = clocker.perform_operations()
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
                 log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time)
                 tk += dt
+
             total_time = clocker.get_time()
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=total_time)
         return sample, energy
@@ -184,24 +186,29 @@ class discreteSB(SB):
             log.write_metadata(**metadata)
             for _ in range(num_iterations):
                 atk = at(tk)
-                operations = 1
+                clocker.add_operations(1)
+                clocker.perform_operations()
+
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0*model.h) * dt
-                operations += 2*N**2 + 5*N
-                clocker.perform_operations(operations)
+                clocker.add_operations(2*N**2 + 5*N)
+                clocker.perform_operations()
+
                 x += a0*y*dt
-                operations = 2*N
-                clocker.perform_operations(operations)
-                operations = 1
+                clocker.add_operations(2*N)
+                clocker.perform_operations()
+
+
                 for j in range(N):
-                #     y[j] += (-(a0 - atk) * x[j] + c0 * np.inner(model.J[:, j], np.sign(x)) + c0 * model.h[j]) * dt
-                #     x[j] += self.update_x(y, dt, a0, j)
                     if np.abs(x[j]) > 1:
                         x, y = self.update_rule(x, y, j)
-                        operations += 2
+                        clocker.add_operations(2)
+
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-                time = clocker.perform_operations(operations)
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time)
+
+                clocker.add_operations(1)
+                time_clock = clocker.perform_operations()
+                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time_clock)
                 tk += dt
 
             total_time = clocker.get_time()

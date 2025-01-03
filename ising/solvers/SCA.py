@@ -60,7 +60,7 @@ class SCA(SolverBase):
         schema = {
             "energy": np.float32,
             "state": (np.int8, (N,)),
-            "time_clock": float 
+            "time_clock": float
         }
 
         metadata = {
@@ -80,15 +80,17 @@ class SCA(SolverBase):
 
             for _ in range(num_iterations):
                 hs += np.matmul(J, sample)
-                operations = 2*N**2
-                clocker.perform_operations(operations)
+                clocker.add_operations(2*N**2)
+                clocker.perform_operations()
+
                 Prob = self.get_prob(hs, sample, q, T)
-                operations = 5*N
+                clocker.add_operations(5*N)
                 rand = np.random.rand(N)
-                operations += 1
-                clocker.perform_operations(operations)
+                clocker.add_operations(N)
+                clocker.perform_operations()
+
                 flipped_states = [y for y in range(N) if Prob[y] < rand[y]]
-                operations = N
+                clocker.add_operations(N)
                 # for y in range(N):
                 #     hs[y] += np.dot(J[:, y], sample)
                 #     Prob = self.get_prob(hs[y], sample[y], q, T)
@@ -97,9 +99,10 @@ class SCA(SolverBase):
                 #         flipped_states.append(y)
                 sample[flipped_states] = -sample[flipped_states]
                 energy = model.evaluate(sample)
-                time = clocker.perform_operations(operations+4)
+                clocker.add_operations(4)
+                time_clock = clocker.perform_operations()
 
-                log.log(energy=energy, state=sample, time_clock=time)
+                log.log(energy=energy, state=sample, time_clock=time_clock)
 
 
                 T = self.change_hyperparam(T, r_t)

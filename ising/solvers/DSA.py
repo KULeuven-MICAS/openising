@@ -10,7 +10,7 @@ from ising.utils.clock import clock
 
 
 class DSASolver(SolverBase):
-    """ Ising solver based on a discriminatory variation of the simulated annealing algorithm. """
+    """Ising solver based on a discriminatory variation of the simulated annealing algorithm."""
 
     def solve(
         self,
@@ -19,10 +19,10 @@ class DSASolver(SolverBase):
         num_iterations: int,
         initial_temp: float,
         cooling_rate: float,
-        seed: int|None = None,
-        file: pathlib.Path|None = None,
-        clock_freq:float = 1e6,
-        clock_op:int = 1000,
+        seed: int | None = None,
+        file: pathlib.Path | None = None,
+        clock_freq: float = 1e6,
+        clock_op: int = 1000,
     ) -> tuple[np.ndarray, float]:
         """
         Perform optimization using a variation of the simulated annealing algorithm.
@@ -48,17 +48,17 @@ class DSASolver(SolverBase):
         """
         # seed the random number generator. Use a timestamp-based seed if non is provided.
         if seed is None:
-            seed = int(time.time() *1000)
+            seed = int(time.time() * 1000)
         random.seed(seed)
 
         clocker = clock(clock_freq, clock_op)
         # Set up schema and metadata for logging
         schema = {
-            "energy": np.float32,                        # Scalar float
+            "energy": np.float32,  # Scalar float
             "state": (np.int8, (model.num_variables,)),  # Vector of int8 (to hold -1 and 1)
-            "change_state": np.bool_,                    # Scalar boolean
-            "cycle_started": np.bool_,                    # Scalar boolean
-            "time_clock": float
+            "change_state": np.bool_,  # Scalar boolean
+            "cycle_started": np.bool_,  # Scalar boolean
+            "time_clock": float,
         }
         metadata = {
             "solver": "discrimatory_simulated_annealing",
@@ -67,8 +67,8 @@ class DSASolver(SolverBase):
             "initial_state": initial_state,
             "num_iterations": num_iterations,
             "seed": seed,
-            "clock_freq" : clock_freq,
-            "clock_op" : clock_op
+            "clock_freq": clock_freq,
+            "clock_op": clock_op,
         }
 
         # Initialize logger
@@ -79,31 +79,35 @@ class DSASolver(SolverBase):
             T = initial_temp
             state = initial_state
             energy = model.evaluate(state)
-            operations = 0
             for _ in range(num_iterations):
-
                 cycle_started = True
 
                 # Iterate over all of the nodes in random order
                 nodes = list(range(model.num_variables))
                 random.shuffle(nodes)
                 for node in nodes:
-
                     # Obtain new state by flipping that node
                     state[node] = -state[node]
 
                     # Evaluate the new energy
                     energy_new = model.evaluate(state)
-                    operations += 2*model.num_variables**2
+                    clocker.add_operations(2 * model.num_variables**2)
+                    clocker.perform_operations()
+
                     # Determine whether to accept the new state
                     delta = energy_new - energy
-                    operations += 1
-                    change_state = (delta < 0 or random.random() < np.exp(-delta/T))
-                    operations += 5
+                    clocker.add_operations(1)
+                    change_state = delta < 0 or random.random() < np.exp(-delta / T)
+                    clocker.add_operations(5)
                     # Log current iteration data
-                    time = clocker.perform_operations(operations)
-                    operations = 0
-                    logger.log(energy=energy_new, state=state, change_state=change_state, cycle_started=cycle_started, time_clock=time)
+                    clock_time = clocker.perform_operations()
+                    logger.log(
+                        energy=energy_new,
+                        state=state,
+                        change_state=change_state,
+                        cycle_started=cycle_started,
+                        time_clock=clock_time,
+                    )
                     cycle_started = False
 
                     # Update the state and energy if the new state is accepted
@@ -113,8 +117,9 @@ class DSASolver(SolverBase):
                         state[node] = -state[node]  # Revert the flip if the new state is rejected
 
                 # Decrease the temperature
-                T = cooling_rate*T
-                operations += 1
+                T = cooling_rate * T
+                clocker.add_operations(1)
+                clocker.perform_operations()
 
             # Log the final result
             total_time = clocker.get_time()
