@@ -59,7 +59,7 @@ class BRIM(SolverBase):
         J = triu_to_symm(model.J)
         np.random.seed(seed)
 
-        schema = {"time": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
+        schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         metadata = {
             "solver": "BLIM",
@@ -93,7 +93,7 @@ class BRIM(SolverBase):
             for t, vi in zip(sol.t, sol.y.T):
                 sample = np.sign(vi)
                 energy = model.evaluate(sample)
-                log.log(time=t, energy=energy, state=sample, voltages=vi)
+                log.log(time_clock=t, energy=energy, state=sample, voltages=vi)
 
             # for i in range(num_iterations):
             #     k1 = dvdt(tk, v)
@@ -106,5 +106,5 @@ class BRIM(SolverBase):
             #     energy = model.evaluate(sample)
             #     log.log(time=tk, energy=energy, state=sample, voltages=v)
             #     tk += dt
-            log.write_metadata(solution_state=sample, solution_energy=energy)
+            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy
