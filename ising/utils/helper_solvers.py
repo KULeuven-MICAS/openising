@@ -14,6 +14,8 @@ def run_solver(
     num_iter: int,
     s_init: np.ndarray,
     model: IsingModel,
+    clock_freq: float=1e6,
+    clock_op: int=1000,
     logfile: pathlib.Path | None = None,
     **hyperparameters,
 ) -> tuple[np.ndarray, float]:
@@ -32,7 +34,7 @@ def run_solver(
     optim_state = np.zeros((model.num_variables,))
     optim_energy = None
     if solver == "BRIM":
-        v = 0.5 * np.ones((model.num_variables,)) * s_init
+        v = 0.1 * np.ones((model.num_variables,)) * s_init
         optim_state, optim_energy = BRIM().solve(
             model=model,
             v=v,
@@ -55,6 +57,7 @@ def run_solver(
             cooling_rate=hyperparameters["r_T"],
             seed=hyperparameters["seed"],
             file=logfile,
+            clock_freq=clock_freq, clock_op=clock_op,
         )
     elif solver == "DSA":
         optim_state, optim_energy = DSASolver().solve(
@@ -65,6 +68,7 @@ def run_solver(
             cooling_rate=hyperparameters["r_T"],
             seed=hyperparameters["seed"],
             file=logfile,
+            clock_freq=clock_freq, clock_op=clock_op,
         )
     elif solver == "SCA":
         optim_state, optim_energy = SCA().solve(
@@ -77,9 +81,10 @@ def run_solver(
             r_q=hyperparameters["r_q"],
             seed=hyperparameters["seed"],
             file=logfile,
+            clock_freq=clock_freq, clock_op=clock_op,
         )
     elif solver[1:] == "SB":
-        x = 0.1*np.ones((model.num_variables,))*s_init
+        x = 0.01*np.ones((model.num_variables,))*s_init
         y = np.zeros((model.num_variables,))
         dt = hyperparameters["dtSB"]
         at = hyperparameters["at"]
@@ -96,6 +101,7 @@ def run_solver(
                 dt=dt,
                 a0=a0,
                 file=logfile,
+                clock_freq=clock_freq, clock_op=clock_op,
             )
         elif solver[0] == "d":
             optim_state, optim_energy = discreteSB().solve(
@@ -108,7 +114,9 @@ def run_solver(
                 dt=dt,
                 a0=a0,
                 file=logfile,
+                clock_freq=clock_freq, clock_op=clock_op,
             )
+    print(optim_state)
     return optim_state, optim_energy
 
 

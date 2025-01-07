@@ -54,7 +54,6 @@ def plot_energies(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
-    plt.show()
 
 
 def plot_energies_multiple(
@@ -93,7 +92,6 @@ def plot_energies_multiple(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
-    plt.show()
 
 
 def plot_energy_dist_multiple_solvers(
@@ -121,15 +119,13 @@ def plot_energy_dist_multiple_solvers(
     for solver_Name, _ in avg_energies.items():
         plt.plot(x_data, avg_energies[solver_Name], label=f"{solver_Name}")
         plt.fill_between(x_data, min_energies[solver_Name], max_energies[solver_Name], alpha=0.2)
-    if best_found is not None:
+    if best_found is not None or best_found[0] is not None:
         plt.plot(x_data, best_found, ".-k", label="Best found")
-    plt.title("Average Best Energy with Standard Deviation for Multiple Solvers")
     plt.xlabel(xlabel)
     plt.ylabel("Best Energy")
     plt.legend()
     if save:
         plt.savefig(save_folder / figName)
-    plt.show()
 
 
 def plot_energy_time(
@@ -150,7 +146,6 @@ def plot_energy_time(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
-    plt.show()
 
 
 def plot_energy_time_multiple(
@@ -174,25 +169,20 @@ def plot_energy_time_multiple(
     avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
 
     time = get_data_from_dict(logfiles, y_data="total_time")
-    time_dict, _ = compute_averages_energies(time)
+    time_dict, _, _, _ = compute_averages_energies(time)
 
-    for solver_name, energies in avg_energies:
-        plt.plot(time_dict[solver_name], energies, label=f"{solver_name}")
+    plt.figure()
+    for solver_name, energies in avg_energies.items():
+        plt.semilogx(time_dict[solver_name], energies, label=f"{solver_name}")
         plt.fill_between(time_dict[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
     if best_found is not None:
-        plt.plot(
-            time_dict[solver_name],
-            np.ones(
-                len(
-                    time_dict[solver_name],
-                )
-            )
-            * best_found,
-            ".-k",
+        plt.axhline(
+            y= best_found,
+            color = 'k',
+            linestyle="--",
             label="Best found",
         )
     plt.xlabel("time [s]")
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
-    plt.show()
