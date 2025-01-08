@@ -22,7 +22,7 @@ class SB(SolverBase):
     def update_rule(self, x, y, node):
         x[node] = np.sign(x[node])
         y[node] = 0.0
-        return x, y
+        #return x, y
 
     @abstractmethod
     def solve(self, model: IsingModel):
@@ -74,8 +74,8 @@ class ballisticSB(SB):
             "time": float,
             "energy": np.float32,
             "state": (np.int8, (N,)),
-            "positions": (np.int32, (N,)),
-            "momenta": (np.int32, (N,)),
+            "positions": (np.float32, (N,)),
+            "momenta": (np.float32, (N,)),
             "at": np.float32,
             "time_clock": float
         }
@@ -95,10 +95,10 @@ class ballisticSB(SB):
             for _ in range(num_iterations):
                 atk = at(tk)
                 clocker.add_operations(1)
-                clocker.perform_operations()
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0*model.h) * dt
 
-                clocker.add_operations(2*N**2 + 5*N)
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0*model.h) * dt
+                clocker.add_cycles(1 + np.log2(N))
+                clocker.add_operations(5*N)
                 clocker.perform_operations()
 
                 x += a0*y*dt
@@ -107,7 +107,7 @@ class ballisticSB(SB):
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
-                        x, y = self.update_rule(x, y, j)
+                        self.update_rule(x, y, j)
                         clocker.add_operations(2)
 
                 clocker.add_operations(1)
@@ -166,8 +166,8 @@ class discreteSB(SB):
             "time": float,
             "energy": np.float32,
             "state": (np.int8, (N,)),
-            "positions": (np.int32, (N,)),
-            "momenta": (np.int32, (N,)),
+            "positions": (np.float32, (N,)),
+            "momenta": (np.float32, (N,)),
             "at": np.float32,
             "time_clock": float
         }
@@ -187,10 +187,10 @@ class discreteSB(SB):
             for _ in range(num_iterations):
                 atk = at(tk)
                 clocker.add_operations(1)
-                clocker.perform_operations()
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0*model.h) * dt
-                clocker.add_operations(2*N**2 + 5*N)
+                clocker.add_cycles(1 + np.log2(N))
+                clocker.add_operations(5*N)
                 clocker.perform_operations()
 
                 x += a0*y*dt
@@ -200,7 +200,7 @@ class discreteSB(SB):
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
-                        x, y = self.update_rule(x, y, j)
+                        self.update_rule(x, y, j)
                         clocker.add_operations(2)
 
                 sample = np.sign(x)

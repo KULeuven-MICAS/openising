@@ -6,7 +6,6 @@ import h5py
 
 import ising.utils.numpy as npu
 
-__all__ = ["IsingModel", "float"]
 
 class IsingModel:
     """

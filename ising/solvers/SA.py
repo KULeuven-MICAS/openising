@@ -89,8 +89,7 @@ class SASolver(SolverBase):
 
                 # Evaluate the new energy
                 energy_new = model.evaluate(state)
-                clocker.add_operations(2 * model.num_variables ** 2)
-                clocker.perform_operations()
+                clocker.add_cycles(1+np.log2(model.num_variables))
 
                 delta = energy_new - energy
                 clocker.add_operations(1)
@@ -116,6 +115,6 @@ class SASolver(SolverBase):
 
             # Log the final result
             final_time = clocker.get_time()
-            logger.write_metadata(solution_state=state, solution_energy=energy, final_time=final_time)
+            logger.write_metadata(solution_state=state, solution_energy=energy, total_time=final_time)
 
         return state, energy

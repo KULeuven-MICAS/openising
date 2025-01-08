@@ -9,19 +9,19 @@ from ising.utils.numpy import triu_to_symm
 
 
 class BRIM(SolverBase):
-    def k(self, kmax: float, kmin: float, t: float, tend: float) -> float:
+    def k(self, kmax: float, kmin: float, t: float, t_final: float) -> float:
         """Returns the gain of the latches at time t.
 
         Args:
             kmax (float): maximum gain of the latch
             kmin (float): minimum gain of the latch
             tend (float): end time of the simulation
-            t (float): _description_
+            t (float): time
 
         Returns:
             float: latch gain
         """
-        return kmin + (kmax - kmin) / tend * t
+        return kmin + ((kmax - kmin) / t_final) * t
 
     def solve(
         self,
@@ -34,8 +34,8 @@ class BRIM(SolverBase):
         C: float,
         G: float,
         file: pathlib.Path | None = None,
-        random_flip:bool=False,
-        seed:int=1
+        random_flip: bool = False,
+        seed: int = 1,
     ) -> tuple[np.ndarray, float]:
         """Simulates the BLIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
 
@@ -71,40 +71,29 @@ class BRIM(SolverBase):
             "kmin": kmin,
             "kmax": kmax,
             "random_flip": random_flip,
-            "seed": seed
+            "seed": seed,
         }
 
-        def dvdt(t, v):
-            V = np.array([v] * N)
-            k = self.k(kmax, kmin, t, tend)
-            dv = 1 / C * (G * np.tanh(k * np.tanh(k * v)) - G * v - np.sum(J * (V - V.T), 0))
+        def dvdt(t, vt):
+            V = np.array([vt] * N)
+            k = self.k(kmax, kmin, t=t, t_final=tend)
+            dv = 1 / C * (G * np.tanh(k * np.tanh(k * vt)) - G * vt - np.sum(J * (V - V.T), 0))
 
-            dv = np.where(np.all(np.array([dv > 0.0, v >= 1.0]), 0), np.zeros((N,)), dv)
-            dv = np.where(np.all(np.array([dv < 0.0, v <= -1.0]), 0), np.zeros((N,)), dv)
+            dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N,)), dv)
+            dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N,)), dv)
             if random_flip and t % (100 * dt) == 0:
                 flip = np.random.choice(N)
-                dv[flip] = -2.*v[flip]
+                dv[flip] = -2.0 * v[flip]
             return dv
 
         with HDF5Logger(file, schema) as log:
             log.write_metadata(**metadata)
-            t_eval = np.linspace(0., tend, num_iterations)
+            t_eval = np.linspace(0.0, tend, num_iterations)
             sol = solve_ivp(fun=dvdt, t_span=(0.0, tend), y0=v, t_eval=t_eval)
             for t, vi in zip(sol.t, sol.y.T):
                 sample = np.sign(vi)
                 energy = model.evaluate(sample)
                 log.log(time_clock=t, energy=energy, state=sample, voltages=vi)
 
-            # for i in range(num_iterations):
-            #     k1 = dvdt(tk, v)
-            #     k2 = dvdt(tk + dt / 2, v + dt / 2 * k1)
-            #     k3 = dvdt(tk + dt / 2, v + dt / 2 * k2)
-            #     k4 = dvdt(tk + dt, v + dt * k3)
-
-            #     v += dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
-            #     sample = np.sign(v)
-            #     energy = model.evaluate(sample)
-            #     log.log(time=tk, energy=energy, state=sample, voltages=v)
-            #     tk += dt
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy

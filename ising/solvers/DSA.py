@@ -91,8 +91,7 @@ class DSASolver(SolverBase):
 
                     # Evaluate the new energy
                     energy_new = model.evaluate(state)
-                    clocker.add_operations(2 * model.num_variables**2)
-                    clocker.perform_operations()
+                    clocker.add_cycles(1 + np.log2(model.num_variables))
 
                     # Determine whether to accept the new state
                     delta = energy_new - energy

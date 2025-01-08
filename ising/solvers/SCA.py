@@ -79,9 +79,14 @@ class SCA(SolverBase):
             log.write_metadata(**metadata)
 
             for _ in range(num_iterations):
+                # for x in range(N):
+                #     hs[x] += np.matmul(J[x, :], sample)
+                #     Prob = self.get_prob(hs[x], sample[x], q, T)
+                #     rand = np.random.rand()
+                #     if Prob < rand:
+                #         sample[x] = -sample[x]
                 hs += np.matmul(J, sample)
-                clocker.add_operations(2*N**2)
-                clocker.perform_operations()
+                clocker.add_cycles(1+np.log2(N))
 
                 Prob = self.get_prob(hs, sample, q, T)
                 clocker.add_operations(5*N)
@@ -91,12 +96,7 @@ class SCA(SolverBase):
 
                 flipped_states = [y for y in range(N) if Prob[y] < rand[y]]
                 clocker.add_operations(N)
-                # for y in range(N):
-                #     hs[y] += np.dot(J[:, y], sample)
-                #     Prob = self.get_prob(hs[y], sample[y], q, T)
-                #     rand = np.random.rand((N,))
-                #     if Prob < rand:
-                #         flipped_states.append(y)
+
                 sample[flipped_states] = -sample[flipped_states]
                 energy = model.evaluate(sample)
                 clocker.add_operations(4)
@@ -128,5 +128,5 @@ class SCA(SolverBase):
         Returns:
             probability (np.ndarray): probability of accepting the change of all nodes.
         """
-        val = 1/T*(hs * sample + q)/2
+        val = 1/T*(np.multiply(hs, sample) + q)/2
         return 1 / (1 + np.exp(-val))
