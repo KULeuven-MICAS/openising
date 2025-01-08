@@ -20,7 +20,7 @@ TOP = pathlib.Path(os.getenv("TOP"))
 parser = argparse.ArgumentParser()
 parser.add_argument("--Nlist", help="tuple containing min and max problem size", default=(10, 100), nargs="+", type=int)
 parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
-parser.add_argument("-nb_runs", help="Number of runs", default=10)
+parser.add_argument("-nb_runs", help="Number of runs", default=3)
 parser.add_argument("-num_iter", help="Number of iterations for each run", default=1000)
 parser.add_argument("-figName", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
 parser.add_argument("-plot", help="Whether to plot the results", default=False)
@@ -49,7 +49,7 @@ parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0
 print("parsing args")
 args = parser.parse_args()
 if args.solvers == "all":
-    solvers = ["BRIM", "DSA", "SA", "bSB", "dSB", "SCA"]
+    solvers = ["BRIM", "SA", "bSB", "dSB", "SCA"]
 else:
     solvers = list(args.solvers)
 

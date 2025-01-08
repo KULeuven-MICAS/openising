@@ -117,10 +117,10 @@ def plot_energy_dist_multiple_solvers(
 
     plt.figure()
     for solver_Name, _ in avg_energies.items():
-        plt.plot(x_data, avg_energies[solver_Name], label=f"{solver_Name}")
+        plt.semilogx(x_data, avg_energies[solver_Name], label=f"{solver_Name}")
         plt.fill_between(x_data, min_energies[solver_Name], max_energies[solver_Name], alpha=0.2)
-    if best_found is not None or best_found[0] is not None:
-        plt.plot(x_data, best_found, ".-k", label="Best found")
+    if best_found is not None:
+        plt.semilogx(x_data, best_found, ".-k", label="Best found")
     plt.xlabel(xlabel)
     plt.ylabel("Best Energy")
     plt.legend()

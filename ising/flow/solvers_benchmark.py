@@ -53,7 +53,7 @@ if best_found is not None:
 print("Generated benchmark")
 
 if args.solvers == "all":
-    solvers = ["DSA", "SA", "SCA", "bSB", "dSB", "BRIM"]
+    solvers = ["SA", "SCA", "bSB", "dSB", "BRIM"]
 else:
     solvers = args.solvers
 print("Solving with following solvers: ", solvers)
