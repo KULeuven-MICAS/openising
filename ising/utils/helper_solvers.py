@@ -116,12 +116,11 @@ def run_solver(
                 file=logfile,
                 clock_freq=clock_freq, clock_op=clock_op,
             )
-    print(optim_state)
     return optim_state, optim_energy
 
 
 def return_rx(num_iter: int, r_init:float, r_final:float):
-    return (r_init/r_final)**(1/(num_iter + 1))
+    return (r_final/r_init)**(1/(num_iter + 1))
 
 def return_c0(model: IsingModel):
     return 0.5 / (

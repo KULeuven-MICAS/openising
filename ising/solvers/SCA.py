@@ -79,6 +79,12 @@ class SCA(SolverBase):
             log.write_metadata(**metadata)
 
             for _ in range(num_iterations):
+                # for x in range(N):
+                #     hs[x] += np.matmul(J[x, :], sample)
+                #     Prob = self.get_prob(hs[x], sample[x], q, T)
+                #     rand = np.random.rand()
+                #     if Prob < rand:
+                #         sample[x] = -sample[x]
                 hs += np.matmul(J, sample)
                 clocker.add_cycles(1+np.log2(N))
 

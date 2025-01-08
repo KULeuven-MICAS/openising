@@ -9,19 +9,19 @@ from ising.utils.numpy import triu_to_symm
 
 
 class BRIM(SolverBase):
-    def k(self, kmax: float, kmin: float, t: float, tend: float) -> float:
+    def k(self, kmax: float, kmin: float, t: float, t_final: float) -> float:
         """Returns the gain of the latches at time t.
 
         Args:
             kmax (float): maximum gain of the latch
             kmin (float): minimum gain of the latch
             tend (float): end time of the simulation
-            t (float): _description_
+            t (float): time
 
         Returns:
             float: latch gain
         """
-        return kmin + (kmax - kmin) / tend * t
+        return kmin + ((kmax - kmin) / t_final) * t
 
     def solve(
         self,
@@ -74,13 +74,13 @@ class BRIM(SolverBase):
             "seed": seed,
         }
 
-        def dvdt(t, v):
-            V = np.array([v] * N)
-            k = self.k(kmax, kmin, t, tend)
-            dv = 1 / C * (G * np.tanh(k * np.tanh(k * v)) - G * v - np.sum(J * (V - V.T), 0))
+        def dvdt(t, vt):
+            V = np.array([vt] * N)
+            k = self.k(kmax, kmin, t=t, t_final=tend)
+            dv = 1 / C * (G * np.tanh(k * np.tanh(k * vt)) - G * vt - np.sum(J * (V - V.T), 0))
 
-            dv = np.where(np.all(np.array([dv > 0.0, v >= 1.0]), 0), np.zeros((N,)), dv)
-            dv = np.where(np.all(np.array([dv < 0.0, v <= -1.0]), 0), np.zeros((N,)), dv)
+            dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N,)), dv)
+            dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N,)), dv)
             if random_flip and t % (100 * dt) == 0:
                 flip = np.random.choice(N)
                 dv[flip] = -2.0 * v[flip]
