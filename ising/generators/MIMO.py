@@ -16,7 +16,6 @@ def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed:int=1) -> tuple[IsingMode
     Returns:
         tuple[IsingModel, np.ndarray]: the generated Ising model and the solution.
     """
-    np.random.seed(seed)
     r = int(np.ceil(np.log2(np.sqrt(M))))
     symbols = np.concatenate(
         ([-np.sqrt(M) + i for i in range(1, 1 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 1 + 2 * r, 2)])
