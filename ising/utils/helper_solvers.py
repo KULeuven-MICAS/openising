@@ -8,6 +8,8 @@ from ising.solvers.SCA import SCA
 from ising.solvers.SA import SASolver
 from ising.solvers.DSA import DSASolver
 
+from ising.utils.numpy import triu_to_symm
+
 
 def run_solver(
     solver: str,
@@ -34,7 +36,7 @@ def run_solver(
     optim_state = np.zeros((model.num_variables,))
     optim_energy = None
     if solver == "BRIM":
-        v = 0.1 * np.ones((model.num_variables,)) * s_init
+        v = 0.5*np.ones((model.num_variables,)) * s_init
         optim_state, optim_energy = BRIM().solve(
             model=model,
             v=v,
@@ -127,3 +129,7 @@ def return_c0(model: IsingModel):
         np.sqrt(model.num_variables)
         * np.sqrt(np.sum(np.power(model.J, 2)) / (model.num_variables * (model.num_variables - 1)))
     )
+
+def return_G(problem: IsingModel):
+    sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
+    return np.average(sumJ)*2

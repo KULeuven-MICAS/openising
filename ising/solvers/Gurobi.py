@@ -1,5 +1,6 @@
-import gurobipy as gp
-from gurobipy import GRB
+# import gurobipy as gp
+from gurobi_optimods.qubo import solve_qubo
+# from gurobipy import GRB
 import pathlib
 import numpy as np
 
@@ -7,19 +8,19 @@ from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 
 class Gurobi(SolverBase):
-    def convert(self, model:IsingModel) -> gp.Model:
+    def convert(self, model:IsingModel) -> np.ndarray:
         """Converts the Ising model to a Gurobi instance.
 
         Args:
             model (IsingModel): the model that needs to be converted.
         """
-        Q, c = model.to_qubo()
-        N = model.num_variables
+        Q, _ = model.to_qubo()
+        # N = model.num_variables
 
-        m = gp.Model('ising')
-        x = m.addVars(shape=N, vtype=GRB.BINARY, name="x")
-        m.setObjective(x.T @ Q @ x + c, GRB.MINIMIZE)
-        return m
+        # m = gp.Model('ising')
+        # x = m.addMVar(shape=N, vtype=GRB.BINARY, name="x")
+        # m.setObjective(x.T @ Q @ x + c, GRB.MINIMIZE)
+        return Q
 
 
     def solve(self,
@@ -34,12 +35,14 @@ class Gurobi(SolverBase):
         Returns:
             _type_: _description_
         """
-        Gur_model = self.convert(model)
+        Q = self.convert(model)
+        # if file is not None:
+        #     Gur_model.Params.LogFile = file
 
-        Gur_model.Params.LogFile = file
-        Gur_model.optimize()
+        # Gur_model.optimize()
+        result = solve_qubo(Q)
         self.convert_logger(file)
-        return np.array(Gur_model.getAttr('x', 'ising').X), Gur_model.ObjVal
+        return result.solution, result.objective_value
 
     def convert_logger(self, file:pathlib.Path) -> None:
         """Converts the Gurobi logfile to a HDF5 one.

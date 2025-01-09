@@ -1,6 +1,5 @@
 import numpy as np
 import pathlib
-from scipy.integrate import solve_ivp
 
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
@@ -56,8 +55,15 @@ class BRIM(SolverBase):
         """
         N = model.num_variables
         tend = dt * num_iterations
+        t_eval = np.linspace(0.0, tend, num_iterations)
         J = triu_to_symm(model.J)
+        h = np.copy(model.h).reshape((-1, 1))
+        J = np.block([[J, h],
+                      [h.T, 0.]])
+        v = np.block([v, 1.])
+        flip_it = t_eval[:101:int(100 / (N))]
         np.random.seed(seed)
+        v += 0.01 * (np.random.random((N+1,)) - 0.5)
 
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
@@ -75,25 +81,32 @@ class BRIM(SolverBase):
         }
 
         def dvdt(t, vt):
-            V = np.array([vt] * N)
+            if random_flip and t in flip_it:
+                flip = np.random.choice(N)
+                vt[flip] = -vt[flip]
+            vt[-1] = 1.0
+            V = np.array([vt] * (N+1))
             k = self.k(kmax, kmin, t=t, t_final=tend)
             dv = 1 / C * (G * np.tanh(k * np.tanh(k * vt)) - G * vt - np.sum(J * (V - V.T), 0))
-
-            dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N,)), dv)
-            dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N,)), dv)
-            if random_flip and t % (100 * dt) == 0:
-                flip = np.random.choice(N)
-                dv[flip] = -2.0 * v[flip]
+            dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N+1,)), dv)
+            dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N+1,)), dv)
+            dv[-1] = 0.
             return dv
 
         with HDF5Logger(file, schema) as log:
             log.write_metadata(**metadata)
-            t_eval = np.linspace(0.0, tend, num_iterations)
-            sol = solve_ivp(fun=dvdt, t_span=(0.0, tend), y0=v, t_eval=t_eval)
-            for t, vi in zip(sol.t, sol.y.T):
-                sample = np.sign(vi)
+            vi = np.copy(v)
+            for i in range(num_iterations):
+                time = t_eval[i]
+                k1 = dt * dvdt(time, vi)
+                k2 = dt * dvdt(time + 0.5*dt, vi + 0.5*k1)
+                k3 = dt * dvdt(time + 0.5 * dt, vi + 0.5 * k2)
+                k4 = dt * dvdt(time + dt, vi + k3)
+
+                vi += 1./6. * (k1 + 2*k2 + 2*k3 + k4)
+                sample = np.sign(vi[:-1])
                 energy = model.evaluate(sample)
-                log.log(time_clock=t, energy=energy, state=sample, voltages=vi)
+                log.log(time_clock=time, energy=energy, state=sample, voltages=vi[:-1])
 
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy
