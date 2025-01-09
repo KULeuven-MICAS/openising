@@ -207,7 +207,7 @@ class IsingModel:
         new_J = npu.triu_to_symm(self.J)
         Q = (-2) * new_J
         np.fill_diagonal(Q, 2 * (np.sum(new_J, axis=1) - self.h))
-        c = -np.sum(new_J)/2 + np.sum(self.h)
+        c = -np.sum(new_J)/2 + np.sum(self.h) + self.c
         return Q, c
 
     @classmethod
