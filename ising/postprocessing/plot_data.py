@@ -14,4 +14,3 @@ def plot_data(logFile:pathlib.Path, dataName:str, figName:str, save:bool=True, s
     plt.title(f"{dataName} over iterations")
     if save:
         plt.savefig(saveFolder / figName)
-    plt.show()

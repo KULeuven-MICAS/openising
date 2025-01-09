@@ -10,7 +10,6 @@ def plot_state_discrete(logfile:pathlib.Path, figName:str, save:bool=True, save_
     plt.imshow(sigma, cmap='hot', interpolation='nearest')
     if save:
         plt.savefig(save_folder / figName)
-    plt.show()
 
 def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     solver = return_metadata(logfile, 'solver')
@@ -26,4 +25,3 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     plt.ylabel('continuous state')
     if save:
         plt.savefig(save_folder / figname)
-    plt.show()

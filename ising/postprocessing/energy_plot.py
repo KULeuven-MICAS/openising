@@ -99,6 +99,7 @@ def plot_energy_dist_multiple_solvers(
     xlabel: str,
     figName: str = "multiple_solvers_energy_dist.png",
     best_found: list[float] | None = None,
+    best_Gurobi:bool=False,
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
@@ -108,6 +109,7 @@ def plot_energy_dist_multiple_solvers(
         fileName_list (list[pathlib.Path]): list of all the absolute paths to the logfiles.
         figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
         best_found (list[float],None, optional): list of the best found solutions of the problem. Defaults to None.
+        best_Gurobi (bool, optional): whether the best found solution is from Gurobi solver. Defaults to False.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
@@ -120,7 +122,7 @@ def plot_energy_dist_multiple_solvers(
         plt.semilogx(x_data, avg_energies[solver_Name], label=f"{solver_Name}")
         plt.fill_between(x_data, min_energies[solver_Name], max_energies[solver_Name], alpha=0.2)
     if best_found is not None:
-        plt.semilogx(x_data, best_found, ".-k", label="Best found")
+        plt.semilogx(x_data, best_found, ".-k", label="Best found: Gurobi" if best_Gurobi else "Best found")
     plt.xlabel(xlabel)
     plt.ylabel("Best Energy")
     plt.legend()
