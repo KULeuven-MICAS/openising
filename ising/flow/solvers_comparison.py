@@ -46,6 +46,8 @@ parser.add_argument("-q_final", help="final penalty value", default=10.0)
 
 # SB parameters
 parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0.25)
+parser.add_argument('-a0', help="Parameter a0 of SB", default=1.0)
+parser.add_argument('-c0', help="Parameter c0 of SB", default=0.0)
 
 
 print("parsing args")
@@ -53,7 +55,7 @@ args = parser.parse_args()
 if args.solvers == "all":
     solvers = ["BRIM", "SA", "bSB", "dSB", "SCA"]
 else:
-    solvers = list(args.solvers)
+    solvers = args.solvers[0].split()
 
 Nlist = tuple(args.N_list)
 nb_runs = int(args.nb_runs)
@@ -89,14 +91,20 @@ r_q = return_rx(num_iter, q, float(args.q_final))
 
 # SB parameters
 dt = float(args.dt)
+a0 = float(args.a0)
+c0 = float(args.c0)
+if c0 == 0.:
+    change_c = True
+else:
+    change_c = False
 
 def at(t):
-    return 1.0 / (dt * num_iter) * t
+    return a0 / (dt * num_iter) * t
 
 
 logfiles = dict()
 logtop = TOP / "ising/flow/logs"
-figtop = TOP / "ising/flow/plots/Solvers_comparison"
+figtop = TOP / "ising/flow/plots/SB_debug"
 best_found = []
 
 if G == 0:
@@ -126,13 +134,13 @@ for N in Nlist:
     if use_gurobi:
         print("Solving with Gurobi")
         sigma_base, energy_base = Gurobi().solve(model=problem)
-        _, c = problem.to_qubo()
-        best_found.append(energy_base+c)
+        best_found.append(energy_base)
 
         print(f"Gurobi best state {sigma_base}")
 
     sigma = np.random.choice([-1.0, 1.0], (N,), p=[0.5, 0.5])
-    c0 = return_c0(model=problem)
+    if change_c:
+        c0 = return_c0(model=problem)
 
     for solver in solvers:
         logfiles[N][solver] = []
@@ -167,6 +175,6 @@ plot_energy_dist_multiple_solvers(
     xlabel="problem size",
     best_found=best_found if use_gurobi else None,
     best_Gurobi=use_gurobi,
-    save_folder=TOP / "ising/flow/plots/Solvers_comparison",
-    figName=f"{solver}_{fig_name}",
+    save_folder=figtop,
+    figName=f"{solver if solver[1:] != "SB" else "SB"}_{fig_name}",
 )
