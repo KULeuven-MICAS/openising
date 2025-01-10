@@ -86,7 +86,7 @@ def run_solver(
             clock_freq=clock_freq, clock_op=clock_op,
         )
     elif solver[1:] == "SB":
-        x = 0.01*np.ones((model.num_variables,))*s_init
+        x = s_init*np.arange(0.01/model.num_variables, 0.01+0.01/model.num_variables, 0.01/model.num_variables)
         y = np.zeros((model.num_variables,))
         dt = hyperparameters["dtSB"]
         at = hyperparameters["at"]

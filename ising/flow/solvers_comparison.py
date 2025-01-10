@@ -155,7 +155,7 @@ for N in Nlist:
                 model=problem,
                 dtBRIM=dtBRIM, kmin=kmin, kmax=kmax, C=C, G=G, flip=flip, seed=seed,  # BRIM parameters
                 T=T, r_T=r_T, q=q, r_q=r_q,  # SA and SCA parameters
-                dtSB=dt, a0=1., at=at, c0=c0,  # SB parameters
+                dtSB=dt, a0=a0, at=at, c0=c0,  # SB parameters
             )
             logfiles[N][solver].append(logfile)
         print(f"{solver} {optim_energy=}")
