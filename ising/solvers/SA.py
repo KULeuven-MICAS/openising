@@ -114,6 +114,8 @@ class SASolver(SolverBase):
                 clocker.perform_operations()
 
             # Log the final result
+            current_time = clocker.perform_operations()
+            logger.log(energy=energy_new, state=state, change_state=change_state, time_clock=current_time)
             final_time = clocker.get_time()
             logger.write_metadata(solution_state=state, solution_energy=energy, total_time=final_time)
 
