@@ -3,13 +3,14 @@ import pathlib
 
 from ising.postprocessing.helper_functions import return_data, return_metadata
 
-def plot_state_discrete(logfile:pathlib.Path, figName:str, save:bool=True, save_folder:pathlib.Path='.'):
+def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     sigma = return_data(logfile, 'state').T
-
     plt.figure()
-    plt.imshow(sigma, cmap='hot', interpolation='nearest')
+    plt.imshow(sigma,cmap='hot', interpolation='none', aspect='auto')
+    plt.xlabel("iteratie")
+    plt.ylabel("sample")
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / figname)
 
 def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     solver = return_metadata(logfile, 'solver')
