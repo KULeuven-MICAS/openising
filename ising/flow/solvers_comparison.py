@@ -104,7 +104,7 @@ def at(t):
 
 logfiles = dict()
 logtop = TOP / "ising/flow/logs"
-figtop = TOP / "ising/flow/plots/SB_debug"
+figtop = TOP / "ising/flow/plots/SA_debug"
 best_found = []
 
 if G == 0:
