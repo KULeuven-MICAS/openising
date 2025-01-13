@@ -167,6 +167,17 @@ class IsingModel:
                 self.scale(1/transformation[1], track=False)
 
 
+    def transform_to_no_h(self) -> IsingModel:
+        """Generates a new Isingmodel with the bias incorporated into the coefficient matrix J.
+
+        Returns:
+            IsingModel: the new Ising Model.
+        """
+        new_h = self.h.reshape((-1, 1))
+        new_J = np.block([[self.J, new_h],[new_h.T, 0]])
+        return IsingModel(new_J, np.zeros(self.num_variables + 1), c=self.c)
+
+
     def evaluate(self, sample: np.ndarray) -> float:
         """
         Compute the Hamiltonian given a sample of spin values.
