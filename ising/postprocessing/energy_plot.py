@@ -64,7 +64,7 @@ def plot_energies_multiple(
     save_folder: pathlib.Path = ".",
     diff_metadata: str | None = None,
 ):
-    """PLots the energies of multiple optimisation processes.
+    """Plots the energies of multiple optimisation processes.
 
     Args:
         fileName_list (list[pathlib.Path]): list of all the absolute paths to the logfiles.
