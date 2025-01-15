@@ -14,6 +14,7 @@ from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers
 from ising.postprocessing.plot_solutions import plot_state_continuous, plot_state_discrete
 from ising.utils.helper_solvers import run_solver, return_c0, return_rx, return_G, return_q
 from ising.postprocessing.MC_plot import plot_MC_solution
+from ising.utils.flow import make_directory
 
 TOP = pathlib.Path(os.getenv("TOP"))
 parser = argparse.ArgumentParser()
@@ -23,6 +24,7 @@ parser.add_argument("--solvers", help="Which solvers to run", default="all", nar
 parser.add_argument("-use_gurobi", help="Whether to use Gurobi as baseline", default=False)
 parser.add_argument("-nb_runs", help="Number of runs", default=3)
 parser.add_argument("-num_iter", help="Number of iterations for each run", default=1000)
+parser.add_argument("-fig_folder", help="Folder inwhich to save the figures", default="plots")
 parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
 
 # BRIM parameters
@@ -107,7 +109,9 @@ def at(t):
 
 logfiles = dict()
 logtop = TOP / "ising/flow/logs"
-figtop = TOP / "ising/flow/plots/SB_debug"
+make_directory(logtop)
+figtop = TOP / "ising/flow" / str(args.fig_folder)
+make_directory(figtop)
 best_found = []
 
 if G == 0:
