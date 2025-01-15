@@ -24,3 +24,10 @@ git clone git@gitlab.esat.kuleuven.be:ising-project/ising.git
 cd ising
 source .setup
 ```
+
+## **How to get results**
+In the folder ising/flow there are different scripts that can be run to get results. Moreover, you can call 
+```bash
+python ising/flow/script_you_want_to_run.py --help
+```
+to get a help page describing all the different arguments you can pass to the script. Some scripts also allow the use of [Gurobi](https://www.gurobi.com/), indicated by the argument `-use_gurobi`. However, these solvers can only be used when you have an active [Gurobi license](https://www.gurobi.com/solutions/licensing/).

@@ -6,6 +6,7 @@ from ising.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
+from ising.utils.clock import clock
 
 
 class SB(SolverBase):
@@ -21,7 +22,7 @@ class SB(SolverBase):
     def update_rule(self, x, y, node):
         x[node] = np.sign(x[node])
         y[node] = 0.0
-        return x, y
+        #return x, y
 
     @abstractmethod
     def solve(self, model: IsingModel):
@@ -40,6 +41,8 @@ class ballisticSB(SB):
         dt: float,
         a0: float=1.,
         file: pathlib.Path | None = None,
+        clock_freq:float=1e6,
+        clock_op:int=1000
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -56,6 +59,8 @@ class ballisticSB(SB):
             dt (float): time step.
             file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
                                                  no logging is performed
+            clock_freq (float): frequency of the clock cycle
+            clock_op (int): amount of operations that can be performed per clock cycle.
 
         Returns:
             sample, energy (tuple[np.ndarray, float]): optimal solution and energy
@@ -63,13 +68,16 @@ class ballisticSB(SB):
         tk = 0.0
         N = model.num_variables
         J = triu_to_symm(model.J)
+        clocker = clock(clock_freq, clock_op)
+
         schema = {
             "time": float,
             "energy": np.float32,
             "state": (np.int8, (N,)),
-            "positions": (np.int32, (N,)),
-            "momenta": (np.int32, (N,)),
+            "positions": (np.float32, (N,)),
+            "momenta": (np.float32, (N,)),
             "at": np.float32,
+            "time_clock": float
         }
 
         metadata = {
@@ -78,21 +86,39 @@ class ballisticSB(SB):
             "a0": a0,
             "c0": c0,
             "num_iterations": num_iterations,
+            "clock_freq": clock_freq,
+            "clock_op": clock_op
         }
+
         with HDF5Logger(file, schema) as log:
             log.write_metadata(**metadata)
-            for i in range(num_iterations):
+            for _ in range(num_iterations):
                 atk = at(tk)
+                clocker.add_operations(1)
+
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0*model.h) * dt
+                clocker.add_cycles(1 + np.log2(N))
+                clocker.add_operations(5*N)
+                clocker.perform_operations()
+
                 x += a0*y*dt
+                clocker.add_operations(2*N + 1)
+                clocker.perform_operations()
+
                 for j in range(N):
                     if np.abs(x[j]) > 1:
-                        x, y = self.update_rule(x, y, j)
+                        self.update_rule(x, y, j)
+                        clocker.add_operations(2)
+
+                clocker.add_operations(1)
+                time = clocker.perform_operations()
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=at(tk))
+                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time)
                 tk += dt
-            log.write_metadata(solution_state=sample, solution_energy=energy)
+
+            total_time = clocker.get_time()
+            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=total_time)
         return sample, energy
 
 
@@ -108,6 +134,8 @@ class discreteSB(SB):
         dt: float,
         a0: float=1.,
         file: pathlib.Path|None=None,
+        clock_freq:float=1e6,
+        clock_op:int=1000
     )-> tuple[np.ndarray, float]:
         """Performs the discrete Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation discretizes the positions x_i at all times to reduce analog errors.
@@ -123,6 +151,8 @@ class discreteSB(SB):
             dt (float): time step.
             file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
                                                  no logging is performed
+            clock_freq (float): frequency of the clock cycle
+            clock_op (int): amount of operations that can be performed per clock cycle.
 
         Returns:
             sample, energy (tuple[np.ndarray, float]): optimal solution and energy
@@ -130,13 +160,16 @@ class discreteSB(SB):
         N = model.num_variables
         tk = 0.0
         J = triu_to_symm(model.J)
+        clocker = clock(clock_freq, clock_op)
+
         schema = {
             "time": float,
             "energy": np.float32,
             "state": (np.int8, (N,)),
-            "positions": (np.int32, (N,)),
-            "momenta": (np.int32, (N,)),
+            "positions": (np.float32, (N,)),
+            "momenta": (np.float32, (N,)),
             "at": np.float32,
+            "time_clock": float
         }
 
         metadata = {
@@ -145,22 +178,39 @@ class discreteSB(SB):
             "a0": a0,
             "c0": c0,
             "num_iterations": num_iterations,
+            "clock_freq": clock_freq,
+            "clock_op": clock_op
         }
 
         with HDF5Logger(file, schema) as log:
             log.write_metadata(**metadata)
-            for i in range(num_iterations):
+            for _ in range(num_iterations):
                 atk = at(tk)
+                clocker.add_operations(1)
+
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0*model.h) * dt
+                clocker.add_cycles(1 + np.log2(N))
+                clocker.add_operations(5*N)
+                clocker.perform_operations()
+
                 x += a0*y*dt
+                clocker.add_operations(2*N)
+                clocker.perform_operations()
+
+
                 for j in range(N):
-                #     y[j] += (-(a0 - atk) * x[j] + c0 * np.inner(model.J[:, j], np.sign(x)) + c0 * model.h[j]) * dt
-                #     x[j] += self.update_x(y, dt, a0, j)
                     if np.abs(x[j]) > 1:
-                        x, y = self.update_rule(x, y, j)
+                        self.update_rule(x, y, j)
+                        clocker.add_operations(2)
+
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
+
+                clocker.add_operations(1)
+                time_clock = clocker.perform_operations()
+                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time_clock)
                 tk += dt
-            log.write_metadata(solution_state=sample, solution_energy=energy)
+
+            total_time = clocker.get_time()
+            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=total_time)
         return sample, energy

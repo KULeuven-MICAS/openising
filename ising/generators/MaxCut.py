@@ -26,7 +26,7 @@ def MaxCut(graph: nx.Graph) -> IsingModel:
         weight = graph[node1][node2]["weight"]
         J[node1, node2] = -weight / 2
         J[node2, node1] = -weight / 2
-        c -= weight/2
+        c -= weight / 2
     J = np.triu(J)
     return IsingModel(J, h, c)
 
@@ -43,10 +43,10 @@ def random_MaxCut(N: int) -> IsingModel:
     """
     filePath = TOP / f"ising/benchmarks/Maxcut_dummy/Dummy_N{N}.txt"
     if filePath.exists():
-        graph = G_parser(filePath)
+        graph, _ = G_parser(filePath)
         return MaxCut(graph)
     else:
-        J = np.random.choice([-0.5,0., 0.5], (N,N))
+        J = np.random.choice([-0.5, 0.0, 0.5], (N, N), [0.6, 0.2, 0.2])
         J = np.triu(J, k=1)
         h = np.zeros((N,))
         c = np.sum(J)
