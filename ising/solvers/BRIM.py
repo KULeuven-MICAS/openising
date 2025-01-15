@@ -56,11 +56,8 @@ class BRIM(SolverBase):
         N = model.num_variables
         tend = dt * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
-        model = model.transform_to_no_h()
-        J = triu_to_symm(model.J)
-        # h = np.copy(model.h).reshape((-1, 1))
-        # J = np.block([[J, h],
-        #               [h.T, 0.]])
+        new_model = model.transform_to_no_h()
+        J = triu_to_symm(new_model.J)
         v = np.block([v, 1.])
         flip_it = t_eval[:101:int(100 / (N))]
         np.random.seed(seed)
@@ -105,9 +102,9 @@ class BRIM(SolverBase):
                 k4 = dt * dvdt(time + dt, vi + k3)
 
                 vi += 1./6. * (k1 + 2*k2 + 2*k3 + k4)
-                sample = np.sign(vi)
+                sample = np.sign(vi[:N])
                 energy = model.evaluate(sample)
-                log.log(time_clock=time, energy=energy, state=sample, voltages=vi[:-1])
+                log.log(time_clock=time, energy=energy, state=sample, voltages=vi[:N])
 
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy
