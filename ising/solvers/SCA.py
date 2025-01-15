@@ -10,6 +10,11 @@ from ising.utils.numpy import triu_to_symm
 from ising.utils.clock import clock
 
 class SCA(SolverBase):
+
+    def __init__(self):
+        self.name = "SCA"
+
+
     def change_hyperparam(self, param: float, rate: float) -> float:
         """Changes hyperparameters according to update rule."""
         return param * rate
@@ -77,6 +82,8 @@ class SCA(SolverBase):
         }
         with HDF5Logger(file, schema) as log:
             log.write_metadata(**metadata)
+            self.log_metadata(logger=log,
+                              solver="SCA")
 
             for _ in range(num_iterations):
                 hs = np.matmul(J, sample) + model.h

@@ -15,6 +15,8 @@ class SB(SolverBase):
 
     This class inherits from the abstract Solver base class.
     """
+    def __init__(self):
+        self.name = "SB"
 
     def update_x(self, y, dt, a0, node):
         return a0 * y[node] * dt
@@ -30,6 +32,11 @@ class SB(SolverBase):
 
 
 class ballisticSB(SB):
+
+    def __init__(self):
+        super.__init__()
+        self.name = f"b{self.name}"
+
     def solve(
         self,
         model: IsingModel,
@@ -80,18 +87,15 @@ class ballisticSB(SB):
             "time_clock": float
         }
 
-        metadata = {
-            "solver": "ballistic_simulated_bifurcation",
-            "time_step": dt,
-            "a0": a0,
-            "c0": c0,
-            "num_iterations": num_iterations,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op
-        }
-
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(**metadata)
+            self.log_metadata(logger=log,
+                              initial_state=np.sign(x),
+                              model=model,
+                              num_iterations=num_iterations,
+                              time_step=dt,
+                              a0=a0,
+                              c0=c0,
+                            )
             for _ in range(num_iterations):
                 atk = at(tk)
                 clocker.add_operations(1)
@@ -123,6 +127,11 @@ class ballisticSB(SB):
 
 
 class discreteSB(SB):
+
+    def __init__(self):
+        super.__init__()
+        self.name = f"d{self.name}"
+
     def solve(
         self,
         model: IsingModel,
@@ -172,18 +181,15 @@ class discreteSB(SB):
             "time_clock": float
         }
 
-        metadata = {
-            "solver": "discrete_simulated_bifurcation",
-            "time_step": dt,
-            "a0": a0,
-            "c0": c0,
-            "num_iterations": num_iterations,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op
-        }
-
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(**metadata)
+            self.log_metadata(logger=log,
+                              initial_state=np.sign(x),
+                              model=model,
+                              num_iterations=num_iterations,
+                              time_step=dt,
+                              a0=a0,
+                              c0=c0)
+
             for _ in range(num_iterations):
                 atk = at(tk)
                 clocker.add_operations(1)

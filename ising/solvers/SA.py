@@ -12,6 +12,9 @@ from ising.utils.clock import clock
 class SASolver(SolverBase):
     """ Ising solver based on the classical simulated annealing algorithm. """
 
+    def __init__(self):
+        self.name = "SA"
+
     def solve(
         self,
         model: IsingModel,
@@ -58,20 +61,17 @@ class SASolver(SolverBase):
             "change_state": np.bool_,                    # Scalar boolean
             "time_clock": float
         }
-        metadata = {
-            "solver": "simulated_annealing",
-            "initial_temp": initial_temp,
-            "cooling_rate": cooling_rate,
-            "initial_state": initial_state,
-            "num_iterations": num_iterations,
-            "seed": seed,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op
-        }
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
-            logger.write_metadata(**metadata)
+            self.log_metadata(logger=logger,
+                              initial_state=initial_state,
+                              model=model,
+                              num_iterations=num_iterations,
+                              initial_temp=initial_temp,
+                              cooling_rate=cooling_rate,
+                              seed=seed,
+                            )
 
             # Setup initial state and energy
             T = initial_temp

@@ -8,6 +8,10 @@ from ising.utils.numpy import triu_to_symm
 
 
 class BRIM(SolverBase):
+
+    def __init__(self):
+        self.name = 'BRIM'
+
     def k(self, kmax: float, kmin: float, t: float, t_final: float) -> float:
         """Returns the gain of the latches at time t.
 
@@ -65,19 +69,6 @@ class BRIM(SolverBase):
 
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
-        metadata = {
-            "solver": "BLIM",
-            "initial_state": np.sign(v),
-            "num_iterations": num_iterations,
-            "time_step": dt,
-            "C": C,
-            "G": G,
-            "kmin": kmin,
-            "kmax": kmax,
-            "random_flip": random_flip,
-            "seed": seed,
-        }
-
         def dvdt(t, vt):
             if random_flip and t in flip_it:
                 flip = np.random.choice(N)
@@ -92,7 +83,18 @@ class BRIM(SolverBase):
             return dv
 
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(**metadata)
+            self.log_metadata(logger=log,
+                              initial_state=np.sign(v),
+                              model=model,
+                              num_iterations=num_iterations,
+                              G=G,
+                              C=C,
+                              time_step=dt,
+                              random_flip=random_flip,
+                              seed=seed,
+                              kmax=kmax,
+                              kmin=kmin)
+
             vi = np.copy(v)
             for i in range(num_iterations):
                 time = t_eval[i]
