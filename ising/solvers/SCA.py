@@ -48,7 +48,7 @@ class SCA(SolverBase):
             sample, energy (tuple[np.ndarray, float]): final state and energy of the optimisation process.
         """
         N = model.num_variables
-        hs = np.copy(model.h)
+        hs = np.zeros((N,))
         J = triu_to_symm(model.J)
         flipped_states = []
         clocker = clock(clock_freq, clock_op)
@@ -79,13 +79,7 @@ class SCA(SolverBase):
             log.write_metadata(**metadata)
 
             for _ in range(num_iterations):
-                # for x in range(N):
-                #     hs[x] += np.matmul(J[x, :], sample)
-                #     Prob = self.get_prob(hs[x], sample[x], q, T)
-                #     rand = np.random.rand()
-                #     if Prob < rand:
-                #         sample[x] = -sample[x]
-                hs += np.matmul(J, sample)
+                hs = np.matmul(J, sample) + model.h
                 clocker.add_cycles(1+np.log2(N))
 
                 Prob = self.get_prob(hs, sample, q, T)
@@ -129,4 +123,4 @@ class SCA(SolverBase):
             probability (np.ndarray): probability of accepting the change of all nodes.
         """
         val = 1/T*(np.multiply(hs, sample) + q)/2
-        return 1 / (1 + np.exp(-val))
+        return np.exp(val) / (2*np.cosh(-val))

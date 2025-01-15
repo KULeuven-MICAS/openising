@@ -167,6 +167,17 @@ class IsingModel:
                 self.scale(1/transformation[1], track=False)
 
 
+    def transform_to_no_h(self) -> IsingModel:
+        """Generates a new Isingmodel with the bias incorporated into the coefficient matrix J.
+
+        Returns:
+            IsingModel: the new Ising Model.
+        """
+        new_h = self.h.reshape((-1, 1))
+        new_J = np.block([[self.J, new_h],[new_h.T, 0]])
+        return IsingModel(new_J, np.zeros(self.num_variables + 1), c=self.c)
+
+
     def evaluate(self, sample: np.ndarray) -> float:
         """
         Compute the Hamiltonian given a sample of spin values.
@@ -204,9 +215,10 @@ class IsingModel:
         Returns:
             tuple[np.ndarray, float]: The QUBO matrix and the constant term c.
         """
-        Q = (-4) * self.J
-        Q.diagonal()[:] = 2 * (np.sum(npu.triu_to_symm(self.J), axis=1) + self.h)
-        c = -np.sum(self.J) + np.sum(self.h)
+        new_J = npu.triu_to_symm(self.J)
+        Q = (-2) * new_J
+        np.fill_diagonal(Q, 2 * (np.sum(new_J, axis=1) - self.h))
+        c = -np.sum(new_J)/2 + np.sum(self.h) + self.c
         return Q, c
 
     @classmethod

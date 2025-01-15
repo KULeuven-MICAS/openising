@@ -99,14 +99,7 @@ class DSASolver(SolverBase):
                     change_state = delta < 0 or random.random() < np.exp(-delta / T)
                     clocker.add_operations(5)
                     # Log current iteration data
-                    clock_time = clocker.perform_operations()
-                    logger.log(
-                        energy=energy_new,
-                        state=state,
-                        change_state=change_state,
-                        cycle_started=cycle_started,
-                        time_clock=clock_time,
-                    )
+
                     cycle_started = False
 
                     # Update the state and energy if the new state is accepted
@@ -114,13 +107,30 @@ class DSASolver(SolverBase):
                         energy = energy_new
                     else:
                         state[node] = -state[node]  # Revert the flip if the new state is rejected
+                    clocker.perform_operations()
 
                 # Decrease the temperature
                 T = cooling_rate * T
                 clocker.add_operations(1)
-                clocker.perform_operations()
+                clock_time = clocker.perform_operations()
+
+                # log information
+                logger.log(
+                        energy=energy_new,
+                        state=state,
+                        change_state=change_state,
+                        cycle_started=cycle_started,
+                        time_clock=clock_time,
+                    )
 
             # Log the final result
+            logger.log(
+                        energy=energy_new,
+                        state=state,
+                        change_state=change_state,
+                        cycle_started=cycle_started,
+                        time_clock=clock_time,
+                    )
             total_time = clocker.get_time()
             logger.write_metadata(solution_state=state, solution_energy=energy, total_time=total_time)
 
