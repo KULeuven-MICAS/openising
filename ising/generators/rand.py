@@ -39,5 +39,5 @@ def sample(
     random.seed(seed)
     def gen():
         while True:
-            yield random.sample(population, k=1, counts=counts)
+            yield random.sample(population, counts=counts, k=1)[0]
     return IsingModel.from_adjacency(adj, linear, gen())
