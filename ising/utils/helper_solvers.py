@@ -1,5 +1,6 @@
 import pathlib
 import numpy as np
+import scipy.sparse.linalg as spalg
 
 from ising.model.ising import IsingModel
 from ising.solvers.BRIM import BRIM
@@ -133,3 +134,7 @@ def return_c0(model: IsingModel):
 def return_G(problem: IsingModel):
     sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
     return np.average(sumJ)*2
+
+def return_q(problem: IsingModel):
+    eig = np.abs(spalg.eigs(triu_to_symm(-problem.J), 1)[0][0])
+    return eig / 2

@@ -4,8 +4,6 @@ import numpy as np
 import argparse
 import networkx as nx
 import time
-# import threading
-
 
 from ising.generators.MaxCut import random_MaxCut
 
@@ -14,7 +12,7 @@ from ising.solvers.Gurobi import Gurobi
 
 from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers
 from ising.postprocessing.plot_solutions import plot_state_continuous, plot_state_discrete
-from ising.utils.helper_solvers import run_solver, return_c0, return_rx, return_G
+from ising.utils.helper_solvers import run_solver, return_c0, return_rx, return_G, return_q
 from ising.postprocessing.MC_plot import plot_MC_solution
 
 TOP = pathlib.Path(os.getenv("TOP"))
@@ -87,7 +85,12 @@ r_T = return_rx(num_iter, T, Tfin)
 
 # SCA parameters
 q = float(args.q)
-r_q = return_rx(num_iter, q, float(args.q_final))
+if q == 0.:
+    change_q = True
+    r_q = 1.0
+else:
+    r_q = return_rx(num_iter, q, float(args.q_final))
+    change_q = False
 
 # SB parameters
 dt = float(args.dt)
@@ -104,7 +107,7 @@ def at(t):
 
 logfiles = dict()
 logtop = TOP / "ising/flow/logs"
-figtop = TOP / "ising/flow/plots/SA_debug"
+figtop = TOP / "ising/flow/plots/SB_debug"
 best_found = []
 
 if G == 0:
@@ -131,6 +134,12 @@ for N in Nlist:
 
     if change_G:
         G = return_G(problem=problem)
+    if change_c:
+        c0 = return_c0(model=problem)
+    if change_q:
+        q = return_q(problem)
+        print(f"{q=}")
+
     if use_gurobi:
         print("Solving with Gurobi")
         sigma_base, energy_base = Gurobi().solve(model=problem)
@@ -139,8 +148,6 @@ for N in Nlist:
         print(f"Gurobi best state {sigma_base}")
 
     sigma = np.random.choice([-1.0, 1.0], (N,), p=[0.5, 0.5])
-    if change_c:
-        c0 = return_c0(model=problem)
 
     for solver in solvers:
         logfiles[N][solver] = []
