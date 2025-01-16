@@ -13,7 +13,7 @@ class DSASolver(SolverBase):
     """Ising solver based on a discriminatory variation of the simulated annealing algorithm."""
 
     def __init__(self):
-        self.name= "DSA"
+        self.name = "DSA"
 
     def solve(
         self,
@@ -133,6 +133,10 @@ class DSASolver(SolverBase):
                 time_clock=clock_time,
             )
             total_time = clocker.get_time()
-            logger.write_metadata(solution_state=state, solution_energy=energy, total_time=total_time)
+            N = model.num_variables
+            nb_operations = num_iterations * (3 * N**3 + 2 * N**2 + 8 * N + 1) + 3 * N ** 2 + 2 * N
+            logger.write_metadata(
+                solution_state=state, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+            )
 
         return state, energy
