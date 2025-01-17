@@ -54,6 +54,7 @@ def plot_energies(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()
 
 
 def plot_energies_multiple(
@@ -92,6 +93,7 @@ def plot_energies_multiple(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()
 
 
 def plot_energy_dist_multiple_solvers(
@@ -129,6 +131,7 @@ def plot_energy_dist_multiple_solvers(
     plt.legend()
     if save:
         plt.savefig(save_folder / fig_name)
+    plt.close()
 
 
 def plot_relative_error(
@@ -154,6 +157,7 @@ def plot_relative_error(
     plt.legend()
     if save:
         plt.savefig(save_folder / fig_name)
+    plt.close()
 
 
 def plot_energy_time(
@@ -175,6 +179,7 @@ def plot_energy_time(
     plt.legend()
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()
 
 
 def plot_energy_time_multiple(
@@ -212,3 +217,4 @@ def plot_energy_time_multiple(
     plt.legend()
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()

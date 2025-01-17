@@ -41,3 +41,4 @@ def plot_graph_solution(fileName:pathlib.Path, save:bool=True, save_folder:pathl
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
         plt.savefig(f"{save_folder}/{solver}_TSP_solution_state.png")
+    plt.close()

@@ -55,3 +55,4 @@ def plot_MC_solution(fileName:pathlib.Path, G_orig:nx.Graph, fig_name:str="MC_so
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
         plt.savefig(f"{save_folder}/{fig_name}")
+    plt.close()

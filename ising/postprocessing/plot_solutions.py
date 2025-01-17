@@ -50,3 +50,4 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     plt.ylabel('continuous state')
     if save:
         plt.savefig(save_folder / figname)
+    plt.close()
