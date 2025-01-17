@@ -4,7 +4,7 @@ import numpy as np
 from ising.utils.HDF5Logger import return_metadata
 
 
-def compute_averages_energies(data: dict[str : dict[float : list[float]]]):
+def compute_averages_energies(data: dict[str : dict[float : np.ndarray]]):
     x_data = dict()
     avg_energies = dict()
     min_energies = dict()
@@ -22,6 +22,11 @@ def compute_averages_energies(data: dict[str : dict[float : list[float]]]):
             min_energies[solver_name].append(avg_energies[solver_name][-1] - std)
             max_energies[solver_name].append(avg_energies[solver_name][-1] + std)
             x_data[solver_name].append(x_dat)
+
+        # make sure the data is a numpy array
+        avg_energies[solver_name] = np.array(avg_energies[solver_name])
+        min_energies[solver_name] = np.array(min_energies[solver_name])
+        max_energies[solver_name] = np.array(max_energies[solver_name])
 
     return avg_energies, min_energies, max_energies, x_data
 

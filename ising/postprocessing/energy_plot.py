@@ -100,7 +100,7 @@ def plot_energy_dist_multiple_solvers(
     logfiles: list[pathlib.Path],
     xlabel: str,
     fig_name: str = "multiple_solvers_energy_dist.png",
-    best_found: list[float] | None = None,
+    best_found: np.ndarray | None = None,
     best_Gurobi: bool = False,
     save: bool = True,
     save_folder: pathlib.Path = ".",
@@ -110,7 +110,8 @@ def plot_energy_dist_multiple_solvers(
     Args:
         logfiles (list[pathlib.Path]): list of all the absolute paths to the logfiles.
         figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
-        best_found (list[float],None, optional): list of the best found solutions of the problem. Defaults to None.
+        best_found (np.ndarray,None, optional): numpy ndarray of the best found solutions of the problem.
+                                                Defaults to None.
         best_Gurobi (bool, optional): whether the best found solution is from Gurobi solver. Defaults to False.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
@@ -126,7 +127,7 @@ def plot_energy_dist_multiple_solvers(
         plt.semilogx(
             x_data[solver_name], best_found, "--k", label="Best found: Gurobi" if best_Gurobi else "Best found"
         )
-    plt.xlabel(xlabel)
+    plt.xlabel(xlabel.replace("_", " "))
     plt.ylabel("Best Energy")
     plt.legend()
     if save:
@@ -136,23 +137,36 @@ def plot_energy_dist_multiple_solvers(
 
 def plot_relative_error(
     logfiles: list[pathlib.Path],
-    best_found: list[float],
-    x_data: str,
+    best_found: np.ndarray,
+    x_label: str,
     fig_name: str = "relative_error.png",
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
-    data = get_metadata_from_logfiles(logfiles, x_data, y_data="solution_energy")
+    """Plots the relative error of different solvers with the best found solution.
+    It takes into account a solver can be run multiple times with the same parameters set.
+    This results in a plot that could show a distribution of results per x point.
+
+    Args:
+        logfiles (list[pathlib.Path]): all the logfiles
+        best_found (np.ndarray): an numpy ndarray holding the best found solution of the problem.
+        x_data (str): the metadata that is used for the x axis.
+        fig_name (str, optional): name of the figure to be saved. Defaults to "relative_error.png".
+        save (bool, optional): whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
+    """
+    data = get_metadata_from_logfiles(logfiles, x_label, y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure(constrained_layout=True)
+    best_found = np.array(best_found)
     for solver_name, _ in avg_energies.items():
-        relative_error = (avg_energies[solver_name] - best_found) / best_found
-        min_rel_error = (min_energies[solver_name] - best_found) / best_found
-        max_rel_error = (max_energies[solver_name] - best_found) / best_found
+        relative_error = np.abs((avg_energies[solver_name] - best_found) / best_found)
+        min_rel_error = np.abs((min_energies[solver_name] - best_found) / best_found)
+        max_rel_error = np.abs((max_energies[solver_name] - best_found) / best_found)
         plt.loglog(x_data[solver_name], relative_error, label=f"{solver_name}")
         plt.fill_between(x_data[solver_name], min_rel_error, max_rel_error, alpha=0.2)
-    plt.xlabel(x_data)
+    plt.xlabel(x_label.replace("_", " "))
     plt.ylabel("Relative error with best found")
     plt.legend()
     if save:
