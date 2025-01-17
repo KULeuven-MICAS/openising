@@ -29,7 +29,7 @@ args = parser.parse_args()
 if args.solvers == "all":
     solvers = ["SA", "SCA", "bSB", "dSB", "BRIM"]
 else:
-    solvers = args.solvers
+    solvers = args.solvers[0].split()
 nb_runs = int(args.nb_runs)
 
 # Defining the top paths and list for the logfiles
@@ -38,11 +38,6 @@ logtop = TOP / "ising/flow/MaxCut/logs"
 figtop = TOP / "ising/flow/MaxCut/plots" / args.fig_folder
 make_directory(figtop)
 fig_name = str(args.fig_name)
-
-
-# Small function to plot the states
-
-
 
 if args.benchmark is not None:
     print("Benchmark logs are plotted")
@@ -58,7 +53,7 @@ if args.benchmark is not None:
     # Get the best found of the benchmark
     best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
     if best_found is not None:
-        best_found = [-best_found] * len(iter_list)
+        best_found = np.array([-best_found] * len(iter_list))
 
     # Go over all solvers and generate the logfiles
     for nb_iter in iter_list:
@@ -90,6 +85,8 @@ elif args.N_list is not None:
     # Make sure that best_found is None if Gurobi was not used
     if len(best_found) == 0:
         best_found = None
+    else:
+        best_found = np.array(best_found)
 
 else:
     # No benchmark or problem size range is given => exit
@@ -108,9 +105,9 @@ plot_energy_dist_multiple_solvers(
 plot_relative_error(
     logfiles,
     best_found,
-    x_data="num_iterations" if args.benchmark is not None else "problem_size",
+    x_label="num_iterations" if args.benchmark is not None else "problem_size",
     save_folder=figtop,
-    fig_name=f"relative_error_{fig_name}",
+    fig_name=f"{benchmark if args.benchmark is not None else "size_comparison"}_relative_error_{fig_name}",
 )
 
 print("figures plotted succesfully")
