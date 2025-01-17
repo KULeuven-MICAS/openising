@@ -18,7 +18,7 @@ parser.add_argument("-nb_runs", help="Number of runs", default=15)
 parser.add_argument("--num_iter", help="Range for number of iterations", default=(500, 5000), nargs="+")
 
 # BRIM parameters
-parser.add_argument("-t_end", help="End time for the simulation", default=3e-5)
+parser.add_argument("-dtBRIM", help="time_step for BRIM", default=3e-9)
 parser.add_argument("-C", help="capacitor parameter", default=1e-5)
 parser.add_argument("-G", help="Resistor parameter", default=1e-1)
 parser.add_argument("-k_min", help="Minimum latch strength", default=0.01)
@@ -28,7 +28,7 @@ parser.add_argument("-flip", help="Whether to activate random flipping in BRIM",
 # SA parameters
 parser.add_argument("-T", help="Initial temperature", default=50.0)
 parser.add_argument("-T_final", help="Final temperature of the annealing process", default=0.05)
-parser.add_argument("-seed", help="Seed for random number generator", default=1)
+parser.add_argument("-seed", help="Seed for random number generator", default=0)
 
 # SCA parameters
 parser.add_argument("-q", help="initial penalty value", default=0.0)
@@ -56,12 +56,11 @@ else:
     solvers = args.solvers
 print("Solving with following solvers: ", solvers)
 
-num_iter = tuple(args.num_iter)
+num_iter = args.num_iter[0].split()
 nb_runs = int(args.nb_runs)
 iter_list = np.linspace(int(num_iter[0]), int(num_iter[1]), nb_runs, dtype=int)
 
 print("Setting up solvers")
-logfiles = []
 logpath = TOP / "ising/flow/MaxCut/logs"
 make_directory(logpath)
 
@@ -85,4 +84,3 @@ for num_iter in iter_list:
             print(f"Run {run} for {solver} with {num_iter} iterations")
             logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
             run_solver(solver, num_iter=num_iter, s_init=s_init, logfile=logfile, model=model, **hyperparameters)
-            logfiles.append(logfile)

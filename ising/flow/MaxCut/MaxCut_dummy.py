@@ -36,7 +36,7 @@ parser.add_argument("-flip", help="Whether to activate random flipping in BRIM",
 # SA parameters
 parser.add_argument("-T", help="Initial temperature", default=50.0)
 parser.add_argument("-T_final", help="Final temperature of the annealing process", default=0.05)
-parser.add_argument("-seed", help="Seed for random number generator", default=1)
+parser.add_argument("-seed", help="Seed for random number generator", default=0)
 
 # SCA parameters
 parser.add_argument("-q", help="initial penalty value", default=0.)
@@ -55,7 +55,7 @@ if args.solvers == "all":
 else:
     solvers = args.solvers[0].split()
 
-Nlist = tuple(args.N_list)
+Nlist = args.N_list[0].split()
 nb_runs = int(args.nb_runs)
 Nlist = np.linspace(Nlist[0], Nlist[1], nb_runs, dtype=int)
 
@@ -91,7 +91,6 @@ else:
     change_c = False
 
 
-logfiles = []
 
 logtop = TOP / "ising/flow/MaxCut/logs"
 make_directory(logtop)
@@ -147,8 +146,7 @@ for N in Nlist:
                 model=problem,
                 **hyperparameters
             )
-            logfiles.append(logfile)
         print(f"{solver} {optim_energy=}")
         print(f"{solver} {optim_state=}")
-        plot_MC_solution(fileName=logfiles[-1], G_orig=G_orig, save_folder=figtop,
+        plot_MC_solution(fileName=logfile, G_orig=G_orig, save_folder=figtop,
                          fig_name=f"{solver}_N{N}_graph_{fig_name}")

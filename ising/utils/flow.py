@@ -14,8 +14,8 @@ def make_directory(path:pathlib.Path) -> None:
 def parse_hyperparameters(args, num_iter) -> dict[str:float]:
     hyperparameters = dict()
     # BRIM parameters
-    tend = float(args.t_end)
-    hyperparameters["dtBRIM"] = tend / num_iter
+    dtBRIM = float(args.dtBRIM)
+    hyperparameters["dtBRIM"] = dtBRIM
     hyperparameters["C"] = float(args.C)
     hyperparameters["G"] = float(args.G)
 
