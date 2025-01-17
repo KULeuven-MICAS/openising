@@ -3,6 +3,21 @@ import pathlib
 
 from ising.utils.HDF5Logger import return_data, return_metadata
 
+def plot_state(solver:str, logfile:pathlib.Path, figname:str, figtop:pathlib.Path="."):
+    """Delegates the plotting of the state to the correct function.
+
+    Args:
+        solver (str): the solver of which the state should be plotted.
+        logfile (pathlib.Path): the logfile in which the data is stored.
+        figname (str): the name of the figure.
+        figtop (pathlib.Path, optional): the absolute path to where the figure should be stored. Defaults to ".".
+    """
+    if solver in ["BRIM", "bSB", "dSB"]:
+        plot_state_continuous(logfile=logfile, figname=figname, save_folder=figtop)
+    else:
+        plot_state_discrete(logfile=logfile, figname=figname, save_folder=figtop)
+
+
 def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the discrete state of the current run of a solver.
     The state at each iteration is plotted as a heatmap.

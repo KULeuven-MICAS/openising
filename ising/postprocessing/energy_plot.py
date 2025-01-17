@@ -118,7 +118,7 @@ def plot_energy_dist_multiple_solvers(
     data = get_metadata_from_logfiles(logfiles=logfiles, x_data=xlabel, y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
-    plt.figure()
+    plt.figure(constrained_layout=True)
     for solver_name, _ in avg_energies.items():
         plt.semilogx(x_data[solver_name], avg_energies[solver_name], label=f"{solver_name}")
         plt.fill_between(x_data[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
@@ -145,7 +145,7 @@ def plot_relative_error(
     data = get_metadata_from_logfiles(logfiles, x_data, y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
-    plt.figure()
+    plt.figure(constrained_layout=True)
     for solver_name, _ in avg_energies.items():
         relative_error = (avg_energies[solver_name] - best_found) / best_found
         min_rel_error = (min_energies[solver_name] - best_found) / best_found
