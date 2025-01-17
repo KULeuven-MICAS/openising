@@ -90,7 +90,6 @@ def run_solver(
         x = s_init*np.arange(0.01/model.num_variables, 0.01+0.01/model.num_variables, 0.01/model.num_variables)
         y = np.zeros((model.num_variables,))
         dt = hyperparameters["dtSB"]
-        at = hyperparameters["at"]
         c0 = hyperparameters["c0"]
         a0 = hyperparameters["a0"]
         if solver[0] == "b":
@@ -99,7 +98,6 @@ def run_solver(
                 x=x,
                 y=y,
                 num_iterations=num_iter,
-                at=at,
                 c0=c0,
                 dt=dt,
                 a0=a0,
@@ -112,7 +110,6 @@ def run_solver(
                 x=x,
                 y=y,
                 num_iterations=num_iter,
-                at=at,
                 c0=c0,
                 dt=dt,
                 a0=a0,
