@@ -38,9 +38,9 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     """
     solver = return_metadata(logfile, 'solver')
     num_iterations = return_metadata(logfile, 'num_iterations')
-    if solver == "BLIM":
+    if solver == "BRIM":
         states = return_data(logfile, 'voltages')
-    elif solver == "discrete_simulated_bifurcation" or solver == "ballistic_simulated_bifurcation":
+    elif solver == "dSB" or solver == "bSB":
         states = return_data(logfile, 'positions')
 
     plt.figure()
