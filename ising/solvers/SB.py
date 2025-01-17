@@ -27,6 +27,9 @@ class SB(SolverBase):
         y[node] = 0.0
         # return x, y
 
+    def at(self, t, a0, dt, num_iterations):
+        return a0 / (dt*num_iterations) * t
+
     @abstractmethod
     def solve(self, model: IsingModel):
         pass
@@ -34,7 +37,7 @@ class SB(SolverBase):
 
 class ballisticSB(SB):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.name = f"b{self.name}"
 
     def solve(
@@ -43,7 +46,6 @@ class ballisticSB(SB):
         x: np.ndarray,
         y: np.ndarray,
         num_iterations: int,
-        at: callable,
         c0: float,
         dt: float,
         a0: float = 1.0,
@@ -98,7 +100,7 @@ class ballisticSB(SB):
                 c0=c0,
             )
             for _ in range(num_iterations):
-                atk = at(tk)
+                atk = self.at(tk, a0, dt, num_iterations)
                 clocker.add_operations(1)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * model.h) * dt
@@ -132,7 +134,7 @@ class ballisticSB(SB):
 
 class discreteSB(SB):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.name = f"d{self.name}"
 
     def solve(
@@ -141,7 +143,6 @@ class discreteSB(SB):
         x: np.ndarray,
         y: np.ndarray,
         num_iterations: int,
-        at: callable,
         c0: float,
         dt: float,
         a0: float = 1.0,
@@ -196,7 +197,7 @@ class discreteSB(SB):
             )
 
             for _ in range(num_iterations):
-                atk = at(tk)
+                atk = self.at(tk, a0, dt, num_iterations)
                 clocker.add_operations(1)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dt

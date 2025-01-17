@@ -63,7 +63,7 @@ class BRIM(SolverBase):
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
         v = np.block([v, 1.])
-        flip_it = t_eval[:101:int(100 / (N))]
+        flip_it = t_eval[:100]
         np.random.seed(seed)
         v += 0.01 * (np.random.random((N+1,)) - 0.5)
 
