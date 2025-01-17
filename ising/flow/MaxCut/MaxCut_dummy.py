@@ -26,7 +26,7 @@ parser.add_argument("-fig_folder", help="Folder inwhich to save the figures", de
 parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
 
 # BRIM parameters
-parser.add_argument("-t_end", help="End time for the simulation", default=3e-5)
+parser.add_argument("-dtBRIM", help="End time for the simulation", default=3e-9)
 parser.add_argument("-C", help="capacitor parameter", default=1e-5)
 parser.add_argument("-G", help="Resistor parameter", default=1e-1)
 parser.add_argument("-k_min", help="Minimum latch strength", default=0.01)
