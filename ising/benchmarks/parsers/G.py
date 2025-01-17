@@ -27,6 +27,10 @@ def G_parser(benchmark: pathlib.Path | str):
                 weight = int(line[2])
                 G.add_edge(u, v, weight=weight)
 
+    best_found = get_optim_value(benchmark)
+    return G, best_found
+
+def get_optim_value(benchmark: pathlib.Path | str):
     best_found = None
     optim_file = pathlib.Path(os.getenv("TOP")) / pathlib.Path("ising/benchmarks/G/optimal_energy.txt")
     benchmark = str(benchmark).split("/")[-1][:-4]
@@ -36,5 +40,4 @@ def G_parser(benchmark: pathlib.Path | str):
             if line[0] == benchmark:
                 best_found = int(line[1])
                 break
-
-    return G, best_found
+    return best_found
