@@ -1,7 +1,7 @@
 import pathlib
 import numpy as np
 
-from ising.utils.HDF5Logger import return_metadata, return_data
+from ising.utils.HDF5Logger import return_metadata
 
 
 def compute_averages_energies(data: dict[str : dict[float : list[float]]]):
@@ -26,7 +26,7 @@ def compute_averages_energies(data: dict[str : dict[float : list[float]]]):
     return avg_energies, min_energies, max_energies, x_data
 
 
-def get_data_from_logfiles(
+def get_metadata_from_logfiles(
     logfiles: list[pathlib.Path], x_data: str, y_data: str
 ) -> dict[str : dict[float : list[float]]]:
     """Generates a dictionary with the correct y data for each solver and x value.
@@ -52,7 +52,7 @@ def get_data_from_logfiles(
             data[solver] = dict()
 
         x = return_metadata(fileName=logfile, metadata=x_data)
-        y = return_data(fileName=logfile, data=y_data)
+        y = return_metadata(fileName=logfile, metadata=y_data)
 
         # Make sure the x value already exists in the data[solver] dictionary
         if x not in data[solver]:

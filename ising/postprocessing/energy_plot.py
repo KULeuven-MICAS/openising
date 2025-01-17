@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ising.postprocessing.helper_functions import (
-    return_data,
-    return_metadata,
-    get_data_from_logfiles,
+    get_metadata_from_logfiles,
     compute_averages_energies,
 )
+
+from ising.utils.HDF5Logger import return_data, return_metadata
 
 
 def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
@@ -115,7 +115,7 @@ def plot_energy_dist_multiple_solvers(
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
-    data = get_data_from_logfiles(logfiles=logfiles, x_data=xlabel, y_data="solution_energy")
+    data = get_metadata_from_logfiles(logfiles=logfiles, x_data=xlabel, y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure()
@@ -142,7 +142,7 @@ def plot_relative_error(
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
-    data = get_data_from_logfiles(logfiles, x_data, y_data="solution_energy")
+    data = get_metadata_from_logfiles(logfiles, x_data, y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure()
@@ -198,7 +198,7 @@ def plot_energy_time_multiple(
         save_folder (pathlib.Path, optional): _description_. Defaults to '.'.
         figName (str, optional): _description_. Defaults to "energy_time.png".
     """
-    data = get_data_from_logfiles(logfiles, x_data="total_time", y_data="solution_energy")
+    data = get_metadata_from_logfiles(logfiles, x_data="total_time", y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure()

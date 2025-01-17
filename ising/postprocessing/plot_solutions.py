@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pathlib
 
-from ising.postprocessing.helper_functions import return_data, return_metadata
+from ising.utils.HDF5Logger import return_data, return_metadata
 
 def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the discrete state of the current run of a solver.
@@ -21,6 +21,7 @@ def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_
     plt.ylabel("sample")
     if save:
         plt.savefig(save_folder / figname)
+    plt.close()
 
 def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the continuous state of the current run of a solver.
