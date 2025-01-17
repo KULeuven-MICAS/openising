@@ -1,0 +1,88 @@
+import numpy as np
+import os
+import argparse
+import pathlib
+
+from ising.benchmarks.parsers.G import G_parser
+from ising.generators.MaxCut import MaxCut
+from ising.utils.flow import make_directory, parse_hyperparameters
+
+from ising.utils.helper_solvers import run_solver, return_c0, return_rx, return_G, return_q
+
+TOP = pathlib.Path(os.getenv("TOP"))
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-benchmark", help="Name of the benchmark to run", default="G1")
+parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
+parser.add_argument("-nb_runs", help="Number of runs", default=15)
+parser.add_argument("--num_iter", help="Range for number of iterations", default=(500, 5000), nargs="+")
+
+# BRIM parameters
+parser.add_argument("-t_end", help="End time for the simulation", default=3e-5)
+parser.add_argument("-C", help="capacitor parameter", default=1e-5)
+parser.add_argument("-G", help="Resistor parameter", default=1e-1)
+parser.add_argument("-k_min", help="Minimum latch strength", default=0.01)
+parser.add_argument("-k_max", help="Maximum latch strength", default=2.5)
+parser.add_argument("-flip", help="Whether to activate random flipping in BRIM", default=True)
+
+# SA parameters
+parser.add_argument("-T", help="Initial temperature", default=50.0)
+parser.add_argument("-T_final", help="Final temperature of the annealing process", default=0.05)
+parser.add_argument("-seed", help="Seed for random number generator", default=1)
+
+# SCA parameters
+parser.add_argument("-q", help="initial penalty value", default=0.0)
+parser.add_argument("-q_final", help="final penalty value", default=10.0)
+
+# SB parameters
+parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0.25)
+parser.add_argument("-a0", help="Parameter a0 of SB", default=1.0)
+parser.add_argument("-c0", help="Parameter c0 of SB", default=0.0)
+
+args = parser.parse_args()
+
+
+benchmark = args.benchmark
+print("Generating benchmark: ", benchmark)
+graph, best_found = G_parser(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
+model = MaxCut(graph=graph)
+if best_found is not None:
+    print("Best found energy: ", -best_found)
+print("Generated benchmark")
+
+if args.solvers == "all":
+    solvers = ["SA", "SCA", "bSB", "dSB", "BRIM"]
+else:
+    solvers = args.solvers
+print("Solving with following solvers: ", solvers)
+
+num_iter = tuple(args.num_iter)
+nb_runs = int(args.nb_runs)
+iter_list = np.linspace(int(num_iter[0]), int(num_iter[1]), nb_runs, dtype=int)
+
+print("Setting up solvers")
+logfiles = []
+logpath = TOP / "ising/flow/MaxCut/logs"
+make_directory(logpath)
+
+
+for num_iter in iter_list:
+    s_init = np.random.choice([-1, 1], (model.num_variables,))
+    hyperparameters = parse_hyperparameters(args, num_iter)
+
+    if hyperparameters["G"] == 0.0:
+        hyperparameters["G"] = return_G(problem=model)
+    if hyperparameters["c0"] == 0.0:
+        hyperparameters["c0"] = return_c0(model=model)
+    if hyperparameters["q"] == 0.0:
+        hyperparameters["q"] = return_q(model)
+        hyperparameters["r_q"] = 1.0
+    else:
+        hyperparameters["r_q"] = return_rx(num_iter, hyperparameters["q"], float(args.q_final))
+
+    for solver in solvers:
+        for run in range(nb_runs):
+            print(f"Run {run} for {solver} with {num_iter} iterations")
+            logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
+            run_solver(solver, num_iter=num_iter, s_init=s_init, logfile=logfile, model=model, **hyperparameters)
+            logfiles.append(logfile)
