@@ -8,6 +8,7 @@ from ising.benchmarks.parsers.G import get_optim_value
 from ising.postprocessing.energy_plot import plot_energy_dist_multiple_solvers, plot_relative_error
 from ising.postprocessing.plot_solutions import plot_state
 from ising.utils.flow import make_directory
+from ising.utils.HDF5Logger import get_Gurobi_data
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
@@ -48,7 +49,7 @@ if args.benchmark is not None:
     if args.num_iter is None:
         sys.exit("No iteration range is specified while benchmark is given")
     num_iter = args.num_iter[0].split()
-    iter_list = np.linspace(int(num_iter[0]), int(num_iter[1]), nb_runs, dtype=int)
+    iter_list = np.array(range(int(num_iter[0]), int(num_iter[1]), 50))
 
     # Get the best found of the benchmark
     best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
@@ -68,14 +69,14 @@ elif args.N_list is not None:
     print("Problem size logs are plotted")
     # List of problem sizes is given
     N_list = args.N_list[0].split()
-    N_list = np.linspace(N_list[0], N_list[1], nb_runs, dtype=int)
+    N_list = np.array(range(int(N_list[0]), int(N_list[1]), 10))
     best_found = []
 
     # Generate all the logfiles
     for N in N_list:
         for solver in solvers:
             for run in range(nb_runs):
-                logfile = logtop / f"{solver}_N{N}_run{run}.log"
+                logfile = logtop / f"{solver}_N{N}_nb_run{run}.log"
                 logfiles.append(logfile)
             if run == nb_runs - 1:
                 plot_state(solver, logfile, f"{solver}_N{N}.png", figtop)
@@ -86,7 +87,7 @@ elif args.N_list is not None:
     if len(best_found) == 0:
         best_found = None
     else:
-        best_found = np.array(best_found)
+        best_found = np.array(get_Gurobi_data(best_found))
 
 else:
     # No benchmark or problem size range is given => exit
@@ -99,15 +100,16 @@ plot_energy_dist_multiple_solvers(
     best_Gurobi=bool(args.use_gurobi),
     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
     save_folder=figtop,
-    fig_name=f"{benchmark}_{fig_name}" if benchmark is not None else f"size_comparison_{fig_name}",
+    fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
 )
 
-plot_relative_error(
-    logfiles,
-    best_found,
-    x_label="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    fig_name=f"{benchmark if args.benchmark is not None else "size_comparison"}_relative_error_{fig_name}",
-)
+if best_found is not None and args.benchmark is not None:
+    plot_relative_error(
+        logfiles,
+        best_found,
+        x_label="num_iterations" if args.benchmark is not None else "problem_size",
+        save_folder=figtop,
+        fig_name=f"{args.benchmark if args.benchmark is not None else "size_comparison"}_relative_error_{fig_name}",
+    )
 
 print("figures plotted succesfully")
