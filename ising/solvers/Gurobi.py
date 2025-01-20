@@ -53,5 +53,5 @@ class Gurobi(SolverBase):
             result: the result of the Gurobi optimization
             c: constant value of the transformation of Ising to QUBO form.
         """
-        with HDF5Logger(file) as logger:
+        with HDF5Logger(file, {"iteration":int}) as logger:
             logger.write_metadata(solution_state=result.solution, solution_energy=result.objective_value + c)

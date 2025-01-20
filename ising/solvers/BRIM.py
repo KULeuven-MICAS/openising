@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pathlib
 
@@ -38,7 +39,7 @@ class BRIM(SolverBase):
         G: float,
         file: pathlib.Path | None = None,
         random_flip: bool = False,
-        seed: int = 1,
+        seed: int = 0,
     ) -> tuple[np.ndarray, float]:
         """Simulates the BLIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
 
@@ -63,7 +64,9 @@ class BRIM(SolverBase):
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
         v = np.block([v, 1.])
-        flip_it = t_eval[:100]
+        flip_it = t_eval[:100:10]
+        if seed == 0:
+            seed = int(time.time())
         np.random.seed(seed)
         v += 0.01 * (np.random.random((N+1,)) - 0.5)
 
@@ -97,16 +100,14 @@ class BRIM(SolverBase):
 
             vi = np.copy(v)
             for i in range(num_iterations):
-                time = t_eval[i]
-                k1 = dt * dvdt(time, vi)
-                k2 = dt * dvdt(time + 0.5*dt, vi + 0.5*k1)
-                k3 = dt * dvdt(time + 0.5 * dt, vi + 0.5 * k2)
-                k4 = dt * dvdt(time + dt, vi + k3)
+                tk = t_eval[i]
+                k1 = dt * dvdt(tk, vi)
+                k2 = dt * dvdt(tk + 2/3*dt, vi + 2/3*k1)
 
-                vi += 1./6. * (k1 + 2*k2 + 2*k3 + k4)
+                vi += 1./4. * (k1 + 3.*k2)
                 sample = np.sign(vi[:N])
                 energy = model.evaluate(sample)
-                log.log(time_clock=time, energy=energy, state=sample, voltages=vi[:N])
+                log.log(time_clock=tk, energy=energy, state=sample, voltages=vi[:N])
 
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy
