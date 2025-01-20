@@ -7,17 +7,16 @@ import time
 
 from ising.generators.MaxCut import random_MaxCut
 
-# import all solvers for comparison
-from ising.solvers.Gurobi import Gurobi
-
-from ising.utils.helper_solvers import run_solver, return_c0, return_rx, return_G, return_q
+from ising.utils.helper_solvers import return_c0, return_rx, return_G, return_q
 from ising.postprocessing.MC_plot import plot_MC_solution
 from ising.utils.flow import make_directory, parse_hyperparameters
+from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
 parser = argparse.ArgumentParser()
-parser.add_argument("--N_list", help="tuple containing min and max problem size",
-                    default=(2, 10), nargs="+", type=tuple)
+parser.add_argument(
+    "--N_list", help="tuple containing min and max problem size", default=(2, 10), nargs="+"
+)
 parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
 parser.add_argument("-use_gurobi", help="Whether to use Gurobi as baseline", default=False)
 parser.add_argument("-nb_runs", help="Number of runs", default=3)
@@ -39,13 +38,13 @@ parser.add_argument("-T_final", help="Final temperature of the annealing process
 parser.add_argument("-seed", help="Seed for random number generator", default=0)
 
 # SCA parameters
-parser.add_argument("-q", help="initial penalty value", default=0.)
+parser.add_argument("-q", help="initial penalty value", default=0.0)
 parser.add_argument("-q_final", help="final penalty value", default=10.0)
 
 # SB parameters
 parser.add_argument("-dt", help="Time step for simulated bifurcation", default=0.25)
-parser.add_argument('-a0', help="Parameter a0 of SB", default=1.0)
-parser.add_argument('-c0', help="Parameter c0 of SB", default=0.0)
+parser.add_argument("-a0", help="Parameter a0 of SB", default=1.0)
+parser.add_argument("-c0", help="Parameter c0 of SB", default=0.0)
 
 
 print("parsing args")
@@ -57,7 +56,7 @@ else:
 
 Nlist = args.N_list[0].split()
 nb_runs = int(args.nb_runs)
-Nlist = np.linspace(Nlist[0], Nlist[1], nb_runs, dtype=int)
+Nlist = np.array(range(int(Nlist[0]), int(Nlist[1]), 10))
 
 seed = int(args.seed)
 if seed == 0:
@@ -77,27 +76,24 @@ else:
     change_G = False
 
 # SCA parameters
-if hyperparameters["q"] == 0.:
+if hyperparameters["q"] == 0.0:
     change_q = True
-    r_q = 1.0
+    hyperparameters["r_q"] = 1.0
 else:
-    r_q = return_rx(num_iter, hyperparameters["q"], float(args.q_final))
+    hyperparameters["r_q"] = return_rx(num_iter, hyperparameters["q"], float(args.q_final))
     change_q = False
 
 # SB parameters
-if hyperparameters["c0"] == 0.:
+if hyperparameters["c0"] == 0.0:
     change_c = True
 else:
     change_c = False
-
 
 
 logtop = TOP / "ising/flow/MaxCut/logs"
 make_directory(logtop)
 figtop = TOP / "ising/flow/MaxCut/plots" / str(args.fig_folder)
 make_directory(figtop)
-best_found = []
-
 
 
 problems = {}
@@ -105,48 +101,45 @@ for N in Nlist:
     problem = random_MaxCut(N)
     problems[N] = problem
 
-for N in Nlist:
-    problem = problems[N]
-    print(f"Generated problem: {problem}")
-
-    G_orig = nx.Graph()
-    G_orig.add_nodes_from(list(range(N)))
-    for i in range(N):
-        for j in range(i+1, N):
-            if problem.J[i, j] != 0:
-                G_orig.add_edge(i, j)
-
-    if change_G:
-        G = return_G(problem=problem)
-    if change_c:
-        c0 = return_c0(model=problem)
-    if change_q:
-        q = return_q(problem)
-        print(f"{q=}")
-
-    if use_gurobi:
-        print("Solving with Gurobi")
+if use_gurobi:
+    logfiles = {}
+    for N in Nlist:
         logfile = logtop / f"Gurobi_N{N}.log"
-        sigma_base, energy_base = Gurobi().solve(model=problem, file=logfile)
-        best_found.append(energy_base)
+        logfiles[N] = logfile
+    make_Gurobi_thread(nb_cores=3, models=problems, logfiles=logfiles)
 
-        print(f"Gurobi best state {sigma_base}")
 
-    sigma = np.random.choice([-1.0, 1.0], (N,), p=[0.5, 0.5])
-
+for N in Nlist:
+    if change_G:
+        hyperparameters["G"] = return_G(problem=problem)
+    if change_c:
+        hyperparameters["c0"] = return_c0(model=problem)
+    if change_q:
+        hyperparameters["q"] = return_q(problem)
+    logfiles = {}
     for solver in solvers:
-        print(f"Running with {solver}")
-        for run in range(nb_runs):
-            logfile = logtop / f"{solver}_N{N}_run{run}.log"
-            optim_state, optim_energy = run_solver(
-                solver,
-                num_iter=num_iter,
-                s_init=sigma,
-                logfile=logfile,
-                model=problem,
-                **hyperparameters
-            )
-        print(f"{solver} {optim_energy=}")
-        print(f"{solver} {optim_state=}")
-        plot_MC_solution(fileName=logfile, G_orig=G_orig, save_folder=figtop,
-                         fig_name=f"{solver}_N{N}_graph_{fig_name}")
+        logfiles[solver] = []
+        for nb_run in range(nb_runs):
+            logfiles[solver].append(logtop / f"{solver}_N{N}_nb_run{nb_run}.log")
+    sigma = np.random.choice([-1.0, 1.0], (N,), p=[0.5, 0.5])
+    make_solvers_thread(
+        nb_cores=len(solvers),
+        solvers=solvers,
+        sample=sigma,
+        num_iter=num_iter,
+        model=problems[N],
+        nb_runs=nb_runs,
+        logfiles=logfiles,
+        **hyperparameters,
+    )
+    if N <= 20:
+        G_orig = nx.Graph()
+        G_orig.add_nodes_from(list(range(N)))
+        for i in range(N):
+            for j in range(i+1, N):
+                if problem.J[i, j] != 0:
+                    G_orig.add_edge(i, j)
+
+        for solver in solvers:
+            plot_MC_solution(fileName=logfiles[solver][-1], G_orig=G_orig, save_folder=figtop,
+                            fig_name=f"{solver}_N{N}_graph_{fig_name}")

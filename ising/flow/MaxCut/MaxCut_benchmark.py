@@ -7,7 +7,8 @@ from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
 from ising.utils.flow import make_directory, parse_hyperparameters
 
-from ising.utils.helper_solvers import run_solver, return_c0, return_rx, return_G, return_q
+from ising.utils.helper_solvers import return_c0, return_rx, return_G, return_q
+from ising.utils.threading import make_solvers_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
@@ -53,12 +54,12 @@ print("Generated benchmark")
 if args.solvers == "all":
     solvers = ["SA", "SCA", "bSB", "dSB", "BRIM"]
 else:
-    solvers = args.solvers
+    solvers = args.solvers[0].split()
 print("Solving with following solvers: ", solvers)
 
 num_iter = args.num_iter[0].split()
 nb_runs = int(args.nb_runs)
-iter_list = np.linspace(int(num_iter[0]), int(num_iter[1]), nb_runs, dtype=int)
+iter_list = np.array(range(int(num_iter[0]),int(num_iter[1]), 50))
 
 print("Setting up solvers")
 logpath = TOP / "ising/flow/MaxCut/logs"
@@ -66,6 +67,7 @@ make_directory(logpath)
 
 
 for num_iter in iter_list:
+    print(f"Running for {num_iter} iterations")
     s_init = np.random.choice([-1, 1], (model.num_variables,))
     hyperparameters = parse_hyperparameters(args, num_iter)
 
@@ -78,9 +80,19 @@ for num_iter in iter_list:
         hyperparameters["r_q"] = 1.0
     else:
         hyperparameters["r_q"] = return_rx(num_iter, hyperparameters["q"], float(args.q_final))
-
+    logfiles = {}
     for solver in solvers:
+        logfiles[solver] = []
         for run in range(nb_runs):
-            print(f"Run {run} for {solver} with {num_iter} iterations")
             logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
-            run_solver(solver, num_iter=num_iter, s_init=s_init, logfile=logfile, model=model, **hyperparameters)
+            logfiles[solver].append(logfile)
+
+    make_solvers_thread(
+        solvers, sample=s_init, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
+    )
+
+    # for solver in solvers:
+    #     for run in range(nb_runs):
+    #         print(f"Run {run} for {solver} with {num_iter} iterations")
+    #         logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
+    #         run_solver(solver, num_iter=num_iter, s_init=s_init, logfile=logfile, model=model, **hyperparameters)
