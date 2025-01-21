@@ -110,6 +110,7 @@ if use_gurobi:
 
 
 for N in Nlist:
+    problem = problems[N]
     if change_G:
         hyperparameters["G"] = return_G(problem=problem)
     if change_c:
@@ -117,6 +118,7 @@ for N in Nlist:
     if change_q:
         hyperparameters["q"] = return_q(problem)
     logfiles = {}
+    print(np.sum(problem.J, axis=1))
     for solver in solvers:
         logfiles[solver] = []
         for nb_run in range(nb_runs):
@@ -127,7 +129,7 @@ for N in Nlist:
         solvers=solvers,
         sample=sigma,
         num_iter=num_iter,
-        model=problems[N],
+        model=problem,
         nb_runs=nb_runs,
         logfiles=logfiles,
         **hyperparameters,

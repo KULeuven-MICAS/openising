@@ -65,6 +65,7 @@ print("Setting up solvers")
 logpath = TOP / "ising/flow/MaxCut/logs"
 make_directory(logpath)
 
+print(np.sum(model.J, axis=1))
 
 for num_iter in iter_list:
     print(f"Running for {num_iter} iterations")
@@ -90,9 +91,3 @@ for num_iter in iter_list:
     make_solvers_thread(
         solvers, sample=s_init, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
     )
-
-    # for solver in solvers:
-    #     for run in range(nb_runs):
-    #         print(f"Run {run} for {solver} with {num_iter} iterations")
-    #         logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
-    #         run_solver(solver, num_iter=num_iter, s_init=s_init, logfile=logfile, model=model, **hyperparameters)

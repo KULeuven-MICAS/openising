@@ -94,6 +94,7 @@ else:
     sys.exit("No benchmark or problem size range is specified")
 
 # Plot the energy distribution and relative error to best found with the generated logfiles
+print(f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}")
 plot_energy_dist_multiple_solvers(
     logfiles,
     best_found=best_found,
