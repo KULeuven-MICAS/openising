@@ -16,13 +16,19 @@ class SB(SolverBase):
     This class inherits from the abstract Solver base class.
     """
 
-    def update_x(self, y, dt, a0, node):
-        return a0 * y[node] * dt
+    def __init__(self):
+        self.name = "SB"
+
+    def update_x(self, y, dt, a0):
+        return a0 * y * dt
 
     def update_rule(self, x, y, node):
         x[node] = np.sign(x[node])
         y[node] = 0.0
-        #return x, y
+        # return x, y
+
+    def at(self, t, a0, dt, num_iterations):
+        return a0 / (dt*num_iterations) * t
 
     @abstractmethod
     def solve(self, model: IsingModel):
@@ -30,19 +36,22 @@ class SB(SolverBase):
 
 
 class ballisticSB(SB):
+    def __init__(self):
+        super().__init__()
+        self.name = f"b{self.name}"
+
     def solve(
         self,
         model: IsingModel,
         x: np.ndarray,
         y: np.ndarray,
         num_iterations: int,
-        at: callable,
         c0: float,
         dt: float,
-        a0: float=1.,
+        a0: float = 1.0,
         file: pathlib.Path | None = None,
-        clock_freq:float=1e6,
-        clock_op:int=1000
+        clock_freq: float = 1e6,
+        clock_op: int = 1000,
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -77,32 +86,30 @@ class ballisticSB(SB):
             "positions": (np.float32, (N,)),
             "momenta": (np.float32, (N,)),
             "at": np.float32,
-            "time_clock": float
-        }
-
-        metadata = {
-            "solver": "ballistic_simulated_bifurcation",
-            "time_step": dt,
-            "a0": a0,
-            "c0": c0,
-            "num_iterations": num_iterations,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op
+            "time_clock": float,
         }
 
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(**metadata)
+            self.log_metadata(
+                logger=log,
+                initial_state=np.sign(x),
+                model=model,
+                num_iterations=num_iterations,
+                time_step=dt,
+                a0=a0,
+                c0=c0,
+            )
             for _ in range(num_iterations):
-                atk = at(tk)
+                atk = self.at(tk, a0, dt, num_iterations)
                 clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0*model.h) * dt
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * model.h) * dt
                 clocker.add_cycles(1 + np.log2(N))
-                clocker.add_operations(5*N)
+                clocker.add_operations(5 * N)
                 clocker.perform_operations()
 
-                x += a0*y*dt
-                clocker.add_operations(2*N + 1)
+                x += self.update_x(y, dt, a0)
+                clocker.add_operations(2 * N + 1)
                 clocker.perform_operations()
 
                 for j in range(N):
@@ -118,25 +125,31 @@ class ballisticSB(SB):
                 tk += dt
 
             total_time = clocker.get_time()
-            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=total_time)
+            nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
+            log.write_metadata(
+                solution_state=sample, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+            )
         return sample, energy
 
 
 class discreteSB(SB):
+    def __init__(self):
+        super().__init__()
+        self.name = f"d{self.name}"
+
     def solve(
         self,
         model: IsingModel,
         x: np.ndarray,
         y: np.ndarray,
         num_iterations: int,
-        at: callable,
         c0: float,
         dt: float,
-        a0: float=1.,
-        file: pathlib.Path|None=None,
-        clock_freq:float=1e6,
-        clock_op:int=1000
-    )-> tuple[np.ndarray, float]:
+        a0: float = 1.0,
+        file: pathlib.Path | None = None,
+        clock_freq: float = 1e6,
+        clock_op: int = 1000,
+    ) -> tuple[np.ndarray, float]:
         """Performs the discrete Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation discretizes the positions x_i at all times to reduce analog errors.
 
@@ -169,34 +182,32 @@ class discreteSB(SB):
             "positions": (np.float32, (N,)),
             "momenta": (np.float32, (N,)),
             "at": np.float32,
-            "time_clock": float
-        }
-
-        metadata = {
-            "solver": "discrete_simulated_bifurcation",
-            "time_step": dt,
-            "a0": a0,
-            "c0": c0,
-            "num_iterations": num_iterations,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op
+            "time_clock": float,
         }
 
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(**metadata)
+            self.log_metadata(
+                logger=log,
+                initial_state=np.sign(x),
+                model=model,
+                num_iterations=num_iterations,
+                time_step=dt,
+                a0=a0,
+                c0=c0,
+            )
+
             for _ in range(num_iterations):
-                atk = at(tk)
+                atk = self.at(tk, a0, dt, num_iterations)
                 clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0*model.h) * dt
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dt
                 clocker.add_cycles(1 + np.log2(N))
-                clocker.add_operations(5*N)
+                clocker.add_operations(5 * N)
                 clocker.perform_operations()
 
-                x += a0*y*dt
-                clocker.add_operations(2*N)
+                x += self.update_x(y, dt, a0)
+                clocker.add_operations(2 * N)
                 clocker.perform_operations()
-
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
@@ -212,5 +223,8 @@ class discreteSB(SB):
                 tk += dt
 
             total_time = clocker.get_time()
-            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=total_time)
+            nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
+            log.write_metadata(
+                solution_state=sample, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+            )
         return sample, energy

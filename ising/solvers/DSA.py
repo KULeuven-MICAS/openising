@@ -12,6 +12,9 @@ from ising.utils.clock import clock
 class DSASolver(SolverBase):
     """Ising solver based on a discriminatory variation of the simulated annealing algorithm."""
 
+    def __init__(self):
+        self.name = "DSA"
+
     def solve(
         self,
         model: IsingModel,
@@ -60,20 +63,18 @@ class DSASolver(SolverBase):
             "cycle_started": np.bool_,  # Scalar boolean
             "time_clock": float,
         }
-        metadata = {
-            "solver": "discrimatory_simulated_annealing",
-            "initial_temp": initial_temp,
-            "cooling_rate": cooling_rate,
-            "initial_state": initial_state,
-            "num_iterations": num_iterations,
-            "seed": seed,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op,
-        }
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
-            logger.write_metadata(**metadata)
+            self.log_metadata(
+                logger=logger,
+                initial_state=initial_state,
+                model=model,
+                num_iterations=num_iterations,
+                initial_temp=initial_temp,
+                cooling_rate=cooling_rate,
+                seed=seed,
+            )
 
             # Setup initial state and energy
             T = initial_temp
@@ -116,22 +117,26 @@ class DSASolver(SolverBase):
 
                 # log information
                 logger.log(
-                        energy=energy_new,
-                        state=state,
-                        change_state=change_state,
-                        cycle_started=cycle_started,
-                        time_clock=clock_time,
-                    )
+                    energy=energy_new,
+                    state=state,
+                    change_state=change_state,
+                    cycle_started=cycle_started,
+                    time_clock=clock_time,
+                )
 
             # Log the final result
             logger.log(
-                        energy=energy_new,
-                        state=state,
-                        change_state=change_state,
-                        cycle_started=cycle_started,
-                        time_clock=clock_time,
-                    )
+                energy=energy_new,
+                state=state,
+                change_state=change_state,
+                cycle_started=cycle_started,
+                time_clock=clock_time,
+            )
             total_time = clocker.get_time()
-            logger.write_metadata(solution_state=state, solution_energy=energy, total_time=total_time)
+            N = model.num_variables
+            nb_operations = num_iterations * (3 * N**3 + 2 * N**2 + 8 * N + 1) + 3 * N ** 2 + 2 * N
+            logger.write_metadata(
+                solution_state=state, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+            )
 
         return state, energy

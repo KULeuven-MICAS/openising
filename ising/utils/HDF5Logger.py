@@ -1,5 +1,23 @@
 import pathlib
 import h5py
+import numpy as np
+
+def return_data(fileName: pathlib.Path, data: str) -> np.ndarray:
+    with h5py.File(fileName, "r") as logfile:
+        data = logfile[data][:]
+    return data
+
+
+def return_metadata(fileName: pathlib.Path, metadata: str):
+    with h5py.File(fileName, "r") as logfile:
+        metadata = logfile.attrs[metadata]
+    return metadata
+
+def get_Gurobi_data(logfiles:list[pathlib.Path]):
+    best_found = []
+    for logfile in logfiles:
+        best_found.append(return_metadata(fileName=logfile, metadata="solution_energy"))
+    return best_found
 
 
 class HDF5Logger:

@@ -43,3 +43,4 @@ def plot_error_SNR(
     plt.legend()
     if save:
         plt.savefig(save_folder / figname)
+    plt.close()

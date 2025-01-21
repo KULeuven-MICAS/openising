@@ -7,13 +7,9 @@ from ising.utils.HDF5Logger import HDF5Logger
 
 
 class ExhaustiveSolver(SolverBase):
-    """ Exhaustive Ising solver. """
+    """Exhaustive Ising solver."""
 
-    def solve(
-        self,
-        model: IsingModel,
-        file: pathlib.Path|None = None
-    ) -> tuple[np.ndarray, float]:
+    def solve(self, model: IsingModel, file: pathlib.Path | None = None) -> tuple[np.ndarray, float]:
         """
         Iteratively search through the state space for the best solution.
 
@@ -29,10 +25,10 @@ class ExhaustiveSolver(SolverBase):
         """
         # Set up schema and metadata for logging
         schema = {
-            "energy": np.float32,                       # Scalar float
-            "state": (np.int8, (model.num_variables,))  # Vector of int8 (to hold -1 and 1)
+            "energy": np.float32,  # Scalar float
+            "state": (np.int8, (model.num_variables,)),  # Vector of int8 (to hold -1 and 1)
         }
-        metadata = { "solver": "exhaustive" }
+        metadata = {"solver": "exhaustive"}
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
@@ -46,7 +42,6 @@ class ExhaustiveSolver(SolverBase):
 
             # Iterate over all to be flipped nodes to generate the Gray sequence
             for node in self._gray_code_generator(model.num_variables):
-
                 # Obtain new state by flipping that node
                 state[node] = -state[node]
 
@@ -61,20 +56,25 @@ class ExhaustiveSolver(SolverBase):
                     solution_energy = energy
                     solution_state = state.copy()
 
-
             # Log the final result
-            logger.write_metadata(solution_state=solution_state, solution_energy=solution_energy)
+            nb_operations = 2**model.num_variables * (
+                1
+                + 3 * model.num_variables**2
+                + 2 * model.num_variables
+                + model.num_variables * (model.num_variables + 1)
+            )
+            logger.write_metadata(
+                solution_state=solution_state, solution_energy=solution_energy, total_operations=nb_operations
+            )
 
         return solution_state, solution_energy
 
-
     def _gray_code_generator(self, n):
-        """ Generates the indices of the bit to flip in the Gray code sequence for a given number of bits `n`. """
+        """Generates the indices of the bit to flip in the Gray code sequence for a given number of bits `n`."""
         previous = 0
 
         # Generate the Gray code sequence for n bits
         for i in range(1, 2**n):
-
             # Compute the next Gray code value
             current = i ^ (i >> 1)
 

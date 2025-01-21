@@ -1,7 +1,22 @@
 import matplotlib.pyplot as plt
 import pathlib
 
-from ising.postprocessing.helper_functions import return_data, return_metadata
+from ising.utils.HDF5Logger import return_data, return_metadata
+
+def plot_state(solver:str, logfile:pathlib.Path, figname:str, figtop:pathlib.Path="."):
+    """Delegates the plotting of the state to the correct function.
+
+    Args:
+        solver (str): the solver of which the state should be plotted.
+        logfile (pathlib.Path): the logfile in which the data is stored.
+        figname (str): the name of the figure.
+        figtop (pathlib.Path, optional): the absolute path to where the figure should be stored. Defaults to ".".
+    """
+    if solver in ["BRIM", "bSB", "dSB"]:
+        plot_state_continuous(logfile=logfile, figname=figname, save_folder=figtop)
+    else:
+        plot_state_discrete(logfile=logfile, figname=figname, save_folder=figtop)
+
 
 def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the discrete state of the current run of a solver.
@@ -21,6 +36,7 @@ def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_
     plt.ylabel("sample")
     if save:
         plt.savefig(save_folder / figname)
+    plt.close()
 
 def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the continuous state of the current run of a solver.
@@ -38,9 +54,9 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     """
     solver = return_metadata(logfile, 'solver')
     num_iterations = return_metadata(logfile, 'num_iterations')
-    if solver == "BLIM":
+    if solver == "BRIM":
         states = return_data(logfile, 'voltages')
-    elif solver == "discrete_simulated_bifurcation" or solver == "ballistic_simulated_bifurcation":
+    elif solver == "dSB" or solver == "bSB":
         states = return_data(logfile, 'positions')
 
     plt.figure()
@@ -50,3 +66,4 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     plt.ylabel('continuous state')
     if save:
         plt.savefig(save_folder / figname)
+    plt.close()

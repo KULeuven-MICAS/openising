@@ -9,7 +9,11 @@ from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
 from ising.utils.clock import clock
 
+
 class SCA(SolverBase):
+    def __init__(self):
+        self.name = "SCA"
+
     def change_hyperparam(self, param: float, rate: float) -> float:
         """Changes hyperparameters according to update rule."""
         return param * rate
@@ -23,10 +27,10 @@ class SCA(SolverBase):
         r_t: float,
         q: float,
         r_q: float,
-        seed: int|None = None,
-        file: pathlib.Path|None = None,
-        clock_freq:float=1e6,
-        clock_op:int=1000
+        seed: int | None = None,
+        file: pathlib.Path | None = None,
+        clock_freq: float = 1e6,
+        clock_op: int = 1000,
     ):
         """Implementation of the Stochastic Cellular Automata (SCA) annealing algorithm of the
         [STATICA](https://ieeexplore.ieee.org/document/9222223/?arnumber=9222223) paper
@@ -57,33 +61,27 @@ class SCA(SolverBase):
             seed = int(time.time() * 1000)
         random.seed(seed)
 
-        schema = {
-            "energy": np.float32,
-            "state": (np.int8, (N,)),
-            "time_clock": float
-        }
+        schema = {"energy": np.float32, "state": (np.int8, (N,)), "time_clock": float}
 
-        metadata = {
-            "solver": "Stochastic_cellular_automata_annealing",
-            "initial_temp": T,
-            "cooling_rate": r_t,
-            "initial_penalty": q,
-            "penalty_increase": r_q,
-            "seed": seed,
-            "num_iterations": num_iterations,
-            "initial_state": sample,
-            "clock_freq": clock_freq,
-            "clock_op": clock_op
-        }
         with HDF5Logger(file, schema) as log:
-            log.write_metadata(**metadata)
+            self.log_metadata(
+                logger=log,
+                initial_state=sample,
+                model=model,
+                num_iterations=num_iterations,
+                initial_temp=T,
+                cooling_rate=r_t,
+                initial_penalty=q,
+                penalty_increase=r_q,
+                seed=seed,
+            )
 
             for _ in range(num_iterations):
                 hs = np.matmul(J, sample) + model.h
-                clocker.add_cycles(1+np.log2(N))
+                clocker.add_cycles(1 + np.log2(N))
 
                 Prob = self.get_prob(hs, sample, q, T)
-                clocker.add_operations(5*N)
+                clocker.add_operations(5 * N)
                 rand = np.random.rand(N)
                 clocker.add_operations(N)
                 clocker.perform_operations()
@@ -98,18 +96,19 @@ class SCA(SolverBase):
 
                 log.log(energy=energy, state=sample, time_clock=time_clock)
 
-
                 T = self.change_hyperparam(T, r_t)
                 q = self.change_hyperparam(q, r_q)
                 flipped_states = []
 
             total_time = clocker.get_time()
-            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=total_time)
-
+            nb_operations = num_iterations * (2 * N**2 + 8 * N + N / 2 + 2)
+            log.write_metadata(
+                solution_state=sample, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+            )
 
         return sample, energy
 
-    def get_prob(self, hs:np.ndarray, sample:np.ndarray, q:float, T:float)->np.ndarray:
+    def get_prob(self, hs: np.ndarray, sample: np.ndarray, q: float, T: float) -> np.ndarray:
         """Calculates the probability of changing the value of the spins
            according to SCA annealing process.
 
@@ -122,5 +121,5 @@ class SCA(SolverBase):
         Returns:
             probability (np.ndarray): probability of accepting the change of all nodes.
         """
-        val = 1/T*(np.multiply(hs, sample) + q)/2
-        return np.exp(val) / (2*np.cosh(-val))
+        val = 1 / T * (np.multiply(hs, sample) + q) / 2
+        return np.exp(val) / (2 * np.cosh(-val))

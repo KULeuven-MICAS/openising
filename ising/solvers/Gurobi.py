@@ -6,6 +6,7 @@ import numpy as np
 
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
+from ising.utils.HDF5Logger import HDF5Logger
 
 class Gurobi(SolverBase):
     def convert(self, model:IsingModel) -> np.ndarray:
@@ -41,13 +42,16 @@ class Gurobi(SolverBase):
 
         # Gur_model.optimize()
         result = solve_qubo(Q)
-        self.convert_logger(file)
+        self.convert_logger(file, result, c)
         return result.solution, result.objective_value + c
 
-    def convert_logger(self, file:pathlib.Path) -> None:
+    def convert_logger(self, file:pathlib.Path, result, c) -> None:
         """Converts the Gurobi logfile to a HDF5 one.
 
         Args:
             file (pathlib.Path): path to the logfile
+            result: the result of the Gurobi optimization
+            c: constant value of the transformation of Ising to QUBO form.
         """
-        pass
+        with HDF5Logger(file, {"iteration":int}) as logger:
+            logger.write_metadata(solution_state=result.solution, solution_energy=result.objective_value + c)

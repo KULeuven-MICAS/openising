@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ising.postprocessing.helper_functions import (
-    return_data,
-    return_metadata,
-    get_data_from_dict,
+    get_metadata_from_logfiles,
     compute_averages_energies,
 )
+
+from ising.utils.HDF5Logger import return_data, return_metadata
 
 
 def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
@@ -54,6 +54,7 @@ def plot_energies(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()
 
 
 def plot_energies_multiple(
@@ -92,42 +93,85 @@ def plot_energies_multiple(
     plt.ylabel("Energy")
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()
 
 
 def plot_energy_dist_multiple_solvers(
-    fileName_list: dict[int : dict[str : list[pathlib.Path]]],
+    logfiles: list[pathlib.Path],
     xlabel: str,
-    figName: str = "multiple_solvers_energy_dist.png",
-    best_found: list[float] | None = None,
-    best_Gurobi:bool=False,
+    fig_name: str = "multiple_solvers_energy_dist.png",
+    best_found: np.ndarray | None = None,
+    best_Gurobi: bool = False,
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
     """Plots the best found energy distribution from multiple runs and iteration lengths for multiple solvers.
 
     Args:
-        fileName_list (list[pathlib.Path]): list of all the absolute paths to the logfiles.
+        logfiles (list[pathlib.Path]): list of all the absolute paths to the logfiles.
         figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
-        best_found (list[float],None, optional): list of the best found solutions of the problem. Defaults to None.
+        best_found (np.ndarray,None, optional): numpy ndarray of the best found solutions of the problem.
+                                                Defaults to None.
         best_Gurobi (bool, optional): whether the best found solution is from Gurobi solver. Defaults to False.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
-    data = get_data_from_dict(logfiles=fileName_list, y_data="solution_energy")
-
+    data = get_metadata_from_logfiles(logfiles=logfiles, x_data=xlabel, y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
-    plt.figure()
-    for solver_Name, _ in avg_energies.items():
-        plt.semilogx(x_data, avg_energies[solver_Name], label=f"{solver_Name}")
-        plt.fill_between(x_data, min_energies[solver_Name], max_energies[solver_Name], alpha=0.2)
+    plt.figure(constrained_layout=True)
+    for solver_name, _ in avg_energies.items():
+        plt.semilogx(x_data[solver_name], avg_energies[solver_name], label=f"{solver_name}")
+        plt.fill_between(x_data[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
     if best_found is not None:
-        plt.semilogx(x_data, best_found, "--k", label="Best found: Gurobi" if best_Gurobi else "Best found")
-    plt.xlabel(xlabel)
+        plt.semilogx(
+            x_data[solver_name], best_found, "--k", label="Best found: Gurobi" if best_Gurobi else "Best found"
+        )
+    plt.xlabel(xlabel.replace("_", " "))
     plt.ylabel("Best Energy")
     plt.legend()
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / fig_name)
+    plt.close()
+
+
+def plot_relative_error(
+    logfiles: list[pathlib.Path],
+    best_found: np.ndarray,
+    x_label: str,
+    fig_name: str = "relative_error.png",
+    save: bool = True,
+    save_folder: pathlib.Path = ".",
+):
+    """Plots the relative error of different solvers with the best found solution.
+    It takes into account a solver can be run multiple times with the same parameters set.
+    This results in a plot that could show a distribution of results per x point.
+
+    Args:
+        logfiles (list[pathlib.Path]): all the logfiles
+        best_found (np.ndarray): an numpy ndarray holding the best found solution of the problem.
+        x_data (str): the metadata that is used for the x axis.
+        fig_name (str, optional): name of the figure to be saved. Defaults to "relative_error.png".
+        save (bool, optional): whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
+    """
+    data = get_metadata_from_logfiles(logfiles, x_label, y_data="solution_energy")
+    avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
+
+    plt.figure(constrained_layout=True)
+    best_found = np.array(best_found)
+    for solver_name, _ in avg_energies.items():
+        relative_error = np.abs((avg_energies[solver_name] - best_found) / best_found)
+        min_rel_error = np.abs((min_energies[solver_name] - best_found) / best_found)
+        max_rel_error = np.abs((max_energies[solver_name] - best_found) / best_found)
+        plt.loglog(x_data[solver_name], relative_error, label=f"{solver_name}")
+        plt.fill_between(x_data[solver_name], min_rel_error, max_rel_error, alpha=0.2)
+    plt.xlabel(x_label.replace("_", " "))
+    plt.ylabel("Relative error with best found")
+    plt.legend()
+    if save:
+        plt.savefig(save_folder / fig_name)
+    plt.close()
 
 
 def plot_energy_time(
@@ -142,16 +186,18 @@ def plot_energy_time(
 
     plt.figure()
     plt.plot(time, energy)
-    plt.plot(time, np.ones((len(time),)) * best_found, ".-k", label="Best found")
+    plt.axhline(best_found, "--k", label="Best found")
     plt.title("Energy evolution over time")
     plt.xlabel("Time [s]")
     plt.ylabel("Energy")
+    plt.legend()
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()
 
 
 def plot_energy_time_multiple(
-    logfiles: dict[int : dict[str : pathlib.Path]],
+    logfiles: list[pathlib.Path],
     best_found: float | None = None,
     save: bool = True,
     save_folder: pathlib.Path = ".",
@@ -160,31 +206,29 @@ def plot_energy_time_multiple(
     """Plots the average energy of multiple solvers over the run time.
 
     Args:
-        logfiles (dict[int:dict[int:pathlib.Path]]): dictionary of the all the logfiles sorted by solver name and amount
-                                                     of iterations.
+        logfiles (list[pathlib.Path]): list of the all the logfiles.
         best_found (float | None, optional): best found solution of the problem. Defaults to None.
         save (bool, optional): _description_. Defaults to True.
         save_folder (pathlib.Path, optional): _description_. Defaults to '.'.
         figName (str, optional): _description_. Defaults to "energy_time.png".
     """
-    data = get_data_from_dict(logfiles, y_data="solution_energy")
-    avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
-
-    time = get_data_from_dict(logfiles, y_data="total_time")
-    time_dict, _, _, _ = compute_averages_energies(time)
+    data = get_metadata_from_logfiles(logfiles, x_data="total_time", y_data="solution_energy")
+    avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure()
     for solver_name, energies in avg_energies.items():
-        plt.semilogx(time_dict[solver_name], energies, label=f"{solver_name}")
-        plt.fill_between(time_dict[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
+        plt.semilogx(x_data[solver_name], energies, label=f"{solver_name}")
+        plt.fill_between(x_data[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
     if best_found is not None:
         plt.axhline(
-            y= best_found,
-            color = 'k',
+            y=best_found,
+            color="k",
             linestyle="--",
             label="Best found",
         )
     plt.xlabel("time [s]")
     plt.ylabel("Energy")
+    plt.legend()
     if save:
         plt.savefig(save_folder / figName)
+    plt.close()

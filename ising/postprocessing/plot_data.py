@@ -24,3 +24,4 @@ def plot_data(logfile:pathlib.Path, data_name:str, fig_name:str, save:bool=True,
     plt.title(f"{data_name} over iterations")
     if save:
         plt.savefig(save_folder / fig_name)
+    plt.close()
