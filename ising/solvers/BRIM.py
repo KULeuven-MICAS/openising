@@ -76,10 +76,11 @@ class BRIM(SolverBase):
             if random_flip and t in flip_it:
                 flip = np.random.choice(N)
                 vt[flip] = -vt[flip]
+                # print(f"{v=}")
             vt[-1] = 1.0
             V = np.array([vt] * (N+1))
-            k = self.k(kmax, kmin, t=t, t_final=tend)
-            dv = 1 / C * (G * np.tanh(k * np.tanh(k * vt)) - G * vt - np.sum(J * (V - V.T), 0))
+            # k = self.k(kmax, kmin, t=t, t_final=tend)
+            dv = 1 / C * ( - np.sum(J * (V - V.T), 0)) # G * np.tanh(k * np.tanh(k * vt)) - G * vt
             dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N+1,)), dv)
             dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N+1,)), dv)
             dv[-1] = 0.
