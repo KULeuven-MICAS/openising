@@ -39,6 +39,7 @@ class BRIM(SolverBase):
         G: float,
         file: pathlib.Path | None = None,
         random_flip: bool = False,
+        latch:bool=False,
         seed: int = 0,
     ) -> tuple[np.ndarray, float]:
         """Simulates the BLIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
@@ -61,8 +62,13 @@ class BRIM(SolverBase):
         N = model.num_variables
         tend = dt * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
+
+        # Transform the model to one with no h and mean variance of J
+        model.normalize()
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
+        model.reconstruct()
+
         v = np.block([v, 1.])
         flip_it = t_eval[:100:10]
         if seed == 0:
@@ -79,10 +85,13 @@ class BRIM(SolverBase):
                 # print(f"{v=}")
             vt[-1] = 1.0
             V = np.array([vt] * (N+1))
-            # k = self.k(kmax, kmin, t=t, t_final=tend)
-            dv = 1 / C * ( - np.sum(J * (V - V.T), 0)) # G * np.tanh(k * np.tanh(k * vt)) - G * vt
-            dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N+1,)), dv)
-            dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N+1,)), dv)
+            dv = 1 / C * ( - np.sum(J * (V - V.T), 0))
+            if latch:
+                k = self.k(kmax, kmin, t=t, t_final=tend)
+                dv += 1 / C * (G * np.tanh(k * np.tanh(k * vt)) - G * vt)
+            dv += 100 * np.exp(10 * (-1 - vt)) - np.exp(10*(vt - 1))
+            # dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N+1,)), dv)
+            # dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N+1,)), dv)
             dv[-1] = 0.
             return dv
 
