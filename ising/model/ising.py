@@ -174,7 +174,7 @@ class IsingModel:
             IsingModel: the new Ising Model.
         """
         new_h = self.h.reshape((-1, 1))
-        new_J = np.block([[self.J, new_h],[new_h.T, 0]])
+        new_J = np.block([[self.J, new_h],[np.zeros_like(new_h.T), 0]])
         return IsingModel(new_J, np.zeros(self.num_variables + 1), c=self.c)
 
 

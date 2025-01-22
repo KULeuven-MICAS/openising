@@ -6,12 +6,11 @@ from functools import partial
 
 from ising.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
-from ising.utils.helper_solvers import run_solver
+from ising.utils.flow import run_solver
 
 
 def solver_thread(
     solver: str,
-    sample: np.ndarray,
     num_iter: int,
     model: IsingModel,
     nb_runs:int,
@@ -22,7 +21,6 @@ def solver_thread(
 
     Args:
         solver (str): the solver to use.
-        sample (np.ndarray): the sample to start the solver with.
         num_iter (int): the amount of iterations.
         model (IsingModel): the model to solve.
         nb_runs (_type_): the amount of runs.
@@ -30,13 +28,16 @@ def solver_thread(
     """
     for run in range(nb_runs):
         print(f"Running {solver} for run {run}")
+        sample = np.random.choice([-1, 1], (model.num_variables,))
         logfile = logfiles[run]
-        run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model, logfile=logfile, **hyperparameters)
+        optim_state, optim_energy = run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
+                                               logfile=logfile, **hyperparameters)
+        if run == nb_runs -1:
+            print(f"{solver}: {optim_energy=} and {optim_state=}")
 
 
 def make_solvers_thread(
     solvers: list[str],
-    sample: np.ndarray,
     num_iter: int,
     model: IsingModel,
     nb_runs: int,
@@ -49,7 +50,6 @@ def make_solvers_thread(
     Args:
         nb_cores (int): the amount of cores to use.
         solvers (list[str]): the list of solvers.
-        sample (np.ndarray): sample at which the solver should start.
         num_iter (int): amount of iterations for the solvers.
         model (IsingModel): the model that needs to be solved.
         nb_runs (int): the amount of runs for each solver.
@@ -57,7 +57,7 @@ def make_solvers_thread(
     """
     pool = Pool(processes=nb_cores)
     pool.starmap(partial(solver_thread, **hyperparameters),
-        iterable=[(solver, sample, num_iter, model, nb_runs, logfiles[solver]) for solver in solvers],
+        iterable=[(solver, num_iter, model, nb_runs, logfiles[solver]) for solver in solvers],
     )
 
 
