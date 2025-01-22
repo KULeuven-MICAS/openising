@@ -22,7 +22,16 @@ def make_directory(path:pathlib.Path) -> None:
     """
     path.mkdir(parents=True, exist_ok=True)
 
-def parse_hyperparameters(args, num_iter) -> dict[str:float]:
+def parse_hyperparameters(args:dict, num_iter:int) -> dict[str:]:
+    """Parses the arguments needed for the solvers.
+
+    Args:
+        args (dict): the command line arguments.
+        num_iter (int): amount of iterations
+
+    Returns:
+        dict[str:Any]: the hyperparameters for the solvers.
+    """
     hyperparameters = dict()
 
     # Multiplicative parameters
@@ -56,6 +65,14 @@ def parse_hyperparameters(args, num_iter) -> dict[str:float]:
     return hyperparameters
 
 def get_best_found_gurobi(gurobi_files:list[pathlib.Path]) -> list[float]:
+    """Returns a list of the best found energies in the gurobi files.
+
+    Args:
+        gurobi_files (list[pathlib.Path]): the gurobi files.
+
+    Returns:
+        list[float]: list of the best found energies.
+    """
     best_found_list = []
     for file in gurobi_files:
         best_found = return_metadata(file, "solution_energy")
@@ -180,19 +197,53 @@ def run_solver(
     return optim_state, optim_energy
 
 
-def return_rx(num_iter: int, r_init:float, r_final:float):
+def return_rx(num_iter: int, r_init:float, r_final:float) -> float:
+    """Returns the change rate of SA/SCA hyperparameters
+
+    Args:
+        num_iter (int): amount of iterations.
+        r_init (float): the initial value of the hyperparameter.
+        r_final (float): the end value of the hyperparameter.
+
+    Returns:
+        float: the change rate of the hyperarameter.
+    """
     return (r_final/r_init)**(1/(num_iter + 1))
 
-def return_c0(model: IsingModel):
+def return_c0(model: IsingModel)->float:
+    """Returns the optimal c0 value for simulated bifurcation.
+
+    Args:
+        model (IsingModel): the Ising model that will be solved with simulated Bifurcationl.
+
+    Returns:
+        float: the c0 hyperaparameter.
+    """
     return 0.5 / (
         np.sqrt(model.num_variables)
         * np.sqrt(np.sum(np.power(model.J, 2)) / (model.num_variables * (model.num_variables - 1)))
     )
 
-def return_G(problem: IsingModel):
+def return_G(problem: IsingModel)->float:
+    """Returns the optimal latch resistant value for the given problem.
+
+    Args:
+        problem (IsingModel): the problem that will be solved with BRIM.
+
+    Returns:
+        float: the latch resistance.
+    """
     sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
     return np.average(sumJ)*2
 
-def return_q(problem: IsingModel):
+def return_q(problem: IsingModel)->float:
+    """Returns the optimal value for the penalty parameter q for the SCA solver.
+
+    Args:
+        problem (IsingModel): the problem that will be solved with SCA.
+
+    Returns:
+        float: the penalty parameter q.
+    """
     eig = np.abs(spalg.eigs(triu_to_symm(-problem.J), 1)[0][0])
     return eig / 2

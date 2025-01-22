@@ -179,6 +179,15 @@ def plot_energy_time(
     save_folder: pathlib.Path = ".",
     figName: str = "energy_time.png",
 ):
+    """Plots the energy change over time of a solver.
+
+    Args:
+        logfile (pathlib.Path): the logfile of the solver.
+        best_found (float | None, optional): the best found value of the problem. Defaults to None.
+        save (bool, optional): Whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
+        figName (str, optional): the name of the figure to save. Defaults to "energy_time.png".
+    """
     time = return_data(logfile, "time_clock")
     energy = return_data(logfile, "energy")
 

@@ -41,6 +41,15 @@ def get_index(time:int, city:int, N:int):
 
 
 def add_HA(J:np.ndarray, h:np.ndarray, W:np.ndarray, N:int, A:float):
+    """Generates the objective function term for the transformed TSP problem.
+
+    Args:
+        J (np.ndarray): the current coefficient matrix.
+        h (np.ndarray): the current linear coefficient vector.
+        W (np.ndarray): the weight matrix
+        N (int): the amount of cities.
+        A (float): the objective function constant.
+    """
     for city1 in range(N):
         for city2 in range(N):
             for time in range(N):
@@ -50,6 +59,14 @@ def add_HA(J:np.ndarray, h:np.ndarray, W:np.ndarray, N:int, A:float):
 
 
 def add_HB(J:np.ndarray, h:np.ndarray, N:int, B:float):
+    """Generates the time constraint term for the transformed TSP problem.
+
+    Args:
+        J (np.ndarray): the current coefficient matrix.
+        h (np.ndarray): the current linear coefficient vector.
+        N (int): the amount of cities
+        B (float): the time constraint constant.
+    """
     for time in range(N):
         for city1 in range(N):
             h[get_index(time, city1, N)] += (N - 2) / 2 * B
@@ -59,6 +76,14 @@ def add_HB(J:np.ndarray, h:np.ndarray, N:int, B:float):
 
 
 def add_HC(J:np.ndarray, h:np.ndarray, N:int, C:float):
+    """Generates the place constraint term for the transformed TSP problem.
+
+    Args:
+        J (np.ndarray): the current coefficient matrix.
+        h (np.ndarray): the current linear coefficient vector.
+        N (int): the amount of cities.
+        C (float): the place constraint constant.
+    """
     for city in range(N):
         for time1 in range(N):
             h[get_index(time1, city, N)] += (N - 2) / 2 * C

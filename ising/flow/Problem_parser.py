@@ -48,7 +48,11 @@ parser.add_argument("-c0", help="Parameter c0 of SB", default=0.0)
 
 args = parser.parse_args()
 problem = args.problem
-
+if args.solvers == "all":
+    solvers = ["BRIM", "SA", "bSB", "dSB", "SCA", "Multiplicative"]
+else:
+    solvers = args.solvers[0].split()
+print(f"Solving with the following solvers: {solvers}")
 
 if problem == "MaxCut":
     if args.benchmark is not None:
@@ -60,7 +64,7 @@ if problem == "MaxCut":
         N_list = args.N_list[0]
         if args.num_iter is None:
             sys.exit("No number of iterations is given")
-        run_dummy(N_list, args)
+        run_dummy(N_list, solvers, args)
     else:
         sys.exit("Cannot run solvers since no benchmark and N_list are given")
 if problem == "TSP":

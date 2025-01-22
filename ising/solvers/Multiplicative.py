@@ -17,8 +17,20 @@ class Multiplicative(SolverBase):
         v: np.ndarray,
         dt: float,
         num_iterations: int,
-        logfile: pathlib.Path,
+        logfile: pathlib.Path|None=None,
     ) -> tuple[float, np.ndarray]:
+        """Solves the given problem using a multiplicative coupling scheme.
+
+        Args:
+            model (IsingModel): the model to solve.
+            v (np.ndarray): the initial voltages.
+            dt (float): time step.
+            num_iterations (int): the number of iterations.
+            logfile (pathlib.Path, None, optional): the path to the logfile. Defaults to None.
+
+        Returns:
+            tuple[float, np.ndarray]: the best energy and the best sample.
+        """
         # print(f"{dt=}")
         N = model.num_variables
         tend = dt * num_iterations

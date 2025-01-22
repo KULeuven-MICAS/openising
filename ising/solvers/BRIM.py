@@ -90,8 +90,6 @@ class BRIM(SolverBase):
                 k = self.k(kmax, kmin, t=t, t_final=tend)
                 dv += 1 / C * (G * np.tanh(k * np.tanh(k * vt)) - G * vt)
             dv += 100 * np.exp(10 * (-1 - vt)) - np.exp(10*(vt - 1))
-            # dv = np.where(np.all(np.array([dv > 0.0, vt >= 1.0]), 0), np.zeros((N+1,)), dv)
-            # dv = np.where(np.all(np.array([dv < 0.0, vt <= -1.0]), 0), np.zeros((N+1,)), dv)
             dv[-1] = 0.
             return dv
 
