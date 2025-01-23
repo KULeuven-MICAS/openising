@@ -32,8 +32,8 @@ def solver_thread(
         logfile = logfiles[run]
         optim_state, optim_energy = run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
                                                logfile=logfile, **hyperparameters)
-        if run == nb_runs -1:
-            print(f"{solver}: {optim_energy=} and {optim_state=}")
+        # if run == nb_runs -1:
+        #     print(f"{solver}: {optim_energy=} and {optim_state=}")
 
 
 def make_solvers_thread(
