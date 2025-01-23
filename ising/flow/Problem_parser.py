@@ -5,7 +5,7 @@ from ising.flow.MaxCut.MaxCut_benchmark import run_benchmark
 from ising.flow.MaxCut.MaxCut_dummy import run_dummy
 
 parser = argparse.ArgumentParser()
-
+parser.add_argument("-problem", help="Which problem to solve", default="MaxCut")
 parser.add_argument(
     "--N_list", help="tuple containing min and max problem size", default=None, nargs="+"
 )
@@ -18,13 +18,11 @@ parser.add_argument("-nb_runs", help="Number of runs", default=3)
 parser.add_argument("-fig_folder", help="Folder inwhich to save the figures", default="")
 parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
 
-parser.add_argument("-dummy", help="Whether to run the dummy function", default=False)
-
 # Multiplicative parameters
 parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.25)
 
 # BRIM parameters
-# parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.25)
+parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.25)
 parser.add_argument("-C", help="capacitor parameter", default=1)
 parser.add_argument("-G", help="Resistor parameter", default=1e-1)
 parser.add_argument("-k_min", help="Minimum latch strength", default=0.01)
@@ -53,18 +51,18 @@ if args.solvers == "all":
 else:
     solvers = args.solvers[0].split()
 print(f"Solving with the following solvers: {solvers}")
-
 if problem == "MaxCut":
     if args.benchmark is not None:
         benchmark = args.benchmark
         if args.iter_list is None:
             sys.exit("No range of iterations is given")
-        run_benchmark(benchmark, args.iter_list[0], args)
+        iter_list = args.iter_list[0].split()
+        run_benchmark(benchmark, (int(iter_list[0]), int(iter_list[1])), solvers, args)
     elif args.N_list is not None:
-        N_list = args.N_list[0]
+        N_list = args.N_list[0].split()
         if args.num_iter is None:
             sys.exit("No number of iterations is given")
-        run_dummy(N_list, solvers, args)
+        run_dummy((int(N_list[0]), int(N_list[1])), solvers, args)
     else:
         sys.exit("Cannot run solvers since no benchmark and N_list are given")
 if problem == "TSP":
