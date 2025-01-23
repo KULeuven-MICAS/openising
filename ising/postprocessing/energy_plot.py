@@ -74,7 +74,7 @@ def plot_energies_multiple(
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where the figure should be stored. Defaults to ".".
     """
-    data = get_data_from_logfiles(logfiles, y_data="energy")
+    data = get_data_from_logfiles(logfiles, y_data="energy", x_data="num_iterations")
     avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
     plt.figure()
     for solver in avg_energies.keys():
@@ -124,6 +124,7 @@ def plot_energy_dist_multiple_solvers(
         plt.semilogx(
             x_data[solver_name], best_found, "--k", label="Best found: Gurobi" if best_Gurobi else "Best found"
         )
+        plt.semilogx(x_data[solver_name], 0.99*best_found, "-.", color="k", label="0.99 of best found")
     plt.xlabel(xlabel.replace("_", " "))
     plt.ylabel("Best Energy")
     plt.legend()
@@ -152,15 +153,15 @@ def plot_relative_error(
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
-    data = get_data_from_logfiles(logfiles, y_data="energy")
+    data = get_metadata_from_logfiles(logfiles, y_data="solution_energy", x_data=x_label)
     avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
 
     plt.figure(constrained_layout=True)
     best_found = np.array(best_found)
     for solver_name in data.keys():
-        relative_error = np.abs((avg_energies[solver_name][0] - best_found) / best_found)
-        min_rel_error = np.abs((min_energies[solver_name][0] - best_found) / best_found)
-        max_rel_error = np.abs((max_energies[solver_name][0] - best_found) / best_found)
+        relative_error = np.abs((avg_energies[solver_name] - best_found) / best_found)
+        min_rel_error = np.abs((min_energies[solver_name] - best_found) / best_found)
+        max_rel_error = np.abs((max_energies[solver_name] - best_found) / best_found)
 
         plt.loglog(range(len(relative_error)), relative_error, label=f"{solver_name}")
         plt.fill_between(range(len(relative_error)), min_rel_error, max_rel_error, alpha=0.2)

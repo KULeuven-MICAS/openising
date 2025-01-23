@@ -28,8 +28,8 @@ def compute_averages_energies(
 
     for solver_name, plot_info in data.items():
         for _, y_data in plot_info.items():
-            avg_energies[solver_name].append(np.mean((y_data), axis=0))
-            std = np.std(y_data, axis=0)
+            avg_energies[solver_name].append(np.mean(np.array(y_data), axis=0))
+            std = np.std(np.array(y_data), axis=0)
             min_energies[solver_name].append(avg_energies[solver_name][-1] - std)
             max_energies[solver_name].append(avg_energies[solver_name][-1] + std)
             # x_data[solver_name].append(x_dat)
@@ -78,13 +78,14 @@ def get_metadata_from_logfiles(
 
 def get_data_from_logfiles(
     logfiles: list[pathlib.Path],
+    x_data:str,
     y_data: str,
 ) -> dict[str : dict[float : np.ndarray]]:
     """Generates a dictionary with the correct y data for each solver.
     The dictionary is structured as follows:
         - The dictionary is ordened per solver
-        - each solver has a dictionary as its value which only have one key-value pair
-        - the key for each solver is 1, their value is a list of all the y-data.
+        - each solver has a dictionary as its value
+        - This dictionary has the x_data as its keys and the corresponding y_data as its value in a list.
 
     Args:
         logfiles (list[pathlib.Path]): A list of all the logfiles that need to be looked at
@@ -94,11 +95,13 @@ def get_data_from_logfiles(
         dict[str:dict[int:list[np.ndarray]]]: The dictionary consists of all the data
     """
 
-    data = {solver: {1.: []} for solver in [return_metadata(logfile, "solver") for logfile in logfiles]}
+    data = {solver: {x: [] for x in [(return_metadata(logfile, x_data)) for logfile in logfiles
+                                                                    if return_metadata(logfile, "solver") == solver]}
+                    for solver in [return_metadata(logfile, "solver") for logfile in logfiles]}
     for logfile in logfiles:
         solver = return_metadata(logfile, "solver")
+        x = return_metadata(fileName=logfile, metadata=x_data)
         y = return_data(fileName=logfile, data=y_data)
-
-        data[solver][1.].append(y)
-    data = {(solver, {x:np.array(y)}) for solver in data.keys() for (x, y) in data[solver].items()}
+        data[solver][x].append(y)
+    # data = {(solver, {x:np.array(y)}) for solver in data.keys() for (x, y) in data[solver].items()}
     return data
