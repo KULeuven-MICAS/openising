@@ -52,27 +52,38 @@ if args.benchmark is not None:
     # Check if num_iter is given
     if args.num_iter is None:
         sys.exit("No iteration range is specified while benchmark is given")
-    num_iter = int(args.num_iter)
+    num_iter = args.num_iter[0].split()
+    iter_list = np.array(range(int(num_iter[0]), int(num_iter[1]), 100))
 
     # Get the best found of the benchmark
-    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
+    best_found = -get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
 
     # Go over all solvers and generate the logfiles
-    for solver in solvers:
-        for run in range(nb_runs):
-            logfile = logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
-            logfiles.append(logfile)
-            if run == nb_runs - 1:
-                plot_state(solver, logfile, f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png", figtop=figtop)
+    for num_iter in iter_list:
+        new_logfiles = []
+        for solver in solvers:
+            for run in range(nb_runs):
+                logfile = logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
+                new_logfiles.append(logfile)
+                if run == nb_runs - 1:
+                    plot_state(
+                        solver, logfile, f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png", figtop=figtop
+                    )
 
-    plot_energies_multiple(
-        logfiles=logfiles, figName=f"{benchmark}_{fig_name}", best_found=-best_found, save_folder=figtop
-    )
+        plot_energies_multiple(
+            logfiles=new_logfiles,
+            figName=f"{benchmark}_nb_iter{num_iter}_{fig_name}",
+            best_found= best_found,
+            save_folder=figtop,
+        )
+        logfiles += new_logfiles
+    if best_found is not None:
+        best_found = np.ones((len(iter_list),)) * best_found
 
     if best_found is not None:
         plot_relative_error(
             logfiles,
-            -np.ones((num_iter,))*best_found,
+            best_found,
             x_label="num_iterations",
             save_folder=figtop,
             fig_name=f"{benchmark}_relative_error_{fig_name}",
@@ -100,17 +111,17 @@ elif args.N_list is not None:
         best_found = None
     else:
         best_found = np.array(get_Gurobi_data(best_found))
-    plot_energy_dist_multiple_solvers(
-        logfiles,
-        best_found=best_found,
-        best_Gurobi=bool(args.use_gurobi),
-        xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-        save_folder=figtop,
-        fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
-    )
+
 
 else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
-
+plot_energy_dist_multiple_solvers(
+    logfiles,
+    best_found=best_found,
+    best_Gurobi=bool(args.use_gurobi),
+    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
+    save_folder=figtop,
+    fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
+)
 print("figures plotted succesfully")

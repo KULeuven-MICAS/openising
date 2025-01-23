@@ -1,7 +1,6 @@
 import os
 import pathlib
 import numpy as np
-# import argparse
 import networkx as nx
 import time
 
@@ -12,58 +11,17 @@ from ising.postprocessing.MC_plot import plot_MC_solution
 from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
-# parser = argparse.ArgumentParser()
-# parser.add_argument(
-#     "--N_list", help="tuple containing min and max problem size", default=(2, 10), nargs="+"
-# )
-# parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
-# parser.add_argument("-use_gurobi", help="Whether to use Gurobi as baseline", default=False)
-# parser.add_argument("-nb_runs", help="Number of runs", default=3)
-# parser.add_argument("-num_iter", help="Number of iterations for each run", default=1000)
-# parser.add_argument("-fig_folder", help="Folder inwhich to save the figures", default="")
-# parser.add_argument("-fig_name", help="Name of the figure that needs to be saved",
-# default="Energy_accuracy_check.png")
 
-# # Multiplicative parameters
-# parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.25)
-
-# # BRIM parameters
-# parser.add_argument("-dtBRIM", help="time step for the simulation", default=0.25)
-# parser.add_argument("-C", help="capacitor parameter", default=1)
-# parser.add_argument("-G", help="Resistor parameter", default=1e-1)
-# parser.add_argument("-k_min", help="Minimum latch strength", default=0.01)
-# parser.add_argument("-k_max", help="Maximum latch strength", default=2.5)
-# parser.add_argument("-flip", help="Whether to activate random flipping in BRIM", default=False)
-# parser.add_argument("-latch", help="whether to turn on the latches", default=False)
-
-# # SA parameters
-# parser.add_argument("-T", help="Initial temperature", default=50.0)
-# parser.add_argument("-T_final", help="Final temperature of the annealing process", default=0.05)
-# parser.add_argument("-seed", help="Seed for random number generator", default=0)
-
-# # SCA parameters
-# parser.add_argument("-q", help="initial penalty value", default=0.0)
-# parser.add_argument("-q_final", help="final penalty value", default=10.0)
-
-# # SB parameters
-# parser.add_argument("-dtSB", help="Time step for simulated bifurcation", default=0.25)
-# parser.add_argument("-a0", help="Parameter a0 of SB", default=1.0)
-# parser.add_argument("-c0", help="Parameter c0 of SB", default=0.0)
-
-# print("parsing args")
-# args = parser.parse_args()
-
-def run_dummy(N_list:str, solvers:list[str], **args) -> None:
+def run_dummy(N_list:tuple[int], solvers:list[str], args) -> None:
     """Runs some dummy Max-Cut problems with the specified size of the problems.
 
     Args:
-        N_list (list[int]): string containing the min and max problem size
+        N_list (tuple[int]): tuple containing the min and max problem size
         solvers (list[str]): list of solvers to run
     """
 
-    Nlist = N_list.split()
     nb_runs = int(args.nb_runs)
-    Nlist = np.array(range(int(Nlist[0]), int(Nlist[1]), 10))
+    Nlist = np.array(range(N_list[0], N_list[1], 10))
 
     seed = int(args.seed)
     if seed == 0:

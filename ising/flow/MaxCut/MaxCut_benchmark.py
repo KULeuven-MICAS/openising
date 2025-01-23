@@ -10,15 +10,16 @@ from ising.utils.threading import make_solvers_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
-def run_benchmark(benchmark:str, iter_list:str, solvers:list[str], **args) -> None:
+def run_benchmark(benchmark:str, iter_list:tuple[int], solvers:list[str], args) -> None:
     """Runs a given benchmark with the specified list of iteration lengths.
     It is important the arguments are parsed using ising/flow/Problem_parser.py
 
     Args:
         benchmark (str): the benchmark to run
-        iter_list (str): the list of iterations lengths.
+        iter_list (tuple[int]): the list of iterations lengths.
         solvers (list[str]): the list of solvers to run.
     """
+    print(args)
     print("Generating benchmark: ", benchmark)
     graph, best_found = G_parser(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
     model = MaxCut(graph=graph)
@@ -26,8 +27,7 @@ def run_benchmark(benchmark:str, iter_list:str, solvers:list[str], **args) -> No
         print("Best found energy: ", -best_found)
     print("Generated benchmark")
 
-    num_iter = iter_list.split()
-    iter_list = np.array(range(num_iter[0], num_iter[1], 100))
+    iter_list = np.array(range(iter_list[0], iter_list[1], 100))
     nb_runs = int(args.nb_runs)
 
     print("Setting up solvers")
