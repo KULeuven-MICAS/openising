@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import networkx as nx
 import time
+import argparse
 
 from ising.generators.MaxCut import random_MaxCut
 
@@ -12,16 +13,15 @@ from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
-def run_dummy(N_list:tuple[int], solvers:list[str], args) -> None:
+def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> None:
     """Runs some dummy Max-Cut problems with the specified size of the problems.
 
     Args:
-        N_list (tuple[int]): tuple containing the min and max problem size
+        N_list (list[int]): list containing the problem sizes
         solvers (list[str]): list of solvers to run
     """
 
     nb_runs = int(args.nb_runs)
-    Nlist = np.array(range(N_list[0], N_list[1], 10))
 
     seed = int(args.seed)
     if seed == 0:
@@ -62,19 +62,19 @@ def run_dummy(N_list:tuple[int], solvers:list[str], args) -> None:
 
 
     problems = {}
-    for N in Nlist:
+    for N in N_list:
         problem = random_MaxCut(N)
         problems[N] = problem
 
     if use_gurobi:
         logfiles = {}
-        for N in Nlist:
+        for N in N_list:
             logfile = logtop / f"Gurobi_N{N}.log"
             logfiles[N] = logfile
         make_Gurobi_thread(nb_cores=3, models=problems, logfiles=logfiles)
 
 
-    for N in Nlist:
+    for N in N_list:
         print(f"Solving with {N} variables")
         problem = problems[N]
         if change_G:
@@ -88,7 +88,7 @@ def run_dummy(N_list:tuple[int], solvers:list[str], args) -> None:
         for solver in solvers:
             logfiles[solver] = []
             for nb_run in range(nb_runs):
-                logfiles[solver].append(logtop / f"{solver}_N{N}_nb_run{nb_run}.log")
+                logfiles[solver].append(logtop / f"{solver}_N{N}_run{nb_run}.log")
         sigma = np.random.choice([-1.0, 1.0], (N,), p=[0.5, 0.5])
         make_solvers_thread(
             nb_cores=len(solvers),

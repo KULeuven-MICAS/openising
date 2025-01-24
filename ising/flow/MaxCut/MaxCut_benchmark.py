@@ -1,16 +1,17 @@
 import numpy as np
 import os
 import pathlib
+import argparse
 
 from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
 from ising.solvers.Gurobi import Gurobi
-from ising.utils.flow import make_directory, parse_hyperparameters, return_c0, return_rx, return_G, return_q
+from ising.utils.flow import make_directory, parse_hyperparameters, return_c0, return_rx, return_q
 from ising.utils.threading import make_solvers_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
-def run_benchmark(benchmark:str, iter_list:tuple[int], solvers:list[str], args) -> None:
+def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:argparse.Namespace) -> None:
     """Runs a given benchmark with the specified list of iteration lengths.
     It is important the arguments are parsed using ising/flow/Problem_parser.py
 
@@ -19,7 +20,6 @@ def run_benchmark(benchmark:str, iter_list:tuple[int], solvers:list[str], args) 
         iter_list (tuple[int]): the list of iterations lengths.
         solvers (list[str]): the list of solvers to run.
     """
-    print(args)
     print("Generating benchmark: ", benchmark)
     graph, best_found = G_parser(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
     model = MaxCut(graph=graph)
@@ -27,15 +27,14 @@ def run_benchmark(benchmark:str, iter_list:tuple[int], solvers:list[str], args) 
         print("Best found energy: ", -best_found)
     print("Generated benchmark")
 
-    iter_list = np.array(range(iter_list[0], iter_list[1], 100))
+    # iter_list = np.array(range(iter_list[0], iter_list[1], 100))
     nb_runs = int(args.nb_runs)
 
     print("Setting up solvers")
     logpath = TOP / "ising/flow/MaxCut/logs"
     make_directory(logpath)
 
-    # print(np.sum(model.J, axis=1))
-
+    print(f"condition number of J: {np.linalg.cond(model.J, p="fro")}")
     if bool(args.use_gurobi):
         gurobi_log = logpath / f"Gurobi_{benchmark}.log"
         Gurobi().solve(model=model, file=gurobi_log)
@@ -44,8 +43,6 @@ def run_benchmark(benchmark:str, iter_list:tuple[int], solvers:list[str], args) 
         print(f"Running for {num_iter} iterations")
         hyperparameters = parse_hyperparameters(args, num_iter)
 
-        if hyperparameters["G"] == 0.0:
-            hyperparameters["G"] = return_G(problem=model)
         if hyperparameters["c0"] == 0.0:
             hyperparameters["c0"] = return_c0(model=model)
         if hyperparameters["q"] == 0.0:

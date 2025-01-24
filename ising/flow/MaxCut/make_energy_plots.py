@@ -99,7 +99,7 @@ elif args.N_list is not None:
     for N in N_list:
         for solver in solvers:
             for run in range(nb_runs):
-                logfile = logtop / f"{solver}_N{N}_nb_run{run}.log"
+                logfile = logtop / f"{solver}_N{N}_run{run}.log"
                 logfiles.append(logfile)
             if run == nb_runs - 1:
                 plot_state(solver, logfile, f"{solver}_N{N}.png", figtop)
