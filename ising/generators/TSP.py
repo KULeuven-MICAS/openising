@@ -90,3 +90,29 @@ def add_HC(J:np.ndarray, h:np.ndarray, N:int, C:float):
             for time2 in range(N):
                 if time1 != time2:
                     J[get_index(time1, city, N), get_index(time2, city, N)] += C / 4
+
+def get_TSP_value(graph:nx.DiGraph, sample:np.ndarray):
+    """Calculates the value of the TSP solution for the given sample.
+
+    Parameters:
+        graph (nx.DiGraph): the graph of the TSP problem.
+        sample (np.ndarray): the sample to evaluate.
+
+    Returns:
+        energy (float): the value of the solution.
+    """
+    N = len(graph.nodes)
+    path = [-1] * N
+    for city in range(N):
+        for time in range(N):
+            if sample[city * N + time] == 1:
+                path[time] = city
+                break
+    energy = 0.
+    for i in range(N):
+        city1 = path[i]
+        city2 = path[(i + 1) % N]  # wrap around to the first city
+        if graph.has_edge(city1, city2):
+            energy += graph[city1][city2]["weight"]
+
+    return energy
