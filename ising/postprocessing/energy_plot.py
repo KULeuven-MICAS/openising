@@ -96,6 +96,7 @@ def plot_energies_multiple(
 def plot_energy_dist_multiple_solvers(
     logfiles: list[pathlib.Path],
     xlabel: str,
+    y_data:str = "solution_energy",
     fig_name: str = "multiple_solvers_energy_dist.png",
     best_found: np.ndarray | None = None,
     best_Gurobi: bool = False,
@@ -113,7 +114,7 @@ def plot_energy_dist_multiple_solvers(
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
-    data = get_metadata_from_logfiles(logfiles=logfiles, x_data=xlabel, y_data="solution_energy")
+    data = get_metadata_from_logfiles(logfiles=logfiles, x_data=xlabel, y_data=y_data)
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure(constrained_layout=True)
@@ -126,7 +127,7 @@ def plot_energy_dist_multiple_solvers(
         )
         plt.semilogx(x_data[solver_name], 0.99*best_found, "-.", color="k", label="0.99 of best found")
     plt.xlabel(xlabel.replace("_", " "))
-    plt.ylabel("Best Energy")
+    plt.ylabel(y_data.replace("_", " "))
     plt.legend()
     if save:
         plt.savefig(save_folder / fig_name)
@@ -154,7 +155,7 @@ def plot_relative_error(
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
     data = get_metadata_from_logfiles(logfiles, y_data="solution_energy", x_data=x_label)
-    avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
+    avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure(constrained_layout=True)
     best_found = np.array(best_found)
@@ -163,8 +164,8 @@ def plot_relative_error(
         min_rel_error = np.abs((min_energies[solver_name] - best_found) / best_found)
         max_rel_error = np.abs((max_energies[solver_name] - best_found) / best_found)
 
-        plt.loglog(range(len(relative_error)), relative_error, label=f"{solver_name}")
-        plt.fill_between(range(len(relative_error)), min_rel_error, max_rel_error, alpha=0.2)
+        plt.loglog(x_data[solver_name], relative_error, label=f"{solver_name}")
+        plt.fill_between(x_data[solver_name], min_rel_error, max_rel_error, alpha=0.2)
     plt.xlabel(x_label.replace("_", " "))
     plt.ylabel("Relative error with best found")
     plt.legend()
