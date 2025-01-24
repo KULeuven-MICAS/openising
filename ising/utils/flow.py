@@ -41,12 +41,8 @@ def parse_hyperparameters(args:dict, num_iter:int) -> dict[str:]:
     dtBRIM = float(args.dtBRIM)
     hyperparameters["dtBRIM"] = dtBRIM
     hyperparameters["C"] = float(args.C)
-    hyperparameters["G"] = float(args.G)
-
-    hyperparameters["kmin"] = float(args.k_min)
-    hyperparameters["kmax"] = float(args.k_max)
     hyperparameters["flip"] = bool(args.flip)
-    hyperparameters["latch"] = bool(args.latch)
+    hyperparameters["stop_criterion"] = float(args.stop_criterion)
 
     # SA parameters
     hyperparameters["T"] = float(args.T)
@@ -111,14 +107,13 @@ def run_solver(
             v=v,
             num_iterations=num_iter,
             dt=hyperparameters["dtBRIM"],
-            kmin=hyperparameters["kmin"],
-            kmax=hyperparameters["kmax"],
             C=hyperparameters["C"],
-            G=hyperparameters["G"],
             file=logfile,
             random_flip=hyperparameters["flip"],
+            stop_criterion=hyperparameters["stop_criterion"],
             seed=hyperparameters["seed"],
-            latch=hyperparameters["latch"],
+            Temp=hyperparameters["T"],
+            r_T=hyperparameters["r_T"],
         )
     elif solver == "Multiplicative":
         v = 0.5*s_init

@@ -30,10 +30,8 @@ def solver_thread(
         print(f"Running {solver} for run {run}")
         sample = np.random.choice([-1, 1], (model.num_variables,))
         logfile = logfiles[run]
-        optim_state, optim_energy = run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
+        run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
                                                logfile=logfile, **hyperparameters)
-        # if run == nb_runs -1:
-        #     print(f"{solver}: {optim_energy=} and {optim_state=}")
 
 
 def make_solvers_thread(
@@ -42,7 +40,6 @@ def make_solvers_thread(
     model: IsingModel,
     nb_runs: int,
     logfiles: dict[str : list[pathlib.Path]],
-    nb_cores: int=5,
     **hyperparameters,
 ) -> None:
     """Makes a thread for each solver and starts them.
@@ -55,7 +52,7 @@ def make_solvers_thread(
         nb_runs (int): the amount of runs for each solver.
         logfiles (dict[str:list[pathlib.Path]]): a dictionary of all the possible logfiles.
     """
-    pool = Pool(processes=nb_cores)
+    pool = Pool(processes=len(solvers))
     pool.starmap(partial(solver_thread, **hyperparameters),
         iterable=[(solver, num_iter, model, nb_runs, logfiles[solver]) for solver in solvers],
     )
@@ -73,7 +70,7 @@ def solve_Gurobi(model: IsingModel, file: pathlib.Path) -> None:
     Gurobi().solve(model=model, file=file)
 
 
-def make_Gurobi_thread(models: dict[int:IsingModel], logfiles: dict[int : pathlib.Path],nb_cores:int=5,) -> None:
+def make_Gurobi_thread(models: dict[int:IsingModel], logfiles: dict[int : pathlib.Path],) -> None:
     """Generates multiple a thread for each model that is given which will solve the problem with Gurobi.
 
     Args:
@@ -82,5 +79,5 @@ def make_Gurobi_thread(models: dict[int:IsingModel], logfiles: dict[int : pathli
         logfiles (dict[int:pathlib.Path]): dictionary where the logfiles are stored.
 
     """
-    pool = Pool(processes=nb_cores)
+    pool = Pool(processes=len(models.keys()))
     pool.starmap(func=solve_Gurobi, iterable=[(models[N], logfiles[N]) for N in models.keys()])
