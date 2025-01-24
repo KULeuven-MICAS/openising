@@ -7,7 +7,7 @@ import argparse
 
 from ising.generators.MaxCut import random_MaxCut
 
-from ising.utils.flow import return_c0, return_rx, return_G, return_q, make_directory, parse_hyperparameters
+from ising.utils.flow import return_c0, return_rx, return_q, make_directory, parse_hyperparameters
 from ising.postprocessing.MC_plot import plot_MC_solution
 from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 
@@ -34,11 +34,6 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
     num_iter = int(args.num_iter)
     hyperparameters = parse_hyperparameters(args, num_iter)
 
-    # BRIM parameters
-    if hyperparameters["G"] == 0:
-        change_G = True
-    else:
-        change_G = False
 
     # SCA parameters
     if hyperparameters["q"] == 0.0:
@@ -77,8 +72,6 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
     for N in N_list:
         print(f"Solving with {N} variables")
         problem = problems[N]
-        if change_G:
-            hyperparameters["G"] = return_G(problem=problem)
         if change_c:
             hyperparameters["c0"] = return_c0(model=problem)
         if change_q:
@@ -89,11 +82,9 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
             logfiles[solver] = []
             for nb_run in range(nb_runs):
                 logfiles[solver].append(logtop / f"{solver}_N{N}_run{nb_run}.log")
-        sigma = np.random.choice([-1.0, 1.0], (N,), p=[0.5, 0.5])
         make_solvers_thread(
             nb_cores=len(solvers),
             solvers=solvers,
-            sample=sigma,
             num_iter=num_iter,
             model=problem,
             nb_runs=nb_runs,

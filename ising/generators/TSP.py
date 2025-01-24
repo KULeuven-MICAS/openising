@@ -33,6 +33,9 @@ def TSP(graph: nx.DiGraph, A: float, B: float, C: float) -> IsingModel:
     c = (N*N)*(B+C)/4
     return IsingModel(-J, -h, -c)
 
+def generate_random_TSP(N:int, seed:int=0):
+    #TODO: Implement this function
+    pass
 
 def get_index(time:int, city:int, N:int):
     if time >= N:
