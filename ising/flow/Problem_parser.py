@@ -17,7 +17,7 @@ parser.add_argument("-num_iter", help="The amount of iterations", default=None)
 parser.add_argument("--solvers", help="Which solvers to run", default="all", nargs="+")
 parser.add_argument("-use_gurobi", help="Whether to use Gurobi as baseline", default=False)
 parser.add_argument("-nb_runs", help="Number of runs", default=3)
-parser.add_argument("-fig_folder", help="Folder inwhich to save the figures", default="")
+parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
 parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
 
 # TSP values

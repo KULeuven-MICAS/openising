@@ -60,3 +60,4 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
         make_solvers_thread(
             solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
         )
+    print("Done")

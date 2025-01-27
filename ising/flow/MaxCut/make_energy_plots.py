@@ -60,20 +60,25 @@ if args.benchmark is not None:
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
-        new_logfiles = []
+        new_logfiles = [
+            logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
+            for solver in solvers
+            for run in range(nb_runs)
+        ]
         for solver in solvers:
             for run in range(nb_runs):
-                logfile = logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
-                new_logfiles.append(logfile)
                 if run == nb_runs - 1:
                     plot_state(
-                        solver, logfile, f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png", figtop=figtop
+                        solver,
+                        logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log",
+                        f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png",
+                        figtop=figtop,
                     )
 
         plot_energies_multiple(
             logfiles=new_logfiles,
             figName=f"{benchmark}_nb_iter{num_iter}_{fig_name}",
-            best_found= best_found,
+            best_found=best_found,
             save_folder=figtop,
         )
         logfiles += new_logfiles

@@ -80,6 +80,7 @@ class BRIM(SolverBase):
         def dvdt(t, vt):
             # Make sure the bias node is 1
             vt[-1] = 1.0
+
             V_mat = np.array([vt] * vt.shape[0])
             dv = -1 / C * np.sum(J * (V_mat - V_mat.T), axis=0)
             cond1 = (dv > 0) & (vt > 0)

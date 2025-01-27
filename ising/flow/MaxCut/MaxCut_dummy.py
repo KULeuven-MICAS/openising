@@ -102,3 +102,4 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
             for solver in solvers:
                 plot_MC_solution(fileName=logfiles[solver][-1], G_orig=G_orig, save_folder=figtop,
                                 fig_name=f"{solver}_N{N}_graph_{fig_name}")
+    print("Done")
