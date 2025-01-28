@@ -66,7 +66,7 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
         for N in N_list:
             logfile = logtop / f"Gurobi_N{N}.log"
             logfiles[N] = logfile
-        make_Gurobi_thread(nb_cores=3, models=problems, logfiles=logfiles)
+        make_Gurobi_thread(models=problems, logfiles=logfiles)
 
 
     for N in N_list:
@@ -76,14 +76,14 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
             hyperparameters["c0"] = return_c0(model=problem)
         if change_q:
             hyperparameters["q"] = return_q(problem)
-        logfiles = {}
-        # print(np.sum(problem.J, axis=1))
-        for solver in solvers:
-            logfiles[solver] = []
-            for nb_run in range(nb_runs):
-                logfiles[solver].append(logtop / f"{solver}_N{N}_run{nb_run}.log")
+        # logfiles = {}
+
+        logfiles = {solver: [logtop / f"{solver}_N{N}_run{run}.log" for run in range(nb_runs)] for solver in solvers}
+        # for solver in solvers:
+        #     logfiles[solver] = []
+        #     for nb_run in range(nb_runs):
+        #         logfiles[solver].append(logtop / f"{solver}_N{N}_run{nb_run}.log")
         make_solvers_thread(
-            nb_cores=len(solvers),
             solvers=solvers,
             num_iter=num_iter,
             model=problem,

@@ -1,10 +1,12 @@
 import argparse
 import sys
-import numpy as np
 
 from ising.flow.MaxCut.MaxCut_benchmark import run_benchmark
 from ising.flow.MaxCut.MaxCut_dummy import run_dummy
 from ising.flow.TSP.TSP_benchmark import run_TSP_benchmark
+from ising.flow.TSP.TSP_dummy import run_TSP_dummy
+
+from ising.utils.flow import compute_list_from_arg
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-problem", help="Which problem to solve", default="MaxCut")
@@ -56,27 +58,29 @@ else:
     solvers = args.solvers[0].split()
 print(f"Solving with the following solvers: {solvers}")
 
+use_benchmark = False
+use_dummy = False
+if args.benchmark is not None and args.iter_list is not None:
+    use_benchmark = True
+    benchmark = args.benchmark
+    iter_list = compute_list_from_arg(args.iter_list[0], 100)
+elif args.N_list is not None and args.num_iter is not None:
+    use_dummy = True
+    N_list = compute_list_from_arg(args.N_list[0], 10)
+else:
+    sys.exit("Cannot run solvers since no benchmark and N_list are given")
+
+
 if problem == "MaxCut":
-    if args.benchmark is not None:
-        benchmark = args.benchmark
-        if args.iter_list is None:
-            sys.exit("No range of iterations is given")
-        iter_list = args.iter_list[0].split()
-        iter_list = np.array(range(int(iter_list[0]), int(iter_list[1]), 100))
+    if use_benchmark:
         run_benchmark(benchmark, iter_list, solvers, args)
-    elif args.N_list is not None:
-        N_list = args.N_list[0].split()
-        N_list = np.array(range(int(N_list[0]), int(N_list[1]), 10))
-        if args.num_iter is None:
-            sys.exit("No number of iterations is given")
+    elif use_dummy:
         run_dummy(N_list, solvers, args)
-    else:
-        sys.exit("Cannot run solvers since no benchmark and N_list are given")
-if problem == "TSP":
-    if args.benchmark is not None:
-        benchmark = args.benchmark
-        if args.iter_list is None:
-            sys.exit("No range of iterations is given")
-        iter_list = args.iter_list[0].split()
-        iter_list = np.array(range(int(iter_list[0]), int(iter_list[1]), 100))
+elif problem == "TSP":
+    if use_benchmark:
         run_TSP_benchmark(benchmark, iter_list, solvers, args)
+    if use_dummy:
+        N_list = compute_list_from_arg(args.N_list[0])
+        run_TSP_dummy(N_list, solvers, args)
+else:
+    sys.exit("Problem is not recognized or implemented")

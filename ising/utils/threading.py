@@ -27,7 +27,7 @@ def solver_thread(
         logfiles (list[pathlib.Path]): the logfiles to store the data.
     """
     for run in range(nb_runs):
-        print(f"Running {solver} for run {run}")
+        print(f"Running {solver} for run {run}\n")
         sample = np.random.choice([-1, 1], (model.num_variables,))
         logfile = logfiles[run]
         run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
@@ -45,7 +45,6 @@ def make_solvers_thread(
     """Makes a thread for each solver and starts them.
 
     Args:
-        nb_cores (int): the amount of cores to use.
         solvers (list[str]): the list of solvers.
         num_iter (int): amount of iterations for the solvers.
         model (IsingModel): the model that needs to be solved.
@@ -74,7 +73,6 @@ def make_Gurobi_thread(models: dict[int:IsingModel], logfiles: dict[int : pathli
     """Generates multiple a thread for each model that is given which will solve the problem with Gurobi.
 
     Args:
-    nb_cores (int): the amount of cores to use.
         models (dict[int:IsingModel]): dictionary of all the models with the size as its key.
         logfiles (dict[int:pathlib.Path]): dictionary where the logfiles are stored.
 

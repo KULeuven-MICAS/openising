@@ -242,3 +242,16 @@ def return_q(problem: IsingModel)->float:
     """
     eig = np.abs(spalg.eigs(triu_to_symm(-problem.J), 1)[0][0])
     return eig / 2
+
+def compute_list_from_arg(arg:str, step:int=1) -> np.ndarray:
+    """Returns a list of integers given a argument string and step size.
+
+    Args:
+        arg (str): the argument holding the range information.
+        step (int, optional): the step size. Defaults to 1.
+
+    Returns:
+        np.ndarray: the list of integers.
+    """
+    arg_list = arg.split()
+    return np.array(range(int(arg_list[0]), int(arg_list[1])+1, step))
