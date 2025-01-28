@@ -33,7 +33,7 @@ class BRIM(SolverBase):
         num_iterations: int,
         dt: float,
         C: float,
-        stop_criterion: float = 1e-12,
+        stop_criterion: float = 1e-8,
         file: pathlib.Path | None = None,
         random_flip: bool = False,
         Temp: float = 50.0,
@@ -66,7 +66,8 @@ class BRIM(SolverBase):
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
         model.reconstruct()
-
+        r_J = (1/Temp) ** (1/(num_iterations - 1))
+        Temp_J = Temp
         # Add the bias node
         v = np.block([v, 1.0])
 
@@ -77,12 +78,11 @@ class BRIM(SolverBase):
 
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
-        def dvdt(t, vt):
+        def dvdt(t, vt, coupling):
             # Make sure the bias node is 1
             vt[-1] = 1.0
-
             V_mat = np.array([vt] * vt.shape[0])
-            dv = -1 / C * np.sum(J * (V_mat - V_mat.T), axis=0)
+            dv = -1 / C * np.sum(coupling * (V_mat - V_mat.T), axis=0)
             cond1 = (dv > 0) & (vt > 0)
             cond2 = (dv < 0) & (vt < 0)
             dv *= np.where(cond1 | cond2, 1 - vt**2, 1)
@@ -113,9 +113,10 @@ class BRIM(SolverBase):
             while i < (num_iterations) and max_change > stop_criterion:
                 tk = t_eval[i]
 
+                # J = J / Temp_J
                 # Runge Kutta steps
-                k1 = dt * dvdt(tk, previous_voltages)
-                k2 = dt * dvdt(tk + 2 / 3 * dt, previous_voltages + 2 / 3 * k1)
+                k1 = dt * dvdt(tk, previous_voltages, J)
+                k2 = dt * dvdt(tk + 2 / 3 * dt, previous_voltages + 2 / 3 * k1, J)
 
                 new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2)
 
@@ -126,6 +127,7 @@ class BRIM(SolverBase):
                         flip = np.random.choice(N)
                         new_voltages[flip] = -new_voltages[flip]
                 Temp *= r_T
+                Temp_J *= r_J
 
                 max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
                     previous_voltages, ord=np.inf

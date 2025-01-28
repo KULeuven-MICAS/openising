@@ -66,7 +66,7 @@ if problem == "MaxCut":
         run_benchmark(benchmark, iter_list, solvers, args)
     elif args.N_list is not None:
         N_list = args.N_list[0].split()
-        N_list = np.array(range(int(N_list[0]), int(N_list[1]), 50))
+        N_list = np.array(range(int(N_list[0]), int(N_list[1]), 10))
         if args.num_iter is None:
             sys.exit("No number of iterations is given")
         run_dummy(N_list, solvers, args)
