@@ -86,6 +86,7 @@ if args.benchmark is not None:
         best_found = np.ones((len(iter_list),)) * best_found
 
     if best_found is not None:
+        print("Plotting relative error")
         plot_relative_error(
             logfiles,
             best_found,
@@ -93,6 +94,8 @@ if args.benchmark is not None:
             save_folder=figtop,
             fig_name=f"{benchmark}_relative_error_{fig_name}",
         )
+        print("Done plotting relative error")
+
 elif args.N_list is not None:
     print("Problem size logs are plotted")
     # List of problem sizes is given
@@ -121,6 +124,8 @@ elif args.N_list is not None:
 else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
+
+print("Plotting energy distribution")
 plot_energy_dist_multiple_solvers(
     logfiles,
     best_found=best_found,

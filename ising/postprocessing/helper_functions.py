@@ -60,15 +60,18 @@ def get_metadata_from_logfiles(
     Returns:
         dict[str, dict[float : np.ndarray]]: the data dictionary with the correct y data for each solver and x value.
     """
-    data = {
-        solver: {x: [] for x in [(return_metadata(logfile, x_data)) for logfile in logfiles
-                                                                    if return_metadata(logfile, "solver") == solver]
-                    }
-        for (solver) in [return_metadata(logfile, "solver") for logfile in logfiles]
-    }
+    data = dict()
+
     for logfile in logfiles:
         solver = return_metadata(logfile, "solver")
+        if solver not in data.keys():
+            # Storing by solver
+            data[solver] = {}
+
         x = return_metadata(fileName=logfile, metadata=x_data)
+        if x not in data[solver].keys():
+            # Storing per x data point
+            data[solver][x] = []
         y = return_metadata(fileName=logfile, metadata=y_data)
         data[solver][x].append(y)
     data = {solver: {x:np.array(y) for (x, y) in data[solver].items()} for solver in data.keys() }
