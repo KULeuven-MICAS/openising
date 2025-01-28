@@ -43,11 +43,10 @@ class ballisticSB(SB):
     def solve(
         self,
         model: IsingModel,
-        x: np.ndarray,
-        y: np.ndarray,
+        initial_state:np.ndarray,
         num_iterations: int,
         c0: float,
-        dt: float,
+        dtSB: float,
         a0: float = 1.0,
         file: pathlib.Path | None = None,
         clock_freq: float = 1e6,
@@ -79,6 +78,9 @@ class ballisticSB(SB):
         J = triu_to_symm(model.J)
         clocker = clock(clock_freq, clock_op)
 
+        x = 0.01 * initial_state
+        y = np.zeros_like(x)
+
         schema = {
             "time": float,
             "energy": np.float32,
@@ -95,20 +97,20 @@ class ballisticSB(SB):
                 initial_state=np.sign(x),
                 model=model,
                 num_iterations=num_iterations,
-                time_step=dt,
+                time_step=dtSB,
                 a0=a0,
                 c0=c0,
             )
             for _ in range(num_iterations):
-                atk = self.at(tk, a0, dt, num_iterations)
+                atk = self.at(tk, a0, dtSB, num_iterations)
                 clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * model.h) * dt
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * model.h) * dtSB
                 clocker.add_cycles(1 + np.log2(N))
                 clocker.add_operations(5 * N)
                 clocker.perform_operations()
 
-                x += self.update_x(y, dt, a0)
+                x += self.update_x(y, dtSB, a0)
                 clocker.add_operations(2 * N + 1)
                 clocker.perform_operations()
 
@@ -122,7 +124,7 @@ class ballisticSB(SB):
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
                 log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time)
-                tk += dt
+                tk += dtSB
 
             total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
@@ -140,11 +142,10 @@ class discreteSB(SB):
     def solve(
         self,
         model: IsingModel,
-        x: np.ndarray,
-        y: np.ndarray,
+        initial_state:np.ndarray,
         num_iterations: int,
         c0: float,
-        dt: float,
+        dtSB: float,
         a0: float = 1.0,
         file: pathlib.Path | None = None,
         clock_freq: float = 1e6,
@@ -175,6 +176,9 @@ class discreteSB(SB):
         J = triu_to_symm(model.J)
         clocker = clock(clock_freq, clock_op)
 
+        x = 0.01 * initial_state
+        y = np.zeros_like(x)
+
         schema = {
             "time": float,
             "energy": np.float32,
@@ -191,21 +195,21 @@ class discreteSB(SB):
                 initial_state=np.sign(x),
                 model=model,
                 num_iterations=num_iterations,
-                time_step=dt,
+                time_step=dtSB,
                 a0=a0,
                 c0=c0,
             )
 
             for _ in range(num_iterations):
-                atk = self.at(tk, a0, dt, num_iterations)
+                atk = self.at(tk, a0, dtSB, num_iterations)
                 clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dt
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dtSB
                 clocker.add_cycles(1 + np.log2(N))
                 clocker.add_operations(5 * N)
                 clocker.perform_operations()
 
-                x += self.update_x(y, dt, a0)
+                x += self.update_x(y, dtSB, a0)
                 clocker.add_operations(2 * N)
                 clocker.perform_operations()
 
@@ -220,7 +224,7 @@ class discreteSB(SB):
                 clocker.add_operations(1)
                 time_clock = clocker.perform_operations()
                 log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time_clock)
-                tk += dt
+                tk += dtSB
 
             total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)

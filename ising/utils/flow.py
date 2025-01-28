@@ -14,7 +14,8 @@ from ising.solvers.Multiplicative import Multiplicative
 
 from ising.utils.numpy import triu_to_symm
 
-def make_directory(path:pathlib.Path) -> None:
+
+def make_directory(path: pathlib.Path) -> None:
     """Makes the given directory if it does not exist.
 
     Args:
@@ -22,7 +23,8 @@ def make_directory(path:pathlib.Path) -> None:
     """
     path.mkdir(parents=True, exist_ok=True)
 
-def parse_hyperparameters(args:dict, num_iter:int) -> dict[str:]:
+
+def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     """Parses the arguments needed for the solvers.
 
     Args:
@@ -41,13 +43,14 @@ def parse_hyperparameters(args:dict, num_iter:int) -> dict[str:]:
     dtBRIM = float(args.dtBRIM)
     hyperparameters["dtBRIM"] = dtBRIM
     hyperparameters["C"] = float(args.C)
-    hyperparameters["flip"] = bool(args.flip)
+    hyperparameters["random_flip"] = bool(args.flip)
     hyperparameters["stop_criterion"] = float(args.stop_criterion)
 
     # SA parameters
-    hyperparameters["T"] = float(args.T)
+    hyperparameters["initial_temp"] = float(args.T)
     Tfin = float(args.T_final)
-    hyperparameters["r_T"] = return_rx(num_iter, hyperparameters["T"], Tfin)
+    hyperparameters["cooling_rate"] = return_rx(num_iter, hyperparameters["initial_temp"], Tfin)
+    hyperparameters["seed"] = int(args.seed)
 
     # SCA parameters
     hyperparameters["q"] = float(args.q)
@@ -56,11 +59,11 @@ def parse_hyperparameters(args:dict, num_iter:int) -> dict[str:]:
     hyperparameters["dtSB"] = float(args.dtSB)
     hyperparameters["a0"] = float(args.a0)
     hyperparameters["c0"] = float(args.c0)
-    hyperparameters["seed"] = int(args.seed)
 
     return hyperparameters
 
-def get_best_found_gurobi(gurobi_files:list[pathlib.Path]) -> list[float]:
+
+def get_best_found_gurobi(gurobi_files: list[pathlib.Path]) -> list[float]:
     """Returns a list of the best found energies in the gurobi files.
 
     Args:
@@ -81,8 +84,8 @@ def run_solver(
     num_iter: int,
     s_init: np.ndarray,
     model: IsingModel,
-    clock_freq: float=1e6,
-    clock_op: int=1000,
+    clock_freq: float = 1e6,
+    clock_op: int = 1000,
     logfile: pathlib.Path | None = None,
     **hyperparameters,
 ) -> tuple[np.ndarray, float]:
@@ -100,99 +103,32 @@ def run_solver(
     """
     optim_state = np.zeros((model.num_variables,))
     optim_energy = None
-    if solver == "BRIM":
-        v = 0.1 * s_init
-        optim_state, optim_energy = BRIM().solve(
-            model=model,
-            v=v,
-            num_iterations=num_iter,
-            dt=hyperparameters["dtBRIM"],
-            C=hyperparameters["C"],
-            file=logfile,
-            random_flip=hyperparameters["flip"],
-            stop_criterion=hyperparameters["stop_criterion"],
-            seed=hyperparameters["seed"],
-            Temp=hyperparameters["T"],
-            r_T=hyperparameters["r_T"],
-        )
-    elif solver == "Multiplicative":
-        v = 0.5*s_init
-        optim_state, optim_energy = Multiplicative().solve(
-            model=model,
-            v=v,
-            num_iterations=num_iter,
-            dt=hyperparameters["dtMult"],
-            logfile=logfile
-        )
-    elif solver == "SA":
-        optim_state, optim_energy = SASolver().solve(
+    solvers = {
+        "BRIM": (
+            BRIM().solve,
+            ["dtBRIM", "C", "stop_criterion", "random_flip", "initial_temp", "cooling_rate", "seed"],
+        ),
+        "Multiplicative": (Multiplicative().solve, ["dtMult"]),
+        "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
+        "DSA": (DSASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
+        "SCA": (SCA().solve, ["initial_temp", "cooling_rate", "q", "r_q", "seed"]),
+        "bSB": (ballisticSB().solve, ["c0", "dtSB", "a0"]),
+        "dSB": (discreteSB().solve, ["c0", "dtSB", "a0"]),
+    }
+    if solver in solvers:
+        func, params = solvers[solver]
+        chosen_hyperparameters = {key: hyperparameters[key] for key in params if key in hyperparameters}
+        optim_state, optim_energy = func(
             model=model,
             initial_state=s_init,
             num_iterations=num_iter,
-            initial_temp=hyperparameters["T"],
-            cooling_rate=hyperparameters["r_T"],
-            seed=hyperparameters["seed"],
             file=logfile,
-            clock_freq=clock_freq, clock_op=clock_op,
+            **chosen_hyperparameters,
         )
-    elif solver == "DSA":
-        optim_state, optim_energy = DSASolver().solve(
-            model=model,
-            initial_state=s_init,
-            num_iterations=num_iter,
-            initial_temp=hyperparameters["T"],
-            cooling_rate=hyperparameters["r_T"],
-            seed=hyperparameters["seed"],
-            file=logfile,
-            clock_freq=clock_freq, clock_op=clock_op,
-        )
-    elif solver == "SCA":
-        optim_state, optim_energy = SCA().solve(
-            model=model,
-            sample=s_init,
-            num_iterations=num_iter,
-            T=hyperparameters["T"],
-            r_t=hyperparameters["r_T"],
-            q=hyperparameters["q"],
-            r_q=hyperparameters["r_q"],
-            seed=hyperparameters["seed"],
-            file=logfile,
-            clock_freq=clock_freq, clock_op=clock_op,
-        )
-    elif solver[1:] == "SB":
-        x = s_init*np.arange(0.01/model.num_variables, 0.01+0.01/model.num_variables, 0.01/model.num_variables)
-        y = np.zeros((model.num_variables,))
-        dt = hyperparameters["dtSB"]
-        c0 = hyperparameters["c0"]
-        a0 = hyperparameters["a0"]
-        if solver[0] == "b":
-            optim_state, optim_energy = ballisticSB().solve(
-                model=model,
-                x=x,
-                y=y,
-                num_iterations=num_iter,
-                c0=c0,
-                dt=dt,
-                a0=a0,
-                file=logfile,
-                clock_freq=clock_freq, clock_op=clock_op,
-            )
-        elif solver[0] == "d":
-            optim_state, optim_energy = discreteSB().solve(
-                model=model,
-                x=x,
-                y=y,
-                num_iterations=num_iter,
-                c0=c0,
-                dt=dt,
-                a0=a0,
-                file=logfile,
-                clock_freq=clock_freq, clock_op=clock_op,
-            )
     return optim_state, optim_energy
 
 
-def return_rx(num_iter: int, r_init:float, r_final:float) -> float:
+def return_rx(num_iter: int, r_init: float, r_final: float) -> float:
     """Returns the change rate of SA/SCA hyperparameters
 
     Args:
@@ -203,9 +139,10 @@ def return_rx(num_iter: int, r_init:float, r_final:float) -> float:
     Returns:
         float: the change rate of the hyperarameter.
     """
-    return (r_final/r_init)**(1/(num_iter + 1))
+    return (r_final / r_init) ** (1 / (num_iter + 1))
 
-def return_c0(model: IsingModel)->float:
+
+def return_c0(model: IsingModel) -> float:
     """Returns the optimal c0 value for simulated bifurcation.
 
     Args:
@@ -219,7 +156,8 @@ def return_c0(model: IsingModel)->float:
         * np.sqrt(np.sum(np.power(model.J, 2)) / (model.num_variables * (model.num_variables - 1)))
     )
 
-def return_G(problem: IsingModel)->float:
+
+def return_G(problem: IsingModel) -> float:
     """Returns the optimal latch resistant value for the given problem.
 
     Args:
@@ -229,9 +167,10 @@ def return_G(problem: IsingModel)->float:
         float: the latch resistance.
     """
     sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
-    return np.average(sumJ)*2
+    return np.average(sumJ) * 2
 
-def return_q(problem: IsingModel)->float:
+
+def return_q(problem: IsingModel) -> float:
     """Returns the optimal value for the penalty parameter q for the SCA solver.
 
     Args:
@@ -243,7 +182,8 @@ def return_q(problem: IsingModel)->float:
     eig = np.abs(spalg.eigs(triu_to_symm(-problem.J), 1)[0][0])
     return eig / 2
 
-def compute_list_from_arg(arg:str, step:int=1) -> np.ndarray:
+
+def compute_list_from_arg(arg: str, step: int = 1) -> np.ndarray:
     """Returns a list of integers given a argument string and step size.
 
     Args:
@@ -254,4 +194,4 @@ def compute_list_from_arg(arg:str, step:int=1) -> np.ndarray:
         np.ndarray: the list of integers.
     """
     arg_list = arg.split()
-    return np.array(range(int(arg_list[0]), int(arg_list[1])+1, step))
+    return np.array(range(int(arg_list[0]), int(arg_list[1]) + 1, step))

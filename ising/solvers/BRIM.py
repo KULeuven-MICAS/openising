@@ -29,15 +29,15 @@ class BRIM(SolverBase):
     def solve(
         self,
         model: IsingModel,
-        v: np.ndarray,
+        initial_state: np.ndarray,
         num_iterations: int,
-        dt: float,
+        dtBRIM: float,
         C: float,
         stop_criterion: float = 1e-8,
         file: pathlib.Path | None = None,
         random_flip: bool = False,
-        Temp: float = 50.0,
-        r_T: float = 0.9,
+        initial_temp: float = 50.0,
+        cooling_rate: float = 0.9,
         seed: int = 0,
     ) -> tuple[np.ndarray, float]:
         """Simulates the BLIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
@@ -58,7 +58,7 @@ class BRIM(SolverBase):
             (sample, energy) tuple[np.ndarray, float]: optimal sample and energy.
         """
         N = model.num_variables
-        tend = dt * num_iterations
+        tend = dtBRIM * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
 
         # Transform the model to one with no h and mean variance of J
@@ -66,10 +66,9 @@ class BRIM(SolverBase):
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
         model.reconstruct()
-        r_J = (1/Temp) ** (1/(num_iterations - 1))
-        Temp_J = Temp
+
         # Add the bias node
-        v = np.block([v, 1.0])
+        v = np.block([0.1*initial_state, 1.0])
 
         if seed == 0:
             seed = int(time.time())
@@ -100,36 +99,34 @@ class BRIM(SolverBase):
                 model=model,
                 num_iterations=num_iterations,
                 C=C,
-                time_step=dt,
+                time_step=dtBRIM,
                 random_flip=random_flip,
                 seed=seed,
-                temperature=Temp,
-                cooling_rate=r_T,
+                temperature=initial_temp,
+                cooling_rate=cooling_rate,
                 stop_criterion=stop_criterion,
             )
 
             i = 0
             previous_voltages = np.copy(v)
             max_change = np.inf
-
+            T = initial_temp
             while i < (num_iterations) and max_change > stop_criterion:
                 tk = t_eval[i]
 
-                # J = J / Temp_J
                 # Runge Kutta steps
-                k1 = dt * dvdt(tk, previous_voltages, J)
-                k2 = dt * dvdt(tk + 2 / 3 * dt, previous_voltages + 2 / 3 * k1, J)
+                k1 = dtBRIM * dvdt(tk, previous_voltages, J)
+                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J)
 
                 new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2)
 
                 # Do random flipping annealing wise
                 if random_flip:
                     rand = np.random.random()
-                    if rand < np.exp(-1 / Temp):
+                    if rand < np.exp(-1 / T):
                         flip = np.random.choice(N)
                         new_voltages[flip] = -new_voltages[flip]
-                Temp *= r_T
-                Temp_J *= r_J
+                T *= cooling_rate
 
                 max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
                     previous_voltages, ord=np.inf

@@ -21,10 +21,10 @@ class SCA(SolverBase):
     def solve(
         self,
         model: IsingModel,
-        sample: np.ndarray,
+        initial_state: np.ndarray,
         num_iterations: int,
-        T: float,
-        r_t: float,
+        initial_temp: float,
+        cooling_rate: float,
         q: float,
         r_q: float,
         seed: int | None = None,
@@ -66,21 +66,21 @@ class SCA(SolverBase):
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
                 logger=log,
-                initial_state=sample,
+                initial_state=initial_state,
                 model=model,
                 num_iterations=num_iterations,
-                initial_temp=T,
-                cooling_rate=r_t,
+                initial_temp=initial_temp,
+                cooling_rate=cooling_rate,
                 initial_penalty=q,
                 penalty_increase=r_q,
                 seed=seed,
             )
-
+            T = initial_temp
             for _ in range(num_iterations):
-                hs = np.matmul(J, sample) + model.h
+                hs = np.matmul(J, initial_state) + model.h
                 clocker.add_cycles(1 + np.log2(N))
 
-                Prob = self.get_prob(hs, sample, q, T)
+                Prob = self.get_prob(hs, initial_state, q, T)
                 clocker.add_operations(5 * N)
                 rand = np.random.rand(N)
                 clocker.add_operations(N)
@@ -89,24 +89,27 @@ class SCA(SolverBase):
                 flipped_states = [y for y in range(N) if Prob[y] < rand[y]]
                 clocker.add_operations(N)
 
-                sample[flipped_states] = -sample[flipped_states]
-                energy = model.evaluate(sample)
+                initial_state[flipped_states] = -initial_state[flipped_states]
+                energy = model.evaluate(initial_state)
                 clocker.add_operations(4)
                 time_clock = clocker.perform_operations()
 
-                log.log(energy=energy, state=sample, time_clock=time_clock)
+                log.log(energy=energy, state=initial_state, time_clock=time_clock)
 
-                T = self.change_hyperparam(T, r_t)
+                T = self.change_hyperparam(T, cooling_rate)
                 q = self.change_hyperparam(q, r_q)
                 flipped_states = []
 
             total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 8 * N + N / 2 + 2)
             log.write_metadata(
-                solution_state=sample, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+                solution_state=initial_state,
+                solution_energy=energy,
+                total_time=total_time,
+                total_operations=nb_operations,
             )
 
-        return sample, energy
+        return initial_state, energy
 
     def get_prob(self, hs: np.ndarray, sample: np.ndarray, q: float, T: float) -> np.ndarray:
         """Calculates the probability of changing the value of the spins
