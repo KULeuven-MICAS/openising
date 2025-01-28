@@ -21,7 +21,7 @@ def get_Gurobi_data(logfiles:list[pathlib.Path]):
 
 
 class HDF5Logger:
-    def __init__(self, filename: pathlib.Path|None, schema: dict, buffer_size: int = 10000):
+    def __init__(self, filename: pathlib.Path|None, schema: dict, buffer_size: int = 10000, mode: str = "w"):
         """ Initialize the logger.
 
         The logger is responsible for writing to file in HDF5 format.
@@ -49,6 +49,7 @@ class HDF5Logger:
         self.buffers = {}
         self.scalar_type = {}
         self.feint_mode = filename is None
+        self.mode = mode
 
 
     def __enter__(self):
@@ -71,7 +72,7 @@ class HDF5Logger:
             raise RuntimeError("Logger is already active. Cannot enter context manager multiple times.")
 
         # Create the HDF5 file
-        self.file = h5py.File(self.filename, "w")
+        self.file = h5py.File(self.filename, self.mode)
 
         # Create datasets based on the schema.
         # The first dimension should be initialized with length 0 and unlimited size.

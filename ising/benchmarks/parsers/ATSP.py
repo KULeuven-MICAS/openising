@@ -1,7 +1,8 @@
 import networkx as nx
 import pathlib
+import os
 
-def ATSP_parser(benchmark:pathlib.Path|str) -> nx.DiGraph:
+def ATSP_parser(benchmark:pathlib.Path|str) -> tuple[nx.DiGraph, float]:
     """creates a networkx instance fromthe given benchmark.
 
     Args:
@@ -43,4 +44,28 @@ def ATSP_parser(benchmark:pathlib.Path|str) -> nx.DiGraph:
                     row += 1
                 if row == N:
                     weight_section = False
-    return G
+    best_found = get_optim_value(benchmark)
+    return G, best_found
+
+
+def get_optim_value(benchmark:pathlib.Path|str)->float:
+    """Returns the best found energy of the benchmark.
+
+    Args:
+        benchmark (pathlib.Path | str): the benchmark file
+
+    Returns:
+        float: the best found energy of the benchmark
+    """
+    benchmark = benchmark.split("/")[-1].split(".")[0]
+    optim_file = pathlib.Path(os.getenv("TOP")) / pathlib.Path("ising/benchmarks/ATSP/optimal_energy.txt")
+    best_found = None
+
+    with optim_file.open() as f:
+        for line in f:
+            line = line.split()
+            if line[0] == benchmark:
+                best_found = float(line[1])
+                break
+
+    return best_found

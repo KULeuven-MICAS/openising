@@ -30,7 +30,15 @@ def G_parser(benchmark: pathlib.Path | str):
     best_found = get_optim_value(benchmark)
     return G, best_found
 
-def get_optim_value(benchmark: pathlib.Path | str):
+def get_optim_value(benchmark: pathlib.Path | str) -> float:
+    """Returns the best found value of the benchmark if the optimal value is known.
+
+    Args:
+        benchmark (pathlib.Path | str): absolute path to the benchmark
+
+    Returns:
+        float: the best found value of the benchmark.
+    """
     best_found = None
     optim_file = pathlib.Path(os.getenv("TOP")) / pathlib.Path("ising/benchmarks/G/optimal_energy.txt")
     benchmark = str(benchmark).split("/")[-1][:-4]
@@ -38,6 +46,6 @@ def get_optim_value(benchmark: pathlib.Path | str):
         for line in f:
             line = line.split()
             if line[0] == benchmark:
-                best_found = int(line[1])
+                best_found = float(line[1])
                 break
     return best_found

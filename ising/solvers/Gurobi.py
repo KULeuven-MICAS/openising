@@ -1,6 +1,5 @@
-# import gurobipy as gp
-from gurobi_optimods.qubo import solve_qubo
-# from gurobipy import GRB
+import gurobipy as gp
+from gurobipy import GRB
 import pathlib
 import numpy as np
 
@@ -16,11 +15,7 @@ class Gurobi(SolverBase):
             model (IsingModel): the model that needs to be converted.
         """
         Q, c = model.to_qubo()
-        # N = model.num_variables
 
-        # m = gp.Model('ising')
-        # x = m.addMVar(shape=N, vtype=GRB.BINARY, name="x")
-        # m.setObjective(x.T @ Q @ x + c, GRB.MINIMIZE)
         return Q, c
 
 
@@ -37,15 +32,20 @@ class Gurobi(SolverBase):
             _type_: _description_
         """
         Q, c = self.convert(model)
-        # if file is not None:
-        #     Gur_model.Params.LogFile = file
+        N = model.num_variables
 
-        # Gur_model.optimize()
-        result = solve_qubo(Q)
-        self.convert_logger(file, result, c)
-        return result.solution, result.objective_value + c
+        m = gp.Model('ising')
+        if N > 100:
+            m.Params.MIPGap = 0.05
+        x = m.addMVar(shape=N, vtype=GRB.BINARY, name="x")
+        m.setObjective(x.T @ Q @ x + c, GRB.MINIMIZE)
 
-    def convert_logger(self, file:pathlib.Path, result, c) -> None:
+        m.optimize()
+
+        self.convert_logger(file, x.X, m.objVal)
+        return x.X, m.ObjVal
+
+    def convert_logger(self, file:pathlib.Path, result, objective_val) -> None:
         """Converts the Gurobi logfile to a HDF5 one.
 
         Args:
@@ -54,4 +54,4 @@ class Gurobi(SolverBase):
             c: constant value of the transformation of Ising to QUBO form.
         """
         with HDF5Logger(file, {"iteration":int}) as logger:
-            logger.write_metadata(solution_state=result.solution, solution_energy=result.objective_value + c)
+            logger.write_metadata(solution_state=result, solution_energy=objective_val)

@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import pathlib
 
 from ising.generators.MIMO import compute_difference
-from ising.postprocessing.helper_functions import compute_averages_energies, get_data_from_dict
+from ising.postprocessing.helper_functions import compute_averages_energies
+from ising.utils.HDF5Logger import return_metadata
 
 
 def plot_error_SNR(
@@ -21,12 +22,12 @@ def plot_error_SNR(
         M (int): the considered QAM scheme.
         actual_solutions (list[np.ndarray]): the actual solutions
     """
-    data = get_data_from_dict(logfiles, y_data="solution_state")
 
     error_data = dict()
-    for SNR, solver in data.items():
+    for SNR, solver in logfiles.items():
         error_data[SNR] = dict()
-        for solver_name, optim_states in solver.items():
+        for solver_name, logfiles in solver.items():
+            optim_states = [return_metadata(logfile, metata="solution_state") for logfile in logfiles]
             error_data[SNR][solver_name] = []
             i=0
             for optim_state in optim_states:

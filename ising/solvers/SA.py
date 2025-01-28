@@ -115,7 +115,7 @@ class SASolver(SolverBase):
 
             # Log the final result
             current_time = clocker.perform_operations()
-            logger.log(energy=energy_new, state=state, change_state=change_state, time_clock=current_time)
+            # logger.log(energy=energy_new, state=state, change_state=change_state, time_clock=current_time)
             final_time = clocker.get_time()
             nb_operations = (
                 num_iterations * (3 * model.num_variables**2 + 2 * model.num_variables + 8)
