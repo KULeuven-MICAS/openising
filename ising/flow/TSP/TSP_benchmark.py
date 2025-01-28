@@ -1,6 +1,7 @@
 import pathlib
 import os
 import argparse
+import numpy as np
 
 from ising.benchmarks.parsers.ATSP import ATSP_parser
 from ising.generators.TSP import TSP
@@ -54,4 +55,4 @@ def run_TSP_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], arg
             solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
         )
 
-        calculate_TSP_energy([logfile for (solver, logfile) in logfiles.items()].flatten(), graph_orig)
+        calculate_TSP_energy(np.array([logfile for (solver, logfile) in logfiles.items()]).flatten(), graph_orig)

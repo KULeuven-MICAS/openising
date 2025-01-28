@@ -5,14 +5,14 @@ from ising.model.ising import IsingModel
 
 __all__ = ["TSP"]
 
-def TSP(graph: nx.DiGraph, A: float, B: float, C: float) -> IsingModel:
+def TSP(graph: nx.DiGraph, A: float=1., B: float=5., C: float=5.) -> IsingModel:
     """Generates an Ising model of the TSP from the given directed graph
 
     Args:
         graph (nx.DiGraph): graph on which the TSP problem will be solved
-        A (float): weight constant
-        B (float): place constraint constant
-        C (float): time constraint constant
+        A (float, optional): weight constant. Defaults to 1.
+        B (float, optional): place constraint constant. Defaults to 5.
+        C (float, optional): time constraint constant. Defaults to 5.
 
     Returns:
         model (IsingModel): Ising model of the TSP
@@ -33,11 +33,31 @@ def TSP(graph: nx.DiGraph, A: float, B: float, C: float) -> IsingModel:
     c = (N*N)*(B+C)/4
     return IsingModel(-J, -h, -c)
 
-def generate_random_TSP(N:int, seed:int=0):
-    #TODO: Implement this function
-    pass
+def generate_random_TSP(N:int, seed:int=0) -> tuple[IsingModel, nx.DiGraph]:
+    W = np.random.choice(10, (N, N))
+    graph = nx.DiGraph()
+    graph.add_nodes_from(range(N))
+    for i in range(N):
+        for j in range(N):
+            if i != j and W[i, j] != 0:
+                graph.add_edge(i, j, weight=W[i, j])
+    model = TSP(graph)
+    return model, graph
 
-def get_index(time:int, city:int, N:int):
+def get_index(time:int, city:int, N:int) -> int:
+    """Returns the index of the ising spin corresponding to the city and time.
+    The problem has N cities and time steps, making for N^2 spins. This corresponds to the following indexing rule:
+        index = city * N + time
+    This means the first N spins correspond to the first N time-steps of city 1, and so on.
+
+    Args:
+        time (int): the time step.
+        city (int): the city.
+        N (int): the amount of cities.
+
+    Returns:
+        int: the corresponding ising spin index
+    """
     if time >= N:
         time -= N
     return (city * N) + time
@@ -108,7 +128,7 @@ def get_TSP_value(graph:nx.DiGraph, sample:np.ndarray):
     path = [-1] * N
     for city in range(N):
         for time in range(N):
-            if sample[city * N + time] == 1:
+            if sample[get_index(time, city, N)] == 1:
                 path[time] = city
                 break
     energy = 0.
