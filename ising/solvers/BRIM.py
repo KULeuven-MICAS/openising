@@ -86,6 +86,8 @@ class BRIM(SolverBase):
             cond1 = (dv > 0) & (vt > 0)
             cond2 = (dv < 0) & (vt < 0)
             dv *= np.where(cond1 | cond2, 1 - vt**2, 1)
+            if np.linalg.norm(dv, ord=np.inf) > 1e10:
+                dv = np.zeros_like(dv)
 
             # Make sure the bias node does not change
             dv[-1] = 0.0
