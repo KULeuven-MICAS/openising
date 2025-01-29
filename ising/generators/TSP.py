@@ -7,8 +7,8 @@ from ising.model.ising import IsingModel
 __all__ = ["TSP"]
 
 
-def TSP(graph: nx.DiGraph, A: float = 1.0, B: float = 5.0, C: float = 5.0) -> IsingModel:
-    """Generates an Ising model of the TSP from the given directed graph
+def ATSP(graph: nx.DiGraph, A: float = 1.0, B: float = 5.0, C: float = 5.0) -> IsingModel:
+    """Generates an Ising model of the assymetric TSP from the given directed graph
 
     Args:
         graph (nx.DiGraph): graph on which the TSP problem will be solved
@@ -25,16 +25,23 @@ def TSP(graph: nx.DiGraph, A: float = 1.0, B: float = 5.0, C: float = 5.0) -> Is
         for city2 in range(N):
             if graph.has_edge(city1, city2):
                 W[city1, city2] = graph[city1][city2]["weight"]
-    J = np.zeros((N * N, N * N))
-    h = np.zeros((N * N,))
-    add_HA(J, h, W, N, A=A)
-    add_HB(J, h, N, B=B)
-    add_HC(J, h, N, C=C)
-    J = 1 / 2 * (J + J.T)
-    J = np.triu(J)
-    c = (N * N) * (B + C) / 4
-    return IsingModel(-J, -h, -c)
 
+    # Make a QUBO representation of the TSP problem
+    Q = np.zeros((N**2, N**2))
+    add_HA(Q, W, N, A=A)
+    add_HB(Q, N, B=B)
+    add_HC(Q, N, C=C)
+    return IsingModel().from_qubo(Q)
+
+def TSP(graph: nx.DiGraph, A: float=1., B:float=5., C:float=5.):
+    """Generates an Ising model of the standard TSP from the given graph.
+
+    Args:
+        graph (nx.DiGraph): The graph representing the TSP problem.
+        A (float, optional): The weight constant. Defaults to 1..
+        B (float, optional): The place constraint constant. Defaults to 5..
+        C (float, optional): The time constraint constant. Defaults to 5..
+    """
 
 def generate_random_TSP(
     N: int, seed: int = 0, weight_constant: float = 1.0, time_constraint: float = 5.0, place_constraints: float = 5.0
@@ -72,12 +79,11 @@ def get_index(time: int, city: int, N: int) -> int:
     return (city * N) + time
 
 
-def add_HA(J: np.ndarray, h: np.ndarray, W: np.ndarray, N: int, A: float):
-    """Generates the objective function term for the transformed TSP problem.
+def add_HA(Q: np.ndarray, W: np.ndarray, N: int, A: float):
+    """Generates the objective function term for the transformed TSP problem in QUBO formulation.
 
     Args:
-        J (np.ndarray): the current coefficient matrix.
-        h (np.ndarray): the current linear coefficient vector.
+        Q (np.ndarray): the current QUBO matrix.
         W (np.ndarray): the weight matrix
         N (int): the amount of cities.
         A (float): the objective function constant.
@@ -85,43 +91,43 @@ def add_HA(J: np.ndarray, h: np.ndarray, W: np.ndarray, N: int, A: float):
     for city1 in range(N):
         for city2 in range(N):
             for time in range(N):
-                if city1 != city2:
-                    J[get_index(time, city1, N), get_index(time + 1, city2, N)] += A / 2 * W[city1, city2]
-                    h[get_index(time, city1, N)] += A / 2 * W[city1, city2]
+                index1 = get_index(time, city1, N)
+                index2 = get_index(time, city2, N)
+                Q[index1, index2] += A * W[city1, city2]
 
 
-def add_HB(J: np.ndarray, h: np.ndarray, N: int, B: float):
-    """Generates the time constraint term for the transformed TSP problem.
+def add_HB(Q: np.ndarray, N: int, B: float):
+    """Generates the time constraint term for the transformed TSP problem in QUBO formulation.
 
     Args:
-        J (np.ndarray): the current coefficient matrix.
-        h (np.ndarray): the current linear coefficient vector.
+        Q (np.ndarray): the current QUBO matrix.
         N (int): the amount of cities
         B (float): the time constraint constant.
     """
     for time in range(N):
         for city1 in range(N):
-            h[get_index(time, city1, N)] += (N - 2) / 2 * B
-            for city2 in range(N):
-                if city1 != city2:
-                    J[get_index(time, city1, N), get_index(time, city2, N)] += B / 4
+            index1 = get_index(time, city1, N)
+            Q[index1, index1] += -B
+            for city2 in range(city1):
+                index2 = get_index(time, city2, N)
+                Q[index1, index2] += 2 * B
 
 
-def add_HC(J: np.ndarray, h: np.ndarray, N: int, C: float):
-    """Generates the place constraint term for the transformed TSP problem.
+def add_HC(Q: np.ndarray, N: int, C: float):
+    """Generates the place constraint term for the transformed TSP problem in QUBO formulation.
 
     Args:
-        J (np.ndarray): the current coefficient matrix.
-        h (np.ndarray): the current linear coefficient vector.
+        Q (np.ndarray): the current QUBO matrix.
         N (int): the amount of cities.
         C (float): the place constraint constant.
     """
     for city in range(N):
         for time1 in range(N):
-            h[get_index(time1, city, N)] += (N - 2) / 2 * C
-            for time2 in range(N):
-                if time1 != time2:
-                    J[get_index(time1, city, N), get_index(time2, city, N)] += C / 4
+            index1 = get_index(time1, city, N)
+            Q[index1, index1] += -C
+            for time2 in range(time1):
+                index2 = get_index(time2, city, N)
+                Q[index1, index2] += 2 *C
 
 
 def get_TSP_value(graph: nx.DiGraph, sample: np.ndarray):
