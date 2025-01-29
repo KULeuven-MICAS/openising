@@ -57,7 +57,7 @@ def get_optim_value(benchmark:pathlib.Path|str)->float:
     Returns:
         float: the best found energy of the benchmark
     """
-    benchmark = benchmark.split("/")[-1].split(".")[0]
+    benchmark = str(benchmark).split("/")[-1].split(".")[0]
     optim_file = pathlib.Path(os.getenv("TOP")) / pathlib.Path("ising/benchmarks/ATSP/optimal_energy.txt")
     best_found = None
 

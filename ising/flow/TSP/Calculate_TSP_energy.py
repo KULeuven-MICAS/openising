@@ -15,7 +15,7 @@ def calculate_TSP_energy(logfiles:list[pathlib.Path], graph:nx.DiGraph, gurobi:b
         gurobi (bool, optional): whether the logfiles contain Gurobi data. Defaults to False.
     """
     for logfile in logfiles:
-        schema = {"TSP_value": np.float64}
+        schema = {"TSP_energy": np.float64}
         if not gurobi:
             num_iterations = return_metadata(logfile, "num_iterations")
             samples = return_data(logfile, "state")
@@ -23,7 +23,7 @@ def calculate_TSP_energy(logfiles:list[pathlib.Path], graph:nx.DiGraph, gurobi:b
                 for i in range(num_iterations):
                     sample = samples[i, :]
                     TSP_value = get_TSP_value(graph, sample)
-                    logger.log(TSP_value=TSP_value)
+                    logger.log(TSP_energy=TSP_value)
                 logger.write_metadata(solution_TSP_energy=TSP_value)
         else:
             solution_state = return_metadata(logfile, "solution_state")

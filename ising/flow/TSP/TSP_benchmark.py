@@ -8,6 +8,7 @@ from ising.generators.TSP import TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
 from ising.utils.flow import make_directory, parse_hyperparameters, return_q, return_c0
 from ising.utils.threading import make_solvers_thread
+from ising.solvers.Gurobi import Gurobi
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
@@ -22,7 +23,7 @@ def run_TSP_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], arg
         args (_type_): the arguments parsed with ising/flow/Problem_parser.py
     """
     print("Generating benchmark: ", benchmark)
-    graph_orig, best_found = ATSP_parser(benchmark=TOP / f"ising/benchmarks/ATSP/{benchmark}.txt")
+    graph_orig, best_found = ATSP_parser(benchmark=TOP / f"ising/benchmarks/ATSP/{benchmark}.atsp.txt")
     A = float(args.weight_constant)
     B = float(args.place_constraint)
     C = float(args.time_constraint)
@@ -34,6 +35,10 @@ def run_TSP_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], arg
     nb_runs = int(args.nb_runs)
     logpath = TOP / "ising/flow/TSP/logs"
     make_directory(logpath)
+    if bool(args.use_gurobi):
+        gurobi_log = logpath / f"Gurobi_{benchmark}.log"
+        Gurobi().solve(model=model, file=gurobi_log)
+        calculate_TSP_energy([gurobi_log], graph_orig, gurobi=True)
 
     for num_iter in iter_list:
         print(f"Running for {num_iter} iterations")

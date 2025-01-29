@@ -8,6 +8,7 @@ from ising.generators.TSP import generate_random_TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
 from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 from ising.utils.flow import make_directory, parse_hyperparameters, return_q, return_c0, return_rx
+from ising.postprocessing.TSP_plot import plot_graph_solution
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
@@ -21,6 +22,7 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
         args (argparse.Namespace): the arguments parsed with ising/flow/Problem_parser.py
     """
     logpath = TOP / "ising/flow/TSP/logs"
+    figtop = TOP / "ising/flow/TSP/plots" / args.fig_folder
     make_directory(logpath)
 
     nb_runs = int(args.nb_runs)
@@ -47,8 +49,11 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
 
     problems = {}
     graphs = {}
+    weight_constant = float(args.weight_constant)
+    time_constraint = float(args.time_constraint)
+    place_constraint = float(args.place_constraint)
     for N in N_list:
-        problems[N], graphs[N] = generate_random_TSP(N, seed)
+        problems[N], graphs[N] = generate_random_TSP(N, seed, weight_constant, time_constraint, place_constraint)
 
     if use_gurobi:
         logfiles = {N: logpath / f"Gurobi_N{N}.log" for N in N_list}
@@ -60,6 +65,7 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
 
     for N in N_list:
         print(f"Running for {N} cities")
+        print(f"The problem that will be solved is: {problems[N]}")
         if change_q:
             hyperparameters["q"] = return_q(problems[N])
         if change_c:
@@ -75,4 +81,9 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
             **hyperparameters
         )
         calculate_TSP_energy(np.array([logfile for (_, logfile) in logfiles.items()]).flatten(), graphs[N])
+        if N <= 20:
+            for solver in solvers:
+                plot_graph_solution(fileName=logfiles[solver][-1], G_orig=graphs[N], save_folder=figtop,
+                                fig_name=f"{solver}_N{N}_graph.png")
+
     print("Done")
