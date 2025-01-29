@@ -66,21 +66,32 @@ if args.benchmark is not None and args.iter_list is not None:
     iter_list = compute_list_from_arg(args.iter_list[0], 100)
 elif args.N_list is not None and args.num_iter is not None:
     use_dummy = True
-    N_list = compute_list_from_arg(args.N_list[0], 10)
+    N_list = compute_list_from_arg(args.N_list[0], 1 if problem == "TSP" else 10)
 else:
     sys.exit("Cannot run solvers since no benchmark and N_list are given")
 
+run_function = {
+    ("MaxCut", True, False): (run_benchmark, ["benchmark", "iter_list", "solvers", "args"]),
+    ("MaxCut", False, True): (run_dummy, ["N_list", "solvers", "args"]),
+    ("TSP", True, False): (run_TSP_benchmark, ["benchmark", "iter_list", "solvers", "args"]),
+    ("TSP", False, True): (run_TSP_dummy, ["N_list", "solvers", "args"]),
+    # Add more problem types and conditions as needed
+}
 
-if problem == "MaxCut":
-    if use_benchmark:
-        run_benchmark(benchmark, iter_list, solvers, args)
-    elif use_dummy:
-        run_dummy(N_list, solvers, args)
-elif problem == "TSP":
-    if use_benchmark:
-        run_TSP_benchmark(benchmark, iter_list, solvers, args)
-    if use_dummy:
-        N_list = compute_list_from_arg(args.N_list[0])
-        run_TSP_dummy(N_list, solvers, args)
+# Extract relevant arguments from args
+kwargs = {}
+kwargs.update({
+    "benchmark": benchmark if use_benchmark else None,
+    "iter_list": iter_list if use_benchmark else None,
+    "N_list": N_list if use_dummy else None,
+    "solvers": solvers,
+    "args": args
+})
+
+key = (problem, use_benchmark, use_dummy)
+if key in run_function:
+    func, expected_args = run_function[key]
+    filtered_kwargs = {key: kwargs[key] for key in expected_args if key in kwargs}
+    func(**filtered_kwargs)
 else:
-    sys.exit("Problem is not recognized or implemented")
+    sys.exit("Invalid problem or configuration")

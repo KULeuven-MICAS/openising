@@ -13,10 +13,10 @@ def return_metadata(fileName: pathlib.Path, metadata: str):
         metadata = logfile.attrs[metadata]
     return metadata
 
-def get_Gurobi_data(logfiles:list[pathlib.Path]):
+def get_Gurobi_data(logfiles:list[pathlib.Path], metadata="solution_energy"):
     best_found = []
     for logfile in logfiles:
-        best_found.append(return_metadata(fileName=logfile, metadata="solution_energy"))
+        best_found.append(return_metadata(fileName=logfile, metadata=metadata))
     return best_found
 
 
