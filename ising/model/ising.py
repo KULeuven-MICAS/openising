@@ -203,7 +203,7 @@ class IsingModel:
         """
         if not isinstance(Q, np.ndarray) or not npu.is_square(Q) or not npu.is_triu(Q):
             raise ValueError("Q must be a square upper triangular matrix")
-        J = -(1 / 4) * Q.copy()
+        J = -(1 / 4) * np.triu(Q, k=1).copy()
         h = -(1 / 2) * Q.diagonal().copy() - (1 / 4) * np.sum(npu.triu_to_symm(Q), axis=1)
         c = (1 / 4) * np.sum(Q) + (1 / 4) * np.sum(Q.diagonal())
         return cls(J, h, c)

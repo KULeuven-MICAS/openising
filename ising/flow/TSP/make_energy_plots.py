@@ -4,7 +4,7 @@ import os
 import pathlib
 import numpy as np
 
-from ising.benchmarks.parsers.ATSP import get_optim_value
+from ising.benchmarks.parsers.TSP import get_optim_value
 from ising.postprocessing.energy_plot import (
     plot_energy_dist_multiple_solvers,
     plot_relative_error,
@@ -62,7 +62,7 @@ if args.benchmark is not None:
     benchmark = str(args.benchmark)
 
     # Get the best found of the benchmark
-    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/ATSP/{benchmark}.txt")
+    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
@@ -83,17 +83,16 @@ if args.benchmark is not None:
         plot_energies_multiple(
             logfiles=new_logfiles,
             figName=f"{benchmark}_nb_iter{num_iter}_{fig_name}",
-            y_data="TSP_energy",
+            y_data="energy",
             best_found=best_found,
             save_folder=figtop,
         )
         logfiles += new_logfiles
     if bool(args.use_gurobi):
         best_found_gurobi = [logtop / f"Gurobi_{benchmark}.log"]
-        best_found_gurobi = get_Gurobi_data(np.array(best_found_gurobi), metadata="solution_TSP_energy") * np.ones(
+        best_found_gurobi = get_Gurobi_data(np.array(best_found_gurobi), metadata="solution_energy") * np.ones(
             len(iter_list)
         )
-        print(best_found_gurobi)
     else:
         best_found_gurobi = None
 
@@ -106,7 +105,7 @@ if args.benchmark is not None:
             logfiles,
             best_found,
             x_label="num_iterations",
-            y_data="solution_TSP_energy",
+            y_data="solution_energy",
             save_folder=figtop,
             fig_name=f"{benchmark}_relative_error_{fig_name}",
         )
@@ -140,7 +139,7 @@ else:
 print("Plotting energy distribution")
 plot_energy_dist_multiple_solvers(
     logfiles,
-    y_data="solution_TSP_energy",
+    y_data="solution_energy",
     best_found=best_found,
     best_Gurobi=best_found_gurobi,
     xlabel="num_iterations" if args.benchmark is not None else "problem_size",

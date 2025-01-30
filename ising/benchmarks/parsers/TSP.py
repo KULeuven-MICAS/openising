@@ -29,7 +29,7 @@ def get_optim_value(benchmark:pathlib.Path):
         benchmark (pathlib.Path): the given benchmark.
     """
     benchmark = str(benchmark).split("/")[-1].split(".")[0]
-    optim_file = pathlib.Path(os.getenv["TOP"]) / "ising/benchmarks/TSP/optimal_energy.txt"
+    optim_file = pathlib.Path(os.getenv("TOP")) / pathlib.Path("ising/benchmarks/TSP/optimal_energy.txt")
     best_found = None
 
     with optim_file.open() as f:

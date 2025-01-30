@@ -6,9 +6,10 @@ import numpy as np
 
 from ising.generators.TSP import generate_random_TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
-from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
+from ising.utils.threading import make_solvers_thread#, make_Gurobi_thread
 from ising.utils.flow import make_directory, parse_hyperparameters, return_q, return_c0, return_rx
 from ising.postprocessing.TSP_plot import plot_graph_solution
+from ising.solvers.Gurobi import Gurobi
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
@@ -24,6 +25,7 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
     logpath = TOP / "ising/flow/TSP/logs"
     figtop = TOP / "ising/flow/TSP/plots" / args.fig_folder
     make_directory(logpath)
+    make_directory(figtop)
 
     nb_runs = int(args.nb_runs)
     seed = int(args.seed)
@@ -57,15 +59,20 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
 
     if use_gurobi:
         logfiles = {N: logpath / f"Gurobi_N{N}.log" for N in N_list}
-        make_Gurobi_thread(models=problems, logfiles=logfiles)
+
+        # make_Gurobi_thread(models=problems, logfiles=logfiles)
 
         for N in N_list:
+            state, energy = Gurobi().solve(model=problems[N], file=logfiles[N])
+            print(f"Optimal {state=} with {energy=}")
             calculate_TSP_energy([logfiles[N]], graphs[N], gurobi=True)
+            plot_graph_solution(fileName=logfiles[N], G_orig=graphs[N], save_folder=figtop,
+                                fig_name=f"Gurobi_N{N}_graph.png")
 
 
     for N in N_list:
         print(f"Running for {N} cities")
-        print(f"The problem that will be solved is: {problems[N]}")
+        # print(f"The problem that will be solved is: {problems[N]}")
         if change_q:
             hyperparameters["q"] = return_q(problems[N])
         if change_c:

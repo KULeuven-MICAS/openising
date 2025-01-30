@@ -42,10 +42,10 @@ def plot_graph_solution(
     pos = nx.spring_layout(G_orig, k=5/np.sqrt(G_orig.order()), seed=1)
 
     plt.figure()
-    nx.draw_networkx_nodes(G_orig, pos, nodelist=list(range(N)), node_color="b")
-    nx.draw_networkx_edges(G_orig, pos, edgelist=red_edges, edge_color="r")
-    nx.draw_networkx_edges(G_orig, pos, edgelist=black_edges, edge_color="k")
-    nx.draw_networkx_labels(G_orig, pos, labels={i: i+1 for i in range(N)})
+    nx.draw_networkx_nodes(G_orig, pos, nodelist=list(range(1, N+1)), node_color="b")
+    nx.draw_networkx_edges(G_orig, pos, edgelist=red_edges, edge_color="r", connectionstyle="arc3,rad=0.1")
+    nx.draw_networkx_edges(G_orig, pos, edgelist=black_edges, edge_color="k", connectionstyle="arc3,rad=0.1")
+    nx.draw_networkx_labels(G_orig, pos, labels={i: i for i in range(1, N+1)})
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
         plt.savefig(f"{save_folder}/{fig_name}")
