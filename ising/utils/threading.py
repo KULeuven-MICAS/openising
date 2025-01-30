@@ -27,7 +27,6 @@ def solver_thread(
         logfiles (list[pathlib.Path]): the logfiles to store the data.
     """
     for run in range(nb_runs):
-        print(f"Running {solver} for run {run}")
         sample = np.random.choice([-1, 1], (model.num_variables,))
         logfile = logfiles[run]
         run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
@@ -66,7 +65,8 @@ def solve_Gurobi(model: IsingModel, file: pathlib.Path) -> None:
         file (pathlib.Path): The logfile in which the results are stored.
     """
     print(f"Solving with Gurobi with {model.num_variables} variables")
-    Gurobi().solve(model=model, file=file)
+    state, energy = Gurobi().solve(model=model, file=file)
+    print(f"Optimal {state=}, with {energy=}")
 
 
 def make_Gurobi_thread(models: dict[int:IsingModel], logfiles: dict[int : pathlib.Path],) -> None:
