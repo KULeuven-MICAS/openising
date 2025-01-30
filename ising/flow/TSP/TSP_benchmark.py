@@ -27,9 +27,7 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
     print("Generating benchmark: ", benchmark)
     graph_orig, best_found = TSP_parser(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
     A = float(args.weight_constant)
-    B = float(args.place_constraint)
-    C = float(args.time_constraint)
-    model = TSP(graph=graph_orig, A=A, B=B, C=C)
+    model = TSP(graph=graph_orig, weight_constant=A)
     if best_found is not None:
         print(f"Best found: {best_found}")
     print("Generated benchmark")

@@ -24,8 +24,6 @@ parser.add_argument("-fig_name", help="Name of the figure that needs to be saved
 
 # TSP values
 parser.add_argument("-weight_constant", help="Weight constant for TSP", default=1.0)
-parser.add_argument("-place_constraint", help="Place constraint for TSP", default=5.0)
-parser.add_argument("-time_constraint", help="Time constraint for TSP", default=5.0)
 
 # Multiplicative parameters
 parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.25)

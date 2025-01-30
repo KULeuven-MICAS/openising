@@ -129,7 +129,7 @@ elif args.N_list is not None:
     if len(best_found_gurobi) == 0:
         best_found_gurobi = None
     else:
-        best_found_gurobi = np.array(get_Gurobi_data(best_found_gurobi, metadata="solution_TSP_energy"))
+        best_found_gurobi = np.array(get_Gurobi_data(best_found_gurobi, metadata="solution_energy"))
     best_found = None
 
 else:
