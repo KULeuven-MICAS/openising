@@ -4,8 +4,6 @@ import pathlib
 import numpy as np
 
 from ising.postprocessing.helper_functions import return_metadata
-from ising.generators.TSP import get_index
-
 
 def plot_graph_solution(
     fileName: pathlib.Path, G_orig: nx.DiGraph, fig_name: str, save: bool = True, save_folder: pathlib.Path = "."
@@ -19,18 +17,21 @@ def plot_graph_solution(
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to '.'.
     """
     # G = nx.DiGraph()
-    solutions_state = return_metadata(fileName=fileName, metadata="solution_state")
+    solution_state = return_metadata(fileName=fileName, metadata="solution_state")
     best_energy = return_metadata(fileName=fileName, metadata="solution_TSP_energy")
-    N = int(np.sqrt(np.shape(solutions_state)[0]))
+    N = int(np.sqrt(np.shape(solution_state)[0]))
 
     red_edges = []
-    path = [-1]*N
-    for time in range(N):
-        for city in range(N):
-            index = get_index(time, city, N)
-            if solutions_state[index] == 1:
-                path[time] = city
-                break
+    nodes_in_path = []
+    path = [None]*N
+    sub_state = solution_state.reshape((N, N))
+    for city in range(N):
+        city_state = sub_state[city, :]
+        if np.any(city_state==1):
+            nodes_in_path.append(city+1)
+        ind = np.where(city_state==1)[0]
+        if ind.size != 0:
+            path[ind[0]] = city + 1
 
     for i in range(N):
         city1 = path[i]
@@ -43,6 +44,7 @@ def plot_graph_solution(
 
     plt.figure()
     nx.draw_networkx_nodes(G_orig, pos, nodelist=list(range(1, N+1)), node_color="b")
+    nx.draw_networkx_nodes(G_orig, pos, nodelist=nodes_in_path, node_color="r")
     nx.draw_networkx_edges(G_orig, pos, edgelist=red_edges, edge_color="r", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_edges(G_orig, pos, edgelist=black_edges, edge_color="k", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_labels(G_orig, pos, labels={i: i for i in range(1, N+1)})
