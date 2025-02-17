@@ -68,28 +68,31 @@ class BRIM(SolverBase):
         model.reconstruct()
 
         # Add the bias node
-        v = np.block([0.1*initial_state, 1.0])
+        v = np.block([initial_state, 1.0])
+        # print(v)
 
         if seed == 0:
             seed = int(time.time())
         np.random.seed(seed)
-        v += 0.01 * (np.random.random((N + 1,)) - 0.5)
+        v += 0.001 * (np.random.random((N + 1,)) - 0.5)
 
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         def dvdt(t, vt, coupling):
             # Make sure the bias node is 1
-            vt[-1] = 1.0
+            # vt[-1] = 1.0
             V_mat = np.array([vt] * vt.shape[0])
-            dv = -1 / C * np.sum(coupling * (V_mat - V_mat.T), axis=0)
+            dv = -1 / C * np.sum(coupling * (V_mat.T - V_mat), axis=1) #+ 1/C*(np.tanh(10*np.tanh(10*vt)) - vt)
             cond1 = (dv > 0) & (vt > 0)
             cond2 = (dv < 0) & (vt < 0)
             dv *= np.where(cond1 | cond2, 1 - vt**2, 1)
+            # dv = np.where(np.all(np.array([dv > 0., v >= 0.95]), 0), np.zeros((N+1,)), dv)
+            # dv = np.where(np.all(np.array([dv < 0., v <= -0.95]), 0), np.zeros((N+1, )), dv)
             if np.linalg.norm(dv, ord=np.inf) > 1e10:
                 dv = np.zeros_like(dv)
 
             # Make sure the bias node does not change
-            dv[-1] = 0.0
+            # dv[-1] = 0.0
             return dv
 
         with HDF5Logger(file, schema) as log:
@@ -111,6 +114,10 @@ class BRIM(SolverBase):
             previous_voltages = np.copy(v)
             max_change = np.inf
             T = initial_temp
+
+            sample = np.sign(v[:N])
+            energy = model.evaluate(sample)
+            log.log(time_clock=0., energy=energy, state=sample, voltages=v[:N])
             while i < (num_iterations) and max_change > stop_criterion:
                 tk = t_eval[i]
 
@@ -133,7 +140,7 @@ class BRIM(SolverBase):
                 )
 
                 # Log everything
-                sample = np.sign(new_voltages[:N])
+                sample = np.sign(new_voltages[:N])*np.sign(new_voltages[-1])
                 energy = model.evaluate(sample)
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 

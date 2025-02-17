@@ -20,7 +20,7 @@ parser.add_argument("--solvers", help="Which solvers to run", default="all", nar
 parser.add_argument("-use_gurobi", help="Whether to use Gurobi as baseline", default=False)
 parser.add_argument("-nb_runs", help="Number of runs", default=3)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
-parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="Energy_accuracy_check.png")
+parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default=".png")
 
 # TSP values
 parser.add_argument("-weight_constant", help="Weight constant for TSP", default=1.0)
@@ -32,7 +32,7 @@ parser.add_argument("-dtMult", help="time step for the Multiplicative solver", d
 parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.25)
 parser.add_argument("-C", help="capacitor parameter", default=1)
 parser.add_argument("-stop_criterion", help="Stop criterion for change in voltages", default=1e-6)
-parser.add_argument("-flip", help="Whether to activate random flipping in BRIM", default=False)
+parser.add_argument("-flip", help="Whether to activate random flipping in BRIM", default=False, type=bool)
 
 # SA parameters
 parser.add_argument("-T", help="Initial temperature", default=50.0)

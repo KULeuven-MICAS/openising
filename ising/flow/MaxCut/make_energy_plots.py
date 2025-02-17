@@ -56,7 +56,7 @@ if args.benchmark is not None:
     iter_list = np.array(range(int(num_iter[0]), int(num_iter[1]), 100))
 
     # Get the best found of the benchmark
-    best_found = -get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
+    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
@@ -129,7 +129,7 @@ print("Plotting energy distribution")
 plot_energy_dist_multiple_solvers(
     logfiles,
     best_found=best_found,
-    best_Gurobi=bool(args.use_gurobi),
+    best_Gurobi=None,
     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
     save_folder=figtop,
     fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
