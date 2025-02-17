@@ -84,8 +84,6 @@ def run_solver(
     num_iter: int,
     s_init: np.ndarray,
     model: IsingModel,
-    clock_freq: float = 1e6,
-    clock_op: int = 1000,
     logfile: pathlib.Path | None = None,
     **hyperparameters,
 ) -> tuple[np.ndarray, float]:

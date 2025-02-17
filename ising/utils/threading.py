@@ -27,7 +27,7 @@ def solver_thread(
         logfiles (list[pathlib.Path]): the logfiles to store the data.
     """
     for run in range(nb_runs):
-        sample = np.random.choice([-1, 1], (model.num_variables,))
+        sample = np.random.choice([-1, 1], (model.num_variables,), p=[0.5, 0.5])
         logfile = logfiles[run]
         run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
                                                logfile=logfile, **hyperparameters)
