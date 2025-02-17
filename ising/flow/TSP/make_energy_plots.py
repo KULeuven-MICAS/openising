@@ -90,7 +90,7 @@ if args.benchmark is not None:
         logfiles += new_logfiles
     if bool(args.use_gurobi):
         best_found_gurobi = [logtop / f"Gurobi_{benchmark}.log"]
-        best_found_gurobi = get_Gurobi_data(np.array(best_found_gurobi), metadata="solution_energy") * np.ones(
+        best_found_gurobi = get_Gurobi_data(np.array(best_found_gurobi), metadata="solution_TSP_energy") * np.ones(
             len(iter_list)
         )
     else:
@@ -105,7 +105,7 @@ if args.benchmark is not None:
             logfiles,
             best_found,
             x_label="num_iterations",
-            y_data="solution_energy",
+            y_data="solution_TSP_energy",
             save_folder=figtop,
             fig_name=f"{benchmark}_relative_error_{fig_name}",
         )
@@ -123,13 +123,13 @@ elif args.N_list is not None:
     run = nb_runs - 1
     for N in N_list:
         for solver in solvers:
-            plot_state(solver, logtop / f"{solver}_N{N}_run{run}.log", f"{solver}_N{N}.png", figtop)
+            plot_state(solver, logtop / f"{solver}_N{N}_run{run}.log", f"{solver}_N{N}_{fig_name}", figtop)
 
     # Make sure that best_found is None if Gurobi was not used
     if len(best_found_gurobi) == 0:
         best_found_gurobi = None
     else:
-        best_found_gurobi = np.array(get_Gurobi_data(best_found_gurobi, metadata="solution_energy"))
+        best_found_gurobi = np.array(get_Gurobi_data(best_found_gurobi, metadata="solution_TSP_energy"))
     best_found = None
 
 else:
@@ -137,6 +137,16 @@ else:
     sys.exit("No benchmark or problem size range is specified")
 
 print("Plotting energy distribution")
+plot_energy_dist_multiple_solvers(
+    logfiles,
+    y_data="solution_TSP_energy",
+    best_found=best_found,
+    best_Gurobi=best_found_gurobi,
+    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
+    save_folder=figtop,
+    fig_name=f"{args.benchmark}_TSP_{fig_name}" if args.benchmark is not None else f"size_comparison_TSP_{fig_name}",
+)
+
 plot_energy_dist_multiple_solvers(
     logfiles,
     y_data="solution_energy",
