@@ -14,10 +14,10 @@ class Multiplicative(SolverBase):
     def solve(
         self,
         model: IsingModel,
-        v: np.ndarray,
-        dt: float,
+        initial_state: np.ndarray,
+        dtMult: float,
         num_iterations: int,
-        logfile: pathlib.Path|None=None,
+        file: pathlib.Path|None=None,
     ) -> tuple[float, np.ndarray]:
         """Solves the given problem using a multiplicative coupling scheme.
 
@@ -33,12 +33,12 @@ class Multiplicative(SolverBase):
         """
         # print(f"{dt=}")
         N = model.num_variables
-        tend = dt * num_iterations
+        tend = dtMult * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
 
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
-        v = np.block([v, 1.0])
+        v = np.block([0.5*initial_state, 1.0])
 
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
@@ -53,14 +53,14 @@ class Multiplicative(SolverBase):
             dv[-1] = 0.0
             return dv
 
-        with HDF5Logger(logfile, schema) as log:
+        with HDF5Logger(file, schema) as log:
             self.log_metadata(
-                logger=log, initial_state=np.sign(v[:-1]), model=model, num_iterations=num_iterations, time_step=dt
+                logger=log, initial_state=np.sign(v[:-1]), model=model, num_iterations=num_iterations, time_step=dtMult
             )
             for i in range(num_iterations):
                 tk = t_eval[i]
-                k1 = dt * dvdt(tk, v)
-                k2 = dt * dvdt(tk + 2 / 3 * dt, v + 2 / 3 * k1)
+                k1 = dtMult * dvdt(tk, v)
+                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, v + 2 / 3 * k1)
                 # print(f"{k2=}")
                 v += 1.0 / 4.0 * (k1 + 3.0 * k2)
                 sample = np.sign(v[:N])

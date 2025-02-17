@@ -61,6 +61,7 @@ def plot_energies(
 def plot_energies_multiple(
     logfiles: list[pathlib.Path],
     figName: str = "multiple_energies.png",
+    y_data:str="energy",
     best_found: float = None,
     save: bool = True,
     save_folder: pathlib.Path = ".",
@@ -70,12 +71,15 @@ def plot_energies_multiple(
     Args:
         logfiles (list[pathlib.Path]): list of all the absolute paths to the logfiles.
         figName (str, optional): name of the figure that will be saved. Defaults to "multiple_energies.png".
+        y_data (str, optional): the data that is used for the y axis. Defaults to "energy".
         best_found (float, optional): best found energy value of the problem. Defaults to 0.0.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where the figure should be stored. Defaults to ".".
     """
-    data = get_data_from_logfiles(logfiles, y_data="energy", x_data="num_iterations")
+    #TODO: voeg gurobi toe
+    data = get_data_from_logfiles(logfiles, y_data=y_data, x_data="num_iterations")
     avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
+
     plt.figure()
     for solver in avg_energies.keys():
         plt.semilogx(range(len(avg_energies[solver][0])), avg_energies[solver][0], label=solver)
@@ -99,7 +103,7 @@ def plot_energy_dist_multiple_solvers(
     y_data:str = "solution_energy",
     fig_name: str = "multiple_solvers_energy_dist.png",
     best_found: np.ndarray | None = None,
-    best_Gurobi: bool = False,
+    best_Gurobi: np.ndarray=None,
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
@@ -110,7 +114,7 @@ def plot_energy_dist_multiple_solvers(
         figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
         best_found (np.ndarray,None, optional): numpy ndarray of the best found solutions of the problem.
                                                 Defaults to None.
-        best_Gurobi (bool, optional): whether the best found solution is from Gurobi solver. Defaults to False.
+        best_Gurobi (np.ndarray, optional): Numpy ndarray with the best solution of Gurobi. Defaults to None.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
@@ -123,9 +127,10 @@ def plot_energy_dist_multiple_solvers(
         plt.fill_between(x_data[solver_name], min_energies[solver_name], max_energies[solver_name], alpha=0.2)
     if best_found is not None:
         plt.semilogx(
-            x_data[solver_name], best_found, "--k", label="Best found: Gurobi" if best_Gurobi else "Best found"
-        )
+            x_data[solver_name], best_found, "--k", label="Best found")
         plt.semilogx(x_data[solver_name], 0.99*best_found, "-.", color="k", label="0.99 of best found")
+    if best_Gurobi is not None:
+        plt.semilogx(x_data[solver_name], best_Gurobi, "--r", label="Best Gurobi")
     plt.xlabel(xlabel.replace("_", " "))
     plt.ylabel(y_data.replace("_", " "))
     plt.legend()
@@ -138,6 +143,7 @@ def plot_relative_error(
     logfiles: list[pathlib.Path],
     best_found: np.ndarray,
     x_label: str,
+    y_data:str="solution_energy",
     fig_name: str = "relative_error.png",
     save: bool = True,
     save_folder: pathlib.Path = ".",
@@ -150,11 +156,13 @@ def plot_relative_error(
         logfiles (list[pathlib.Path]): all the logfiles
         best_found (np.ndarray): an numpy ndarray holding the best found solution of the problem.
         x_data (str): the metadata that is used for the x axis.
+        y_data (str, optional): the metadata that is used for the y axis. Defaults to "solution_energy".
         fig_name (str, optional): name of the figure to be saved. Defaults to "relative_error.png".
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
-    data = get_metadata_from_logfiles(logfiles, y_data="solution_energy", x_data=x_label)
+    #TODO: gurobi toevoegen
+    data = get_metadata_from_logfiles(logfiles, y_data=y_data, x_data=x_label)
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
 
     plt.figure(constrained_layout=True)

@@ -46,6 +46,6 @@ def get_optim_value(benchmark: pathlib.Path | str) -> float:
         for line in f:
             line = line.split()
             if line[0] == benchmark:
-                best_found = float(line[1])
+                best_found = -float(line[1])
                 break
     return best_found

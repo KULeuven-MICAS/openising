@@ -6,7 +6,7 @@ from ising.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
-from ising.utils.clock import clock
+# from ising.utils.clock import clock
 
 
 class SB(SolverBase):
@@ -28,7 +28,10 @@ class SB(SolverBase):
         # return x, y
 
     def at(self, t, a0, dt, num_iterations):
-        return a0 / (dt*num_iterations) * t
+        return 2*a0 / (dt*num_iterations) * t
+
+    def bt(self, t, a0, dt, num_iterations):
+        return self.at(t, a0, dt, num_iterations) / 2
 
     @abstractmethod
     def solve(self, model: IsingModel):
@@ -43,11 +46,10 @@ class ballisticSB(SB):
     def solve(
         self,
         model: IsingModel,
-        x: np.ndarray,
-        y: np.ndarray,
+        initial_state:np.ndarray,
         num_iterations: int,
         c0: float,
-        dt: float,
+        dtSB: float,
         a0: float = 1.0,
         file: pathlib.Path | None = None,
         clock_freq: float = 1e6,
@@ -77,7 +79,10 @@ class ballisticSB(SB):
         tk = 0.0
         N = model.num_variables
         J = triu_to_symm(model.J)
-        clocker = clock(clock_freq, clock_op)
+        # clocker = clock(clock_freq, clock_op)
+
+        x = 0.01 * initial_state
+        y = np.zeros_like(x)
 
         schema = {
             "time": float,
@@ -86,7 +91,7 @@ class ballisticSB(SB):
             "positions": (np.float32, (N,)),
             "momenta": (np.float32, (N,)),
             "at": np.float32,
-            "time_clock": float,
+            # "time_clock": float,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -95,39 +100,43 @@ class ballisticSB(SB):
                 initial_state=np.sign(x),
                 model=model,
                 num_iterations=num_iterations,
-                time_step=dt,
+                time_step=dtSB,
                 a0=a0,
                 c0=c0,
             )
+            sample = np.sign(x)
+            energy = model.evaluate(sample)
+            log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
-                atk = self.at(tk, a0, dt, num_iterations)
-                clocker.add_operations(1)
+                atk = self.at(tk, a0, dtSB, num_iterations)
+                btk = self.bt(tk, a0, dtSB, num_iterations)
+                # clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * model.h) * dt
-                clocker.add_cycles(1 + np.log2(N))
-                clocker.add_operations(5 * N)
-                clocker.perform_operations()
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * btk * model.h) * dtSB
+                # clocker.add_cycles(1 + np.log2(N))
+                # clocker.add_operations(5 * N)
+                # clocker.perform_operations()
 
-                x += self.update_x(y, dt, a0)
-                clocker.add_operations(2 * N + 1)
-                clocker.perform_operations()
+                x += self.update_x(y, dtSB, a0)
+                # clocker.add_operations(2 * N + 1)
+                # clocker.perform_operations()
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
                         self.update_rule(x, y, j)
-                        clocker.add_operations(2)
+                        # clocker.add_operations(2)
 
-                clocker.add_operations(1)
-                time = clocker.perform_operations()
+                # clocker.add_operations(1)
+                # time = clocker.perform_operations()
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time)
-                tk += dt
+                tk += dtSB
+                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
 
-            total_time = clocker.get_time()
+            # total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
-                solution_state=sample, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+                solution_state=sample, solution_energy=energy, total_operations=nb_operations
             )
         return sample, energy
 
@@ -140,11 +149,10 @@ class discreteSB(SB):
     def solve(
         self,
         model: IsingModel,
-        x: np.ndarray,
-        y: np.ndarray,
+        initial_state:np.ndarray,
         num_iterations: int,
         c0: float,
-        dt: float,
+        dtSB: float,
         a0: float = 1.0,
         file: pathlib.Path | None = None,
         clock_freq: float = 1e6,
@@ -173,7 +181,10 @@ class discreteSB(SB):
         N = model.num_variables
         tk = 0.0
         J = triu_to_symm(model.J)
-        clocker = clock(clock_freq, clock_op)
+        # clocker = clock(clock_freq, clock_op)
+
+        x = 0.01 * initial_state
+        y = np.zeros_like(x)
 
         schema = {
             "time": float,
@@ -182,7 +193,7 @@ class discreteSB(SB):
             "positions": (np.float32, (N,)),
             "momenta": (np.float32, (N,)),
             "at": np.float32,
-            "time_clock": float,
+            # "time_clock": float,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -191,40 +202,43 @@ class discreteSB(SB):
                 initial_state=np.sign(x),
                 model=model,
                 num_iterations=num_iterations,
-                time_step=dt,
+                time_step=dtSB,
                 a0=a0,
                 c0=c0,
             )
-
+            sample = np.sign(x)
+            energy = model.evaluate(sample)
+            log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
-                atk = self.at(tk, a0, dt, num_iterations)
-                clocker.add_operations(1)
+                atk = self.at(tk, a0, dtSB, num_iterations)
+                btk = self.bt(tk, a0, dtSB, num_iterations)
+                # clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dt
-                clocker.add_cycles(1 + np.log2(N))
-                clocker.add_operations(5 * N)
-                clocker.perform_operations()
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * btk * model.h) * dtSB
+                # clocker.add_cycles(1 + np.log2(N))
+                # clocker.add_operations(5 * N)
+                # clocker.perform_operations()
 
-                x += self.update_x(y, dt, a0)
-                clocker.add_operations(2 * N)
-                clocker.perform_operations()
+                x += self.update_x(y, dtSB, a0)
+                # clocker.add_operations(2 * N)
+                # clocker.perform_operations()
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
                         self.update_rule(x, y, j)
-                        clocker.add_operations(2)
+                        # clocker.add_operations(2)
 
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
 
-                clocker.add_operations(1)
-                time_clock = clocker.perform_operations()
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk, time_clock=time_clock)
-                tk += dt
+                # clocker.add_operations(1)
+                # time_clock = clocker.perform_operations()
+                tk += dtSB
+                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
 
-            total_time = clocker.get_time()
+            # total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
-                solution_state=sample, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+                solution_state=sample, solution_energy=energy, total_operations=nb_operations
             )
         return sample, energy

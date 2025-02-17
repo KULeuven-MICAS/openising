@@ -38,7 +38,7 @@ def plot_MC_solution(fileName:pathlib.Path, G_orig:nx.Graph, fig_name:str="MC_so
 
     G.add_nodes_from(G_orig.nodes(data=True))
     G.add_edges_from(edges)
-    pos = nx.spring_layout(G, seed=1)
+    pos = nx.spring_layout(G,k=5/np.sqrt(G.order()), seed=1)
 
     plt.figure()
     plt.subplot(1, 2, 2)
