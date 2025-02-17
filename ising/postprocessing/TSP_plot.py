@@ -48,6 +48,7 @@ def plot_graph_solution(
     nx.draw_networkx_edges(G_orig, pos, edgelist=red_edges, edge_color="r", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_edges(G_orig, pos, edgelist=black_edges, edge_color="k", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_labels(G_orig, pos, labels={i: i for i in range(1, N+1)})
+    nx.draw_networkx_edge_labels(G_orig, pos, edge_labels=nx.get_edge_attributes(G_orig, "weight"))
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
         plt.savefig(f"{save_folder}/{fig_name}")
