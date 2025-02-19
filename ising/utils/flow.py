@@ -155,16 +155,16 @@ def return_c0(model: IsingModel) -> float:
     )
 
 
-def return_G(problem: IsingModel) -> float:
+def return_G(J: np.ndarray) -> float:
     """Returns the optimal latch resistant value for the given problem.
 
     Args:
-        problem (IsingModel): the problem that will be solved with BRIM.
+        J (np.ndarray): the coefficient matrix of the problem that will be solved with BRIM.
 
     Returns:
         float: the latch resistance.
     """
-    sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
+    sumJ = np.sum(np.abs(triu_to_symm(J)), axis=0)
     return np.average(sumJ) * 2
 
 
