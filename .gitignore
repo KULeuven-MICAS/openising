@@ -3,6 +3,7 @@
 *.tmp
 **/log
 **/tmp
+*.out
 
 # environment stuff
 .env
