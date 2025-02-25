@@ -35,7 +35,7 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
     make_directory(logpath)
 
     print(f"condition number of J: {np.linalg.cond(model.J, p="fro")}")
-    if bool(args.use_gurobi):
+    if bool(int(args.use_gurobi)):
         gurobi_log = logpath / f"Gurobi_{benchmark}.log"
         Gurobi().solve(model=model, file=gurobi_log)
 

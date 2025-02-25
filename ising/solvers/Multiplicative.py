@@ -21,7 +21,7 @@ class Multiplicative(SolverBase):
         num_iterations: int,
         seed:int = 0,
         initial_temp:float = 1.,
-        end_temp: float =0.05,
+        end_temp: float = 0.05,
         stop_criterion: float = 1e-8,
         file: pathlib.Path|None=None,
     ) -> tuple[float, np.ndarray]:
@@ -92,7 +92,7 @@ class Multiplicative(SolverBase):
             i                 = 0
             max_change        = np.inf
             previous_voltages = np.copy(v)
-            T                 = initial_temp
+            T                 = initial_temp if initial_temp < 1.0 else 1.0
             cooling_rate      = return_rx(num_iterations, initial_temp, end_temp)
 
             while i < num_iterations and max_change > stop_criterion:

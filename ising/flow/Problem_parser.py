@@ -31,8 +31,7 @@ parser.add_argument("-dtMult", help="time step for the Multiplicative solver", d
 # BRIM parameters
 parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.25)
 parser.add_argument("-C", help="capacitor parameter", default=1)
-parser.add_argument("-stop_criterion", help="Stop criterion for change in voltages", default=1e-6)
-parser.add_argument("-flip", help="Whether to activate random flipping in BRIM", default=False, type=bool)
+parser.add_argument("-stop_criterion", help="Stop criterion for change in voltages", default=1e-8)
 
 # SA parameters
 parser.add_argument("-T", help="Initial temperature", default=50.0)
