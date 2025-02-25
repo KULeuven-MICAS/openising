@@ -45,15 +45,14 @@ class ballisticSB(SB):
 
     def solve(
         self,
-        model: IsingModel,
-        initial_state:np.ndarray,
+        model:          IsingModel,
+        initial_state:  np.ndarray,
         num_iterations: int,
-        c0: float,
-        dtSB: float,
-        a0: float = 1.0,
-        file: pathlib.Path | None = None,
-        clock_freq: float = 1e6,
-        clock_op: int = 1000,
+        c0:             float,
+        dtSB:           float,
+        a0:             float = 1.0,
+        file:           pathlib.Path | None = None,
+        bit_width:      int = 16
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -70,70 +69,67 @@ class ballisticSB(SB):
             dt (float): time step.
             file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
                                                  no logging is performed
-            clock_freq (float): frequency of the clock cycle
-            clock_op (int): amount of operations that can be performed per clock cycle.
+            bit_width (int, optional): The bit width for the position and momenta. Defaults to 16.
 
         Returns:
             sample, energy (tuple[np.ndarray, float]): optimal solution and energy
         """
-        tk = 0.0
-        N = model.num_variables
-        J = triu_to_symm(model.J)
-        # clocker = clock(clock_freq, clock_op)
+        N  = model.num_variables
 
-        x = 0.01 * initial_state
-        y = np.zeros_like(x)
+        # Set up the model and initial states with the correct data type
+        floatmap      = {16:np.float16, 32:np.float32, 64:np.float64}
+        dtype         = floatmap.get(bit_width, np.float16)
+        J             = np.array(triu_to_symm(model.J), dtype=dtype)
+        h             = np.array(model.h, dtype=dtype)
+        initial_state = np.array(initial_state, dtype=dtype)
+        x             = 0.01 * initial_state
+        y             = np.zeros_like(x, dtype=dtype)
+
+        # Cast all the variables to the correct data type
+        dtSB = dtype(dtSB)
+        a0   = dtype(a0)
+        c0   = dtype(c0)
+        tk   = dtype(0.0)
 
         schema = {
-            "time": float,
-            "energy": np.float32,
-            "state": (np.int8, (N,)),
-            "positions": (np.float32, (N,)),
-            "momenta": (np.float32, (N,)),
-            "at": np.float32,
-            # "time_clock": float,
+            "time"      : dtype,
+            "energy"    : dtype,
+            "state"     : (np.int8, (N,)),
+            "positions" : (dtype, (N,)),
+            "momenta"   : (dtype, (N,)),
+            "at"        : dtype,
         }
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
-                logger=log,
-                initial_state=np.sign(x),
-                model=model,
-                num_iterations=num_iterations,
-                time_step=dtSB,
-                a0=a0,
-                c0=c0,
+                logger         = log,
+                initial_state  = np.sign(x),
+                model          = model,
+                num_iterations = num_iterations,
+                time_step      = dtSB,
+                a0             = a0,
+                c0             = c0,
             )
+
             sample = np.sign(x)
             energy = model.evaluate(sample)
             log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
-                atk = self.at(tk, a0, dtSB, num_iterations)
-                btk = self.bt(tk, a0, dtSB, num_iterations)
-                # clocker.add_operations(1)
+                atk = dtype(self.at(tk, a0, dtSB, num_iterations))
+                btk = dtype(self.bt(tk, a0, dtSB, num_iterations))
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * btk * model.h) * dtSB
-                # clocker.add_cycles(1 + np.log2(N))
-                # clocker.add_operations(5 * N)
-                # clocker.perform_operations()
-
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * btk * h) * dtSB
                 x += self.update_x(y, dtSB, a0)
-                # clocker.add_operations(2 * N + 1)
-                # clocker.perform_operations()
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
                         self.update_rule(x, y, j)
-                        # clocker.add_operations(2)
 
-                # clocker.add_operations(1)
-                # time = clocker.perform_operations()
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-                tk += dtSB
+                tk    += dtSB
                 log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
 
-            # total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
                 solution_state=sample, solution_energy=energy, total_operations=nb_operations
@@ -155,8 +151,6 @@ class discreteSB(SB):
         dtSB: float,
         a0: float = 1.0,
         file: pathlib.Path | None = None,
-        clock_freq: float = 1e6,
-        clock_op: int = 1000,
     ) -> tuple[np.ndarray, float]:
         """Performs the discrete Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation discretizes the positions x_i at all times to reduce analog errors.
@@ -172,8 +166,6 @@ class discreteSB(SB):
             dt (float): time step.
             file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
                                                  no logging is performed
-            clock_freq (float): frequency of the clock cycle
-            clock_op (int): amount of operations that can be performed per clock cycle.
 
         Returns:
             sample, energy (tuple[np.ndarray, float]): optimal solution and energy
