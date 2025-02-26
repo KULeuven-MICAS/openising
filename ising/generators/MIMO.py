@@ -1,9 +1,10 @@
 import numpy as np
+import time
 
 from ising.model.ising import IsingModel
 
 
-def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1) -> tuple[IsingModel, np.ndarray]:
+def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1, r: float = 5.0) -> tuple[IsingModel, np.ndarray]:
     """Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
     This is consecutively transformed into an Ising model.
 
@@ -16,18 +17,43 @@ def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1) -> tuple[IsingM
     Returns:
         tuple[IsingModel, np.ndarray]: the generated Ising model and the solution.
     """
+    if seed == 0:
+        seed = int(time.time())
+    np.random.seed(seed)
+
     r = int(np.ceil(np.log2(np.sqrt(M))))
     symbols = np.concatenate(
         ([-np.sqrt(M) + i for i in range(1, 1 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 1 + 2 * r, 2)])
     )
 
-    H = np.random.normal(0, 1, (Nr, Nt)) + 1j * np.random.normal(0, 1, (Nr, Nt))
+    phi_u     = 60 * (np.random.random((10, Nt)) - 0.5) * np.pi / 180
+    mean_phi  = np.mean(phi_u, axis=0)
+    sigma_phi = np.std(phi_u, axis=0)
+
+    H = np.zeros((Nr, Nt), dtype='complex_')
+    for i in range(Nt):
+        C     = np.zeros((Nr, Nr), dtype="complex_")
+        phi   = mean_phi[i]
+        sigma = sigma_phi[i]
+        for m in range(Nr):
+            for n in range(Nr):
+                d = spacing_BS_antennas(m, n)
+                C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
+                    -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
+                )
+        D, V = np.linalg.eig(C)
+        hu = V @ np.diag(D)**0.5 @ V.conj().T @ np.random.normal(0, 1, (Nr,))
+        H[:, i] = hu
 
     return H, symbols
 
 
+def spacing_BS_antennas(m, n):
+    return np.abs(m - n)
+
+
 def MIMO_to_Ising(
-    H: np.ndarray, x: np.ndarray, T: np.ndarray, SNR: float, Nr: int, Nt: int, M: int
+    H: np.ndarray, x: np.ndarray, SNR: float, Nr: int, Nt: int, M: int
 ) -> tuple[IsingModel, np.ndarray]:
     """Transforms the MIMO model into an Ising model.
 

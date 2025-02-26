@@ -7,7 +7,7 @@ from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
 from ising.postprocessing.MIMO_plot import plot_error_SNR
 from ising.postprocessing.plot_solutions import plot_state_continuous
 
-from ising.utils.helper_solvers import run_solver, return_c0, return_rx
+from ising.utils.flow import run_solver, return_c0, return_rx
 from ising.utils.numpy import triu_to_symm
 
 TOP = pathlib.Path(os.getenv("TOP"))
