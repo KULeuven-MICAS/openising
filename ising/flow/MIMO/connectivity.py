@@ -13,7 +13,7 @@ M = 64
 SNR_list = np.linspace(0, 10, 11)
 
 for SNR in SNR_list:
-    H, symbols = MU_MIMO(N, N, M, SNR, 1, 5)
+    H, symbols = MU_MIMO(N, N, M, 1, 2.)
     x = np.random.choice(symbols, (N,)) + 1j*np.random.choice(symbols, (N,))
     model, xtilde = MIMO_to_Ising(H, x, SNR, N, N, M)
 

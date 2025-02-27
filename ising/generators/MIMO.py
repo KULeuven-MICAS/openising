@@ -4,7 +4,7 @@ import time
 from ising.model.ising import IsingModel
 
 
-def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1, r: float = 5.0) -> tuple[IsingModel, np.ndarray]:
+def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, distance: float = 5.0) -> tuple[IsingModel, np.ndarray]:
     """Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
     This is consecutively transformed into an Ising model.
 
@@ -26,7 +26,8 @@ def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1, r: float = 5.0)
         ([-np.sqrt(M) + i for i in range(1, 1 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 1 + 2 * r, 2)])
     )
 
-    phi_u     = 60 * (np.random.random((10, Nt)) - 0.5) * np.pi / 180
+    phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
+    phi_u.sort()
     mean_phi  = np.mean(phi_u, axis=0)
     sigma_phi = np.std(phi_u, axis=0)
 
@@ -37,7 +38,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1, r: float = 5.0)
         sigma = sigma_phi[i]
         for m in range(Nr):
             for n in range(Nr):
-                d = spacing_BS_antennas(m, n)
+                d = spacing_BS_antennas(m, n, distance)
                 C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
                     -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
                 )
@@ -48,8 +49,8 @@ def MU_MIMO(Nt: int, Nr: int, M: int, SNR: float, seed: int = 1, r: float = 5.0)
     return H, symbols
 
 
-def spacing_BS_antennas(m, n):
-    return np.abs(m - n)
+def spacing_BS_antennas(m, n, distance):
+    return distance*np.abs(m - n)
 
 
 def MIMO_to_Ising(
