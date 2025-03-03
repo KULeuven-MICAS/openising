@@ -6,7 +6,6 @@ from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
-from ising.utils.flow import return_rx
 
 
 class BRIM(SolverBase):
@@ -77,7 +76,7 @@ class BRIM(SolverBase):
 
         # Ensure the bias node is added and add noise to the initial voltages
         N = model.num_variables
-        v = np.block([initial_state, 1.0])
+        v = np.block([0.01*initial_state, 1.0])
         v += 0.001 * (np.random.random((N + 1,)) - 0.5)
 
         # Schema for the logging
@@ -119,7 +118,7 @@ class BRIM(SolverBase):
             previous_voltages = np.copy(v)
             max_change        = np.inf
             T                 = initial_temp if initial_temp <= 1.0 else 1.0
-            cooling_rate      = return_rx(num_iterations, initial_temp, end_temp)
+            cooling_rate      = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0. else 1.
 
             # Initial logging
             sample = np.sign(v[:N])
@@ -133,7 +132,12 @@ class BRIM(SolverBase):
                 k1 = dtBRIM * dvdt(tk, previous_voltages, J)
                 k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J)
 
-                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + T*(np.random.random((N+1,))-0.5)
+                # Add noise and update the voltages
+                noise = T * (np.random.random((N+1,)) - 0.5)
+                cond1 = (previous_voltages > 1) & (noise > 0)
+                cond2 = (previous_voltages < -1) & (noise < 0)
+                noise *= np.where(cond1|cond2, 1-previous_voltages**2, 1)
+                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
 
                 # Lower the temperature
                 T *= cooling_rate

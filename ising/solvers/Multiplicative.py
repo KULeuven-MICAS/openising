@@ -6,7 +6,6 @@ from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
-from ising.utils.flow import return_rx
 
 
 class Multiplicative(SolverBase):
@@ -15,15 +14,15 @@ class Multiplicative(SolverBase):
 
     def solve(
         self,
-        model: IsingModel,
-        initial_state: np.ndarray,
-        dtMult: float,
+        model:          IsingModel,
+        initial_state:  np.ndarray,
+        dtMult:         float,
         num_iterations: int,
-        seed:int = 0,
-        initial_temp:float = 1.,
-        end_temp: float = 0.05,
-        stop_criterion: float = 1e-8,
-        file: pathlib.Path|None=None,
+        seed:           int               = 0,
+        initial_temp:   float             = 1.,
+        end_temp:       float             = 0.05,
+        stop_criterion: float             = 1e-8,
+        file:           pathlib.Path|None = None,
     ) -> tuple[float, np.ndarray]:
         """Solves the given problem using a multiplicative coupling scheme.
 
@@ -42,10 +41,8 @@ class Multiplicative(SolverBase):
         t_eval = np.linspace(0.0, tend, num_iterations)
 
         # Transform the model to one with no h and mean variance of J
-        model.normalize()
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
-        model.reconstruct()
 
         # make sure the correct random seed is used
         if seed == 0:
@@ -54,25 +51,37 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         N = model.num_variables
-        v = np.block([0.1*initial_state, 1.0])
-        v += 0.01 * (np.random.random((N+1,)) - 0.5)
+        v = np.block([0.01*initial_state, 1.0])
+        v += 0.001 * (np.random.random((N+1,)) - 0.5)
 
         # Schema for logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         # Define the system equations
-        def dvdt(t, vt, coupling):
-            # Set the bias node to 1.
+        def dvdt(t:float, vt:np.ndarray, coupling:np.ndarray):
+            """Differential equations for the multiplicative BRIM model.
+
+            Args:
+                t (float): time
+                vt (np.ndarray): current voltages
+                coupling (np.ndarray): coupling matrix J
+
+            Returns:
+                dv (np.ndarray): the change of the voltages
+            """
+            # set bias node to 1.
             vt[-1] = 1.0
 
+            # vt[np.where(np.abs(vt) > 1)] = np.sign(vt[np.where(np.abs(vt) > 1)])
+
             # Compute the voltage change dv
-            k = np.tanh(3*vt)
+            k  = np.tanh(3*vt)
             dv = 1 / 2 * np.dot(coupling, k)
 
             # Ensure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 0)
             cond2 = (dv < 0) & (vt < 0)
-            dv *= np.where(cond1 | cond2, 1 - v**2, 1)
+            dv   *= np.where(cond1|cond2, 1-vt**2, 1)
 
             # Ensure the bias node does not change
             dv[-1] = 0.0
@@ -85,7 +94,7 @@ class Multiplicative(SolverBase):
                 model          = model,
                 num_iterations = num_iterations,
                 time_step      = dtMult,
-                temperature   = initial_temp,
+                temperature    = initial_temp,
             )
 
             # Set up the simulation
@@ -93,30 +102,35 @@ class Multiplicative(SolverBase):
             max_change        = np.inf
             previous_voltages = np.copy(v)
             T                 = initial_temp if initial_temp < 1.0 else 1.0
-            cooling_rate      = return_rx(num_iterations, initial_temp, end_temp)
+            cooling_rate      = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0. else 1.
 
             while i < num_iterations and max_change > stop_criterion:
                 tk = t_eval[i]
 
                 # Runge Kutta steps
-                k1 = dtMult * dvdt(tk, v, J)
-                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, v + 2 / 3 * k1, J)
-                new_voltages = previous_voltages +  1.0 / 4.0 * (k1 + 3.0 * k2) + T * (np.random.random((N+1,)) - 0.5)
+                k1 = dtMult * dvdt(tk, previous_voltages, J)
+                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, J)
+
+                # Add noise and update the voltages
+                noise = T * (np.random.random((N+1,)) - 0.5)
+                cond1 = (previous_voltages > 1) & (noise > 0)
+                cond2 = (previous_voltages < -1) & (noise < 0)
+                noise *= np.where(cond1|cond2, 1-previous_voltages**2, 1)
+                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
 
                 T *= cooling_rate
 
                 # Log everything
-                sample = np.sign(new_voltages[:N])
+                sample = np.sign(new_voltages[:N])*np.sign(new_voltages[-1])
                 energy = model.evaluate(sample)
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
                 # Update the criterion changes
-                max_change        = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
-                                        previous_voltages, ord=np.inf
-                                    )
+                max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
+                    previous_voltages, ord=np.inf
+                )
                 previous_voltages = np.copy(new_voltages)
-                i                += 1
-
+                i += 1
             # Make sure to log to the last iteration if the stop criterion is reached
             if max_change < stop_criterion:
                 for j in range(i, num_iterations):
