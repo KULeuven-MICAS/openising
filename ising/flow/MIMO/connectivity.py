@@ -8,17 +8,18 @@ from ising.utils.numpy import triu_to_symm
 
 TOP = pathlib.Path(os.getenv("TOP"))
 figtop = TOP / "ising/flow/MIMO/connectivity_figs"
-N = 6
-M = 64
+N = 2
+M = 16
 SNR_list = np.linspace(0, 10, 11)
 
 for SNR in SNR_list:
-    H, symbols = MU_MIMO(N, N, M, 1, 2.)
+    H, symbols = MU_MIMO(N, N, M, 0)
     x = np.random.choice(symbols, (N,)) + 1j*np.random.choice(symbols, (N,))
     model, xtilde = MIMO_to_Ising(H, x, SNR, N, N, M)
 
-    model.transform_to_no_h()
-    J = triu_to_symm(model.J)
+    newmodel = model.transform_to_no_h()
+    print(f"{model.h=}")
+    J = triu_to_symm(newmodel.J)
 
     plt.figure()
     plt.imshow(J, interpolation="nearest")

@@ -8,7 +8,7 @@ from ising.utils.HDF5Logger import return_metadata
 
 
 def plot_error_SNR(
-    logfiles: dict[int : dict[str : pathlib.Path]],
+    logfiles: dict[str:list[pathlib.Path]],
     M: int,
     actual_solutions: dict[int : dict[int:np.ndarray]],
     save: bool = True,
@@ -18,30 +18,38 @@ def plot_error_SNR(
     """Plots the relative error between the optimal solution and the computed solution for different SNRs.
 
     Args:
-        logfiles (dict[int: dict[str:pathlib.Path]]): the logfiles for the different SNRs.
+        logfiles (dict[str:list[pathlib.Path]]): the logfiles for the different solvers.
         M (int): the considered QAM scheme.
         actual_solutions (list[np.ndarray]): the actual solutions
+        save (bool, optional): Whether to save the figure. Defaults to True.
+        save_folder (pathlib.Path, optional): The path to the folder in which to save the figure. Defaults to ".".
+        figname (str, optional): The name of the figure to save. Defaults to error_SNR.png.
     """
 
     error_data = dict()
-    for SNR, solver in logfiles.items():
-        error_data[SNR] = dict()
-        for solver_name, logfiles in solver.items():
-            optim_states = [return_metadata(logfile, metata="solution_state") for logfile in logfiles]
-            error_data[SNR][solver_name] = []
-            i=0
-            for optim_state in optim_states:
-                error_data[SNR][solver_name].append(compute_difference(optim_state, actual_solutions[SNR][i], M))
-                i+=1
+    for solver, solver_logfiles in logfiles.items():
+        error_data[solver] = dict()
+        for logfile in solver_logfiles:
+            logfile_str = str(logfile)
+            run = int(logfile_str.split("_")[-1].split('.')[0][3:])
+            SNR = int(logfile_str.split("_")[-2][3:])
+            solver = return_metadata(logfile, "solver")
+            if SNR not in error_data[solver].keys():
+                error_data[solver][SNR] = []
+            xtilde = actual_solutions[SNR][run]
+            optim_state = return_metadata(logfile, "solution_state")
+            error_data[solver][SNR].append(compute_difference(optim_state, xtilde, M))
+
     avg_error, min_error, max_error, x_data = compute_averages_energies(error_data)
 
     plt.figure()
     for solver_name, error in avg_error.items():
-        plt.plot(x_data, error, label=solver_name)
-        plt.fill_between(x_data, min_error[solver_name], max_error[solver_name], alpha=0.2)
+        plt.semilogx(x_data[solver_name], error, label=solver_name)
+        plt.fill_between(x_data[solver_name], min_error[solver_name], max_error[solver_name], alpha=0.2)
     plt.xlabel("SNR [dB]")
     plt.ylabel("Bit Error Rate")
     plt.legend()
     if save:
+        print(save)
         plt.savefig(save_folder / figname)
     plt.close()

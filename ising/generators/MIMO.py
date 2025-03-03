@@ -4,7 +4,7 @@ import time
 from ising.model.ising import IsingModel
 
 
-def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, distance: float = 5.0) -> tuple[IsingModel, np.ndarray]:
+def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.ndarray]:
     """Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
     This is consecutively transformed into an Ising model.
 
@@ -12,7 +12,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, distance: float = 5.0) -> t
         Nt (int): The amount of users.
         Nr (int): The amount of antennas at the Base Station.
         M (int): the considered QAM scheme.
-        SNR (float): the Signal to Noise Ratio.
+        seed (int, optional): The seed for the random number generator. Defaults to 1.
 
     Returns:
         tuple[IsingModel, np.ndarray]: the generated Ising model and the solution.
@@ -29,7 +29,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, distance: float = 5.0) -> t
     phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
     phi_u.sort()
     mean_phi  = np.mean(phi_u, axis=0)
-    sigma_phi = np.std(phi_u, axis=0)
+    sigma_phi = np.random.normal(0, 1, (Nt,))
 
     H = np.zeros((Nr, Nt), dtype='complex_')
     for i in range(Nt):
@@ -38,23 +38,23 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, distance: float = 5.0) -> t
         sigma = sigma_phi[i]
         for m in range(Nr):
             for n in range(Nr):
-                d = spacing_BS_antennas(m, n, distance)
+                d = spacing_BS_antennas(m, n)
                 C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
                     -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
                 )
         D, V = np.linalg.eig(C)
-        hu = V @ np.diag(D)**0.5 @ V.conj().T @ np.random.normal(0, 1, (Nr,))
+        hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
         H[:, i] = hu
 
     return H, symbols
 
 
-def spacing_BS_antennas(m, n, distance):
-    return distance*np.abs(m - n)
+def spacing_BS_antennas(m, n):
+    return np.abs(m - n)
 
 
 def MIMO_to_Ising(
-    H: np.ndarray, x: np.ndarray, SNR: float, Nr: int, Nt: int, M: int
+    H: np.ndarray, x: np.ndarray, SNR: float, Nr: int, Nt: int, M: int, seed:int=0
 ) -> tuple[IsingModel, np.ndarray]:
     """Transforms the MIMO model into an Ising model.
 
@@ -66,6 +66,7 @@ def MIMO_to_Ising(
         Nr (int): the amount of input signals.
         Nt (int): the amount of output signals.
         M (int): the considered QAM scheme.
+        seed (int, optional): The seed for the random number generator. Defaults to 0.
 
     Returns:
         tuple[IsingModel, np.ndarray]: the generated Ising model and transformed input signal.
@@ -73,6 +74,10 @@ def MIMO_to_Ising(
     r = int(np.ceil(np.log2(np.sqrt(M))))
 
     Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
+
+    if seed == 0:
+        seed = int(time.time())
+    np.random.seed(seed)
 
     amp = np.average(np.abs(x)) / 10 ** (SNR / 20)
     n = 1 / amp * (np.random.normal(0, 1, (Nr,)) + 1j * np.random.normal(0, 1, (Nr,)))
