@@ -88,6 +88,8 @@ def plot_energies_multiple(
         )
     if best_found is not None:
         plt.axhline(best_found, linestyle="--", color="k", label="Best Found")
+        plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
+
     plt.legend()
     plt.title("Energy comparison of different optimisation processes")
     plt.xlabel("iteration")
