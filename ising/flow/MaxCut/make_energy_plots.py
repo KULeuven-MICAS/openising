@@ -11,7 +11,7 @@ from ising.postprocessing.energy_plot import (
     plot_energies_multiple,
 )
 from ising.postprocessing.plot_solutions import plot_state
-from ising.utils.flow import make_directory
+from ising.utils.flow import make_directory, compute_list_from_arg
 from ising.utils.HDF5Logger import get_Gurobi_data
 
 TOP = pathlib.Path(os.getenv("TOP"))
@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--solvers", help="Which solvers to gather data from", default="all", nargs="+")
 parser.add_argument("-benchmark", help="Name of the banchmark that ran", default=None)
 parser.add_argument("--N_list", help="Tuple containing min and max problem size", default=None, nargs="+")
-parser.add_argument("--num_iter", help="Number of iterations", default=None, nargs="+")
+parser.add_argument("--iter_list", help="Number of iterations", default=None, nargs="+")
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-use_gurobi", help="whether Gurobi was used", default=False)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
@@ -44,16 +44,18 @@ figtop = TOP / "ising/flow/MaxCut/plots" / args.fig_folder
 make_directory(figtop)
 fig_name = str(args.fig_name)
 
+use_gurobi = bool(int(args.use_gurobi))
+
 if args.benchmark is not None:
     print("Benchmark logs are plotted")
     # Benchmark is given and should be plotted
     benchmark = str(args.benchmark)
 
     # Check if num_iter is given
-    if args.num_iter is None:
+    if args.iter_list is None:
         sys.exit("No iteration range is specified while benchmark is given")
-    num_iter = args.num_iter[0].split()
-    iter_list = np.array(range(int(num_iter[0]), int(num_iter[1]), 100))
+    num_iter = args.iter_list[0]
+    iter_list = compute_list_from_arg(num_iter, 100)
 
     # Get the best found of the benchmark
     best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
@@ -105,21 +107,28 @@ elif args.N_list is not None:
 
     # Generate all the logfiles
     for N in N_list:
+        new_logfiles = []
         for solver in solvers:
             for run in range(nb_runs):
                 logfile = logtop / f"{solver}_N{N}_run{run}.log"
-                logfiles.append(logfile)
+                new_logfiles.append(logfile)
             if run == nb_runs - 1:
                 plot_state(solver, logfile, f"{solver}_N{N}.png", figtop)
-        if bool(args.use_gurobi):
+        if use_gurobi:
             best_found.append(logtop / f"Gurobi_N{N}.log")
+        plot_energies_multiple(
+            logfiles=new_logfiles,
+            figName=f"N{N}_{fig_name}",
+            best_found=get_Gurobi_data([best_found[-1]]) if use_gurobi else None,
+            save_folder=figtop,
+        )
+        logfiles += new_logfiles
 
     # Make sure that best_found is None if Gurobi was not used
     if len(best_found) == 0:
         best_found = None
     else:
         best_found = np.array(get_Gurobi_data(best_found))
-
 
 else:
     # No benchmark or problem size range is given => exit

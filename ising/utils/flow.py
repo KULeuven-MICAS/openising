@@ -49,7 +49,9 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     # SA parameters
     hyperparameters["initial_temp"] = float(args.T)
     Tfin = float(args.T_final)
-    hyperparameters["cooling_rate"] = return_rx(num_iter, hyperparameters["initial_temp"], Tfin)
+    hyperparameters["cooling_rate"] = (
+        return_rx(num_iter, hyperparameters["initial_temp"], Tfin) if hyperparameters["initial_temp"] != 0 else 0.0
+    )
     hyperparameters["seed"] = int(args.seed)
 
     # SCA parameters
@@ -97,7 +99,7 @@ def run_solver(
         logfile (pathlib.Path | None, optional): path to logfile to store data. Defaults to None.
 
     Returns:
-        tuple[np.ndarray, float]: optimal state and energy of the specified solver.
+        optim_state,optim_energy (tuple[np.ndarray, float]): optimal state and energy of the specified solver.
     """
     optim_state = np.zeros((model.num_variables,))
     optim_energy = None

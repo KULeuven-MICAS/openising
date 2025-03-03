@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import pathlib
 import argparse
@@ -34,7 +33,6 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
     logpath = TOP / "ising/flow/MaxCut/logs"
     make_directory(logpath)
 
-    print(f"condition number of J: {np.linalg.cond(model.J, p="fro")}")
     if bool(int(args.use_gurobi)):
         gurobi_log = logpath / f"Gurobi_{benchmark}.log"
         Gurobi().solve(model=model, file=gurobi_log)
@@ -60,4 +58,3 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
         make_solvers_thread(
             solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
         )
-    print("Done")
