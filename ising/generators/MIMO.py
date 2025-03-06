@@ -79,16 +79,20 @@ def MIMO_to_Ising(
         seed = int(time.time())
     np.random.seed(seed)
 
-    amp = np.average(np.abs(x)) / 10 ** (SNR / 20)
-    n = 1 / amp * (np.random.normal(0, 1, (Nr,)) + 1j * np.random.normal(0, 1, (Nr,)))
+    # Compute the amplitude of the noise
+    amp = np.sqrt(np.mean(np.power(np.abs(x),2))) / 10 ** (SNR / 20)
+    n = amp * (np.random.randn(Nr) + 1j * np.random.randn(Nr))
 
+    # Compute the received symbols
     y = H @ x + n
     ytilde = np.block([np.real(y), np.imag(y)])
+
     N = 2 * Nt
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
     xtilde = np.block([np.real(x), np.imag(x)])
     z = ytilde - (Htilde @ (T @ np.ones(r * N))) + ((np.sqrt(M) - 1) * Htilde @ np.ones(N))
 
+    # Set up the Ising model
     J = -T.T @ Htilde.T @ Htilde @ T
     J = np.triu(J, k=1)
     h = np.transpose(2 * z.T @ Htilde @ T)
@@ -97,20 +101,24 @@ def MIMO_to_Ising(
     return IsingModel(J, h, c), xtilde
 
 
-def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M):
-    """Computes the relative error between the optimal solution and the computed solution.
+def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
+    """Computes the symbol error rate between the optimal solution and the computed solution.
 
     Args:
         sigma_optim (np.ndarray): the optimal solution.
         x (np.ndarray): the computed solution.
-
+        M (int): the modulation scheme.
     Returns:
-        float: the difference between the two solutions.
+        SER (float): the bit error rate between the two solutions.
     """
+    # TODO: see if BER is computed correctly
     r = int(np.ceil(np.log2(np.sqrt(M))))
 
     N = np.shape(x)[0]
+
+    # Compute the calculated symbols
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
     x_optim = T @ (sigma_optim + np.ones((r * N,))) - (np.sqrt(M) - 1) * np.ones((N,))
-    BER = np.count_nonzero(x_optim - x) / N
+
+    BER = np.sum(np.abs(x - x_optim)/2)/(2*N)
     return BER

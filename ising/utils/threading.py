@@ -31,7 +31,7 @@ def solver_thread(
         logfile = logfiles[run]
         run_solver(solver=solver, num_iter=num_iter, s_init=sample, model=model,
                                                logfile=logfile, **hyperparameters)
-
+    print(f"{solver} done")
 
 def make_solvers_thread(
     solvers: list[str],

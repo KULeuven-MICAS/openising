@@ -33,10 +33,10 @@ parser.add_argument("-Nr", help="The amount of receivers", default=2)
 parser.add_argument("-M", help="The QAM scheme", default=4)
 
 # Multiplicative parameters
-parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.25)
+parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.01)
 
 # BRIM parameters
-parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.25)
+parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.01)
 parser.add_argument("-C", help="capacitor parameter", default=1)
 parser.add_argument("-stop_criterion", help="Stop criterion for change in voltages", default=1e-8)
 
@@ -100,6 +100,7 @@ kwargs.update({
 
 key = (problem, use_benchmark, use_dummy, use_MIMO)
 if key in run_function:
+    print("Running...")
     func, expected_args = run_function[key]
     filtered_kwargs = {key: kwargs[key] for key in expected_args if key in kwargs}
     func(**filtered_kwargs)
