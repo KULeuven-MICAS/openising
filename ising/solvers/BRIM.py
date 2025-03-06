@@ -64,7 +64,8 @@ class BRIM(SolverBase):
         t_eval = np.linspace(0.0, tend, num_iterations)
 
         # Transform the model to one with no h and mean variance of J
-        model.normalize()
+        if np.linalg.cond(model.J) > 1e10:
+            model.normalize()
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
         model.reconstruct()
@@ -117,7 +118,7 @@ class BRIM(SolverBase):
             i                 = 0
             previous_voltages = np.copy(v)
             max_change        = np.inf
-            T                 = initial_temp if initial_temp <= 1.0 else 1.0
+            T                 = initial_temp if initial_temp <= 1.0 else 0.5
             cooling_rate      = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0. else 1.
 
             # Initial logging
@@ -133,9 +134,9 @@ class BRIM(SolverBase):
                 k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J)
 
                 # Add noise and update the voltages
-                noise = T * (np.random.random((N+1,)) - 0.5)
-                cond1 = (previous_voltages > 1) & (noise > 0)
-                cond2 = (previous_voltages < -1) & (noise < 0)
+                noise = T * (np.random.normal(scale=1/1.96,size=(N+1,)))
+                cond1 = (previous_voltages > 0) & (noise > 0)
+                cond2 = (previous_voltages < 0) & (noise < 0)
                 noise *= np.where(cond1|cond2, 1-previous_voltages**2, 1)
                 new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
 

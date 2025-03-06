@@ -101,7 +101,7 @@ class Multiplicative(SolverBase):
             i                 = 0
             max_change        = np.inf
             previous_voltages = np.copy(v)
-            T                 = initial_temp if initial_temp < 1.0 else 1.0
+            T                 = initial_temp if initial_temp < 1.0 else 0.5
             cooling_rate      = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0. else 1.
 
             while i < num_iterations and max_change > stop_criterion:
@@ -112,9 +112,9 @@ class Multiplicative(SolverBase):
                 k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, J)
 
                 # Add noise and update the voltages
-                noise = T * (np.random.random((N+1,)) - 0.5)
-                cond1 = (previous_voltages > 1) & (noise > 0)
-                cond2 = (previous_voltages < -1) & (noise < 0)
+                noise = T * (np.random.normal(scale=1/1.96,size=(N+1,)))
+                cond1 = (previous_voltages > 0) & (noise > 0)
+                cond2 = (previous_voltages < 0) & (noise < 0)
                 noise *= np.where(cond1|cond2, 1-previous_voltages**2, 1)
                 new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
 
