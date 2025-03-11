@@ -60,7 +60,7 @@ class BRIM(SolverBase):
         """
 
         # Set the time evaluations
-        tend   = dtBRIM * num_iterations
+        tend = dtBRIM * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
 
         # Transform the model to one with no h and mean variance of J
@@ -77,8 +77,7 @@ class BRIM(SolverBase):
 
         # Ensure the bias node is added and add noise to the initial voltages
         N = model.num_variables
-        v = np.block([0.01*initial_state, 1.0])
-        v += 0.001 * (np.random.random((N + 1,)) - 0.5)
+        v = np.block([0.1*initial_state, 1.0])
 
         # Schema for the logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
@@ -103,28 +102,28 @@ class BRIM(SolverBase):
         with HDF5Logger(file, schema) as log:
             # Log the initial metadata
             self.log_metadata(
-                logger         = log,
-                initial_state  = np.sign(v),
-                model          = model,
-                num_iterations = num_iterations,
-                C              = C,
-                time_step      = dtBRIM,
-                seed           = seed,
-                temperature    = initial_temp,
-                stop_criterion = stop_criterion,
+                logger=log,
+                initial_state=np.sign(v),
+                model=model,
+                num_iterations=num_iterations,
+                C=C,
+                time_step=dtBRIM,
+                seed=seed,
+                temperature=initial_temp,
+                stop_criterion=stop_criterion,
             )
 
             # Initialize the simulation variables
-            i                 = 0
-            previous_voltages = np.copy(v)
-            max_change        = np.inf
-            T                 = initial_temp if initial_temp <= 1.0 else 0.5
-            cooling_rate      = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0. else 1.
+            i = 0
+            previous_voltages = np.copy(v) + (1 - v**2) * np.random.normal(scale=1 / 1.96, size=(N + 1,))
+            max_change = np.inf
+            T = initial_temp if initial_temp <= 1.0 else 0.5
+            cooling_rate = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0.0 else 1.0
 
             # Initial logging
             sample = np.sign(v[:N])
             energy = model.evaluate(sample)
-            log.log(time_clock=0., energy=energy, state=sample, voltages=v[:N])
+            log.log(time_clock=0.0, energy=energy, state=sample, voltages=v[:N])
 
             while i < (num_iterations) and max_change > stop_criterion:
                 tk = t_eval[i]
@@ -134,26 +133,26 @@ class BRIM(SolverBase):
                 k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J)
 
                 # Add noise and update the voltages
-                noise = T * (np.random.normal(scale=1/1.96,size=(N+1,)))
+                noise = T * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
                 cond1 = (previous_voltages > 0) & (noise > 0)
                 cond2 = (previous_voltages < 0) & (noise < 0)
-                noise *= np.where(cond1|cond2, 1-previous_voltages**2, 1)
-                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
+                noise *= np.where(cond1|cond2, 1 - previous_voltages**2, 1)
+                new_voltages = np.tanh(previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2)) + noise
 
                 # Lower the temperature
                 T *= cooling_rate
 
                 # Log everything
-                sample = np.sign(new_voltages[:N])*np.sign(new_voltages[-1])
+                sample = np.sign(new_voltages[:N]) * np.sign(new_voltages[-1])
                 energy = model.evaluate(sample)
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
                 # Update criterion changes
-                max_change        = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
-                                        previous_voltages, ord=np.inf
-                                    )
+                max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
+                    previous_voltages, ord=np.inf
+                )
                 previous_voltages = np.copy(new_voltages)
-                i                += 1
+                i += 1
 
             # Make sure to log to the last iteration if the stop criterion is reached
             if max_change < stop_criterion:
