@@ -80,8 +80,10 @@ def MIMO_to_Ising(
     np.random.seed(seed)
 
     # Compute the amplitude of the noise
-    amp = np.sqrt(np.mean(np.power(np.abs(x),2))) / 10 ** (SNR / 20)
-    n = amp * (np.random.randn(Nr) + 1j * np.random.randn(Nr))
+    power_x = np.mean(np.abs(x)**2)
+    SNR = 10 ** (SNR / 10)
+    var_noise = np.sqrt(power_x / SNR)
+    n = var_noise*(np.random.randn(Nr) + 1j * np.random.randn(Nr)) / (np.sqrt(2))
 
     # Compute the received symbols
     y = H @ x + n
@@ -111,7 +113,6 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
     Returns:
         SER (float): the bit error rate between the two solutions.
     """
-    # TODO: see if BER is computed correctly
     r = int(np.ceil(np.log2(np.sqrt(M))))
 
     N = np.shape(x)[0]
@@ -119,6 +120,6 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
     # Compute the calculated symbols
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
     x_optim = T @ (sigma_optim + np.ones((r * N,))) - (np.sqrt(M) - 1) * np.ones((N,))
-
+    print("optimal solution: ", x_optim)
     BER = np.sum(np.abs(x - x_optim)/2)/(2*N)
     return BER

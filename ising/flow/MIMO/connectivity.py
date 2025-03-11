@@ -8,7 +8,7 @@ from ising.utils.numpy import triu_to_symm
 
 TOP = pathlib.Path(os.getenv("TOP"))
 figtop = TOP / "ising/flow/MIMO/connectivity_figs"
-N = 2
+N = 5
 M = 16
 SNR_list = np.linspace(0, 10, 11)
 
