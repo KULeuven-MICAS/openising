@@ -1,13 +1,13 @@
 import os
 import pathlib
 import argparse
-import numpy as np
+# import numpy as np
 
 from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
 from ising.solvers.Gurobi import Gurobi
-from ising.utils.flow import make_directory, parse_hyperparameters, return_c0, return_rx, return_q, run_solver
-# from ising.utils.threading import run_solver #make_solvers_thread,
+from ising.utils.flow import make_directory, parse_hyperparameters, return_c0, return_rx, return_q#, run_solver
+from ising.utils.threading import make_solvers_thread
 
 TOP = pathlib.Path(os.getenv("TOP"))
 
@@ -55,9 +55,9 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
             for run in range(nb_runs):
                 logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
                 logfiles[solver].append(logfile)
-                s_init = np.random.choice([-1,1], (model.num_variables,))
-                run_solver(solver, num_iter, s_init, model, logfile, **hyperparameters)
+                # s_init = np.random.choice([-1,1], (model.num_variables,))
+                # run_solver(solver, num_iter, s_init, model, logfile, **hyperparameters)
 
-        # make_solvers_thread(
-        #     solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
-        # )
+        make_solvers_thread(
+            solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
+        )

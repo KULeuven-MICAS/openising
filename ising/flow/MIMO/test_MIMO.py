@@ -39,6 +39,7 @@ def test_MIMO(SNR_list, solvers, args):
         for run in range(nb_runs):
             x = np.random.choice(symbols, (Nt,)) + 1j*np.random.choice(symbols, (Nt,))
             model, xtilde = MIMO_to_Ising(H, x, SNR, Nr, Nt, M, hyperparameters["seed"])
+            print(f"correct solution: {xtilde}")
 
             if use_gurobi:
                 gurobi_file = logtop / f"Gurobi_SNR{SNR}_run{run}.log"
