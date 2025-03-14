@@ -45,7 +45,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.nda
         D, V = np.linalg.eig(C)
         hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
         H[:, i] = hu
-
+    H = np.eye(Nr)
     return H, symbols
 
 
@@ -80,13 +80,13 @@ def MIMO_to_Ising(
     np.random.seed(seed)
 
     # Compute the amplitude of the noise
-    power_x = np.mean(np.abs(x)**2)
-    SNR = 10 ** (SNR / 10)
-    var_noise = np.sqrt(power_x / SNR)
-    n = var_noise*(np.random.randn(Nr) + 1j * np.random.randn(Nr)) / (np.sqrt(2))
+    # power_x = (np.abs(x)**2)
+    # SNR = 10 ** (SNR / 10)
+    # var_noise = np.sqrt(power_x / SNR)
+    # n = var_noise*(np.random.randn(Nr) + 1j * np.random.randn(Nr)) / (np.sqrt(2))
 
     # Compute the received symbols
-    y = H @ x + n
+    y = H @ x #+ n
     ytilde = np.block([np.real(y), np.imag(y)])
 
     N = 2 * Nt
@@ -95,7 +95,7 @@ def MIMO_to_Ising(
     z = ytilde - (Htilde @ (T @ np.ones(r * N))) + ((np.sqrt(M) - 1) * Htilde @ np.ones(N))
 
     # Set up the Ising model
-    J = -T.T @ Htilde.T @ Htilde @ T
+    J = -2*T.T @ Htilde.T @ Htilde @ T
     J = np.triu(J, k=1)
     h = np.transpose(2 * z.T @ Htilde @ T)
     c = np.inner(z, z)
