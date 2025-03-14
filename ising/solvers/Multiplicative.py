@@ -14,15 +14,15 @@ class Multiplicative(SolverBase):
 
     def solve(
         self,
-        model:          IsingModel,
-        initial_state:  np.ndarray,
-        dtMult:         float,
+        model: IsingModel,
+        initial_state: np.ndarray,
+        dtMult: float,
         num_iterations: int,
-        seed:           int               = 0,
-        initial_temp:   float             = 1.,
-        end_temp:       float             = 0.05,
-        stop_criterion: float             = 1e-8,
-        file:           pathlib.Path|None = None,
+        seed: int = 0,
+        initial_temp_cont: float = 1.0,
+        end_temp_cont: float = 0.05,
+        stop_criterion: float = 1e-8,
+        file: pathlib.Path | None = None,
     ) -> tuple[float, np.ndarray]:
         """Solves the given problem using a multiplicative coupling scheme.
 
@@ -37,7 +37,7 @@ class Multiplicative(SolverBase):
             tuple[float, np.ndarray]: the best energy and the best sample.
         """
         # Set up the time evaluations
-        tend   = dtMult * num_iterations
+        tend = dtMult * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
 
         # Transform the model to one with no h and mean variance of J
@@ -57,7 +57,7 @@ class Multiplicative(SolverBase):
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         # Define the system equations
-        def dvdt(t:float, vt:np.ndarray, coupling:np.ndarray):
+        def dvdt(t: float, vt: np.ndarray, coupling: np.ndarray):
             """Differential equations for the multiplicative BRIM model.
 
             Args:
@@ -68,40 +68,46 @@ class Multiplicative(SolverBase):
             Returns:
                 dv (np.ndarray): the change of the voltages
             """
+
+            # Buffering
+            # c = np.where((vt < -1) | (vt > 1), 1 / np.abs(vt), 1.0)
+
             # set bias node to 1.
             vt[-1] = 1.0
 
-            # vt[np.where(np.abs(vt) > 1)] = np.sign(vt[np.where(np.abs(vt) > 1)])
-
             # Compute the voltage change dv
-            k  = np.tanh(3 * vt)
-            dv = 1 / 2 * np.dot(coupling, k)
+            # k  = np.tanh(3 * vt)
+            dv = np.dot(coupling, vt) * 1 / 2
 
             # Ensure the voltages stay in the range [-1, 1]
-            cond1 = (dv > 0) & (vt > 0)
-            cond2 = (dv < 0) & (vt < 0)
-            dv   *= np.where(cond1 | cond2, 1 - vt**2, 1)
+            cond1 = (dv > 0) & (vt > 1)
+            cond2 = (dv < 0) & (vt < -1)
+            dv *= np.where(cond1 | cond2, 0.0, 1)
             # Ensure the bias node does not change
             dv[-1] = 0.0
             return dv
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
-                logger         = log,
-                initial_state  = np.sign(v[:-1]),
-                model          = model,
-                num_iterations = num_iterations,
-                time_step      = dtMult,
-                temperature    = initial_temp,
+                logger=log,
+                initial_state=np.sign(v[:-1]),
+                model=model,
+                num_iterations=num_iterations,
+                time_step=dtMult,
+                temperature=initial_temp_cont,
             )
 
             # Set up the simulation
-            i                 = 0
-            max_change        = np.inf
-            T                 = initial_temp if initial_temp < 1.0 else 0.5
-            cooling_rate      = (end_temp / initial_temp) ** (1 / (num_iterations - 1)) if initial_temp != 0.0 else 1.0
-            start_noise       = np.random.normal(scale=1 / 1.96, size=(N + 1,))
-            previous_voltages = np.copy(v) + start_noise * (1 - v**2)
+            i = 0
+            max_change = np.inf
+            T = initial_temp_cont if initial_temp_cont < 1.0 else 0.5
+            cooling_rate = (
+                (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
+            )
+            start_noise = np.random.normal(scale=1 / 1.96, size=(N + 1,))
+            previous_voltages = np.copy(v) + start_noise
+            previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
+                                          1/np.abs(previous_voltages), 1.0)
 
             while i < num_iterations and max_change > stop_criterion:
                 tk = t_eval[i]
@@ -111,11 +117,12 @@ class Multiplicative(SolverBase):
                 k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, J)
 
                 # Add noise and update the voltages
-                noise        = T * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
-                cond1        = (previous_voltages > 0) & (noise > 0)
-                cond2        = (previous_voltages < 0) & (noise < 0)
-                noise       *= np.where(cond1 | cond2, 1 - previous_voltages**2, 1)
-                new_voltages = np.tanh(previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2)) + noise
+                noise = T * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
+                cond1 = (previous_voltages > 0) & (noise > 0)
+                cond2 = (previous_voltages < 0) & (noise < 0)
+                noise *= np.where(cond1 | cond2, 1 - previous_voltages**2, 1)
+                noise[-1] = 0.0
+                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
 
                 if np.linalg.norm(new_voltages) > 1e2:
                     print(new_voltages, i)
