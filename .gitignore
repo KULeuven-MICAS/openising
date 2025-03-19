@@ -4,6 +4,7 @@
 **/log
 **/tmp
 *.out
+**/no_backup
 
 # environment stuff
 .env
