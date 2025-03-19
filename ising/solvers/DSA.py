@@ -78,7 +78,7 @@ class DSASolver(SolverBase):
 
             # Setup initial state and energy
             T = initial_temp
-            state = initial_state
+            state = np.sign(initial_state)
             energy = model.evaluate(state)
             for _ in range(num_iterations):
                 cycle_started = True

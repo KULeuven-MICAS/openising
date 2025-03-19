@@ -28,7 +28,7 @@ class SB(SolverBase):
         # return x, y
 
     def at(self, t, a0, dt, num_iterations):
-        return 2*a0 / (dt*num_iterations) * t
+        return a0 / (dt*num_iterations) * t
 
     def bt(self, t, a0, dt, num_iterations):
         return self.at(t, a0, dt, num_iterations) / 2
@@ -82,8 +82,8 @@ class ballisticSB(SB):
         J             = np.array(triu_to_symm(model.J), dtype=dtype)
         h             = np.array(model.h, dtype=dtype)
         initial_state = np.array(initial_state, dtype=dtype)
-        x             = 0.01 * initial_state
-        y             = np.zeros_like(x, dtype=dtype)
+        x             = 1.0 * np.ones_like(initial_state)
+        y             = 1.*np.ones_like(x, dtype=dtype)
 
         # Cast all the variables to the correct data type
         dtSB = dtype(dtSB)
@@ -116,9 +116,9 @@ class ballisticSB(SB):
             log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
                 atk = dtype(self.at(tk, a0, dtSB, num_iterations))
-                btk = dtype(self.bt(tk, a0, dtSB, num_iterations))
+                # btk = dtype(self.bt(tk, a0, dtSB, num_iterations))
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 * btk * h) * dtSB
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 *  h) * dtSB
                 x += self.update_x(y, dtSB, a0)
 
                 for j in range(N):
@@ -203,10 +203,10 @@ class discreteSB(SB):
             log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
-                btk = self.bt(tk, a0, dtSB, num_iterations)
+                # btk = self.bt(tk, a0, dtSB, num_iterations)
                 # clocker.add_operations(1)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * btk * model.h) * dtSB
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dtSB
                 # clocker.add_cycles(1 + np.log2(N))
                 # clocker.add_operations(5 * N)
                 # clocker.perform_operations()

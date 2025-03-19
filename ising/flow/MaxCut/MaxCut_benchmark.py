@@ -1,7 +1,7 @@
 import os
 import pathlib
 import argparse
-# import numpy as np
+import numpy as np
 
 from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
@@ -27,6 +27,10 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
         print("Best found energy: ", -best_found)
     print("Generated benchmark")
 
+    if benchmark == "K2000":
+        v_init = np.loadtxt(TOP / "ising/flow/000.txt")
+    else:
+        v_init = None
     # iter_list = np.array(range(iter_list[0], iter_list[1], 100))
     nb_runs = int(args.nb_runs)
 
@@ -41,6 +45,7 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
     for num_iter in iter_list:
         print(f"Running for {num_iter} iterations")
         hyperparameters = parse_hyperparameters(args, num_iter)
+        hyperparameters["v_init"] = v_init
 
         if hyperparameters["c0"] == 0.0:
             hyperparameters["c0"] = return_c0(model=model)

@@ -77,20 +77,17 @@ class BRIM(SolverBase):
 
         # Ensure the bias node is added and add noise to the initial voltages
         N = model.num_variables
-        v = np.block([0.1 * initial_state, 1.0])
+        v = np.block([initial_state, 1.0])
 
         # Schema for the logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         def dvdt(t, vt, coupling):
-            # Buffering
-            c = np.where((vt < -1) | (vt > 1), 1 / np.abs(vt), 1.0)
-
             # Make sure the bias node is 1
             vt[-1] = 1.0
 
             # Compute the differential equation
-            V_mat = np.array([vt * c] * vt.shape[0])
+            V_mat = np.array([vt] * vt.shape[0])
             dv = -1 / C * np.sum(coupling * (V_mat.T - V_mat), axis=1)
 
             # Make sure the voltages stay in the range [-1, 1]
@@ -118,9 +115,12 @@ class BRIM(SolverBase):
 
             # Initialize the simulation variables
             i = 0
-            previous_voltages = np.copy(v) + (1 - v**2) * np.random.normal(scale=1 / 1.96, size=(N + 1,))
+            start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
+            previous_voltages = np.copy(v) + start_noise
+            previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
+                                          1/np.abs(previous_voltages), 1.0)
             max_change = np.inf
-            T = initial_temp_cont if initial_temp_cont <= 1.0 else 0.5
+            Temp = initial_temp_cont if initial_temp_cont <= 1.0 else 0.5
             cooling_rate = (
                 (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
             )
@@ -138,14 +138,17 @@ class BRIM(SolverBase):
                 k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J)
 
                 # Add noise and update the voltages
-                noise = T * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
-                cond1 = (previous_voltages > 0) & (noise > 0)
-                cond2 = (previous_voltages < 0) & (noise < 0)
-                noise *= np.where(cond1 | cond2, 1 - previous_voltages**2, 1)
+                if Temp != 0.0:
+                    noise = Temp * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
+                    cond1 = (previous_voltages >= 1) & (noise > 0)
+                    cond2 = (previous_voltages <= -1) & (noise < 0)
+                    noise *= np.where(cond1 | cond2, 0.0, 1.0)
+                else:
+                    noise = np.zeros_like(previous_voltages)
                 new_voltages = (previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2)) + noise
 
                 # Lower the temperature
-                T *= cooling_rate
+                Temp *= cooling_rate
 
                 # Log everything
                 sample = np.sign(new_voltages[:N]) * np.sign(new_voltages[-1])

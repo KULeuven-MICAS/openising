@@ -51,7 +51,7 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         N = model.num_variables
-        v = np.block([0.1 * initial_state, 1.0])
+        v = np.block([initial_state, 1.0])
 
         # Schema for logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
@@ -69,20 +69,17 @@ class Multiplicative(SolverBase):
                 dv (np.ndarray): the change of the voltages
             """
 
-            # Buffering
-            # c = np.where((vt < -1) | (vt > 1), 1 / np.abs(vt), 1.0)
-
             # set bias node to 1.
             vt[-1] = 1.0
 
             # Compute the voltage change dv
-            # k  = np.tanh(3 * vt)
             dv = np.dot(coupling, vt) * 1 / 2
 
             # Ensure the voltages stay in the range [-1, 1]
-            cond1 = (dv > 0) & (vt > 1)
-            cond2 = (dv < 0) & (vt < -1)
+            cond1 = (dv > 0) & (vt >= 1)
+            cond2 = (dv < 0) & (vt <= -1)
             dv *= np.where(cond1 | cond2, 0.0, 1)
+
             # Ensure the bias node does not change
             dv[-1] = 0.0
             return dv
@@ -100,11 +97,11 @@ class Multiplicative(SolverBase):
             # Set up the simulation
             i = 0
             max_change = np.inf
-            T = initial_temp_cont if initial_temp_cont < 1.0 else 0.5
+            Temp = initial_temp_cont if initial_temp_cont < 1.0 else 0.5
             cooling_rate = (
                 (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
             )
-            start_noise = np.random.normal(scale=1 / 1.96, size=(N + 1,))
+            start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
             previous_voltages = np.copy(v) + start_noise
             previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
                                           1/np.abs(previous_voltages), 1.0)
@@ -117,20 +114,16 @@ class Multiplicative(SolverBase):
                 k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, J)
 
                 # Add noise and update the voltages
-                noise = T * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
-                cond1 = (previous_voltages > 0) & (noise > 0)
-                cond2 = (previous_voltages < 0) & (noise < 0)
-                noise *= np.where(cond1 | cond2, 1 - previous_voltages**2, 1)
-                noise[-1] = 0.0
+                if Temp != 0.0:
+                    noise = Temp * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
+                    cond1 = (previous_voltages >= 1) & (noise > 0)
+                    cond2 = (previous_voltages <= -1) & (noise < 0)
+                    noise *= np.where(cond1 | cond2, 0.0, 1.0)
+                else:
+                    noise = np.zeros_like(previous_voltages)
                 new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
 
-                if np.linalg.norm(new_voltages) > 1e2:
-                    print(new_voltages, i)
-                new_voltages[np.where(np.abs(new_voltages) > 50)] = np.sign(
-                    new_voltages[np.where(np.abs(new_voltages) > 50)]
-                )
-
-                T *= cooling_rate
+                Temp *= cooling_rate
 
                 # Log everything
                 sample = np.sign(new_voltages[:N]) * np.sign(new_voltages[-1])
