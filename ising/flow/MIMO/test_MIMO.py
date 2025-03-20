@@ -5,6 +5,7 @@ import pathlib
 from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
 from ising.utils.flow import run_solver, return_c0, return_q, return_rx, make_directory, parse_hyperparameters
 from ising.flow.MIMO.add_bit_error_rate import add_bit_error_rate
+from ising.solvers.exhaustive import ExhaustiveSolver
 from ising.solvers.Gurobi import Gurobi
 
 TOP = pathlib.Path(os.getenv("TOP"))
@@ -32,9 +33,8 @@ def test_MIMO(SNR_list, solvers, args):
 
     logtop = TOP / "ising/flow/MIMO/logs"
     make_directory(logtop)
-
+    H, symbols = MU_MIMO(Nt, Nr, M, hyperparameters["seed"])
     for SNR in SNR_list:
-        H, symbols = MU_MIMO(Nt, Nr, M, hyperparameters["seed"])
         print(f"running for SNR {SNR}")
         for run in range(nb_runs):
             x = np.random.choice(symbols, (Nt,)) + 1j*np.random.choice(symbols, (Nt,))
@@ -47,7 +47,9 @@ def test_MIMO(SNR_list, solvers, args):
                 add_bit_error_rate([gurobi_file], xtilde, M, SNR)
 
             current_logfiles = []
+            _, optim_energy = ExhaustiveSolver().solve(model)
 
+            print(f"Exhaustive energy: {optim_energy}")
             if change_c:
                 hyperparameters["c0"] = return_c0(model=model)
             if change_q:

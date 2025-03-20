@@ -45,7 +45,6 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.nda
         D, V = np.linalg.eig(C)
         hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
         H[:, i] = hu
-    H = np.eye(Nr)
     return H, symbols
 
 
@@ -80,13 +79,13 @@ def MIMO_to_Ising(
     np.random.seed(seed)
 
     # Compute the amplitude of the noise
-    # power_x = (np.abs(x)**2)
-    # SNR = 10 ** (SNR / 10)
-    # var_noise = np.sqrt(power_x / SNR)
-    # n = var_noise*(np.random.randn(Nr) + 1j * np.random.randn(Nr)) / (np.sqrt(2))
+    power_x = (np.abs(x)**2)
+    SNR = 10 ** (SNR / 10)
+    var_noise = np.sqrt(power_x / SNR)
+    n = var_noise*(np.random.randn(Nr) + 1j * np.random.randn(Nr)) / (np.sqrt(2))
 
     # Compute the received symbols
-    y = H @ x #+ n
+    y = H @ x + n
     ytilde = np.block([np.real(y), np.imag(y)])
 
     N = 2 * Nt
@@ -111,7 +110,7 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
         x (np.ndarray): the computed solution.
         M (int): the modulation scheme.
     Returns:
-        SER (float): the bit error rate between the two solutions.
+        BER (float): the bit error rate between the two solutions.
     """
     r = int(np.ceil(np.log2(np.sqrt(M))))
 
@@ -121,5 +120,5 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
     x_optim = T @ (sigma_optim + np.ones((r * N,))) - (np.sqrt(M) - 1) * np.ones((N,))
     print("optimal solution: ", x_optim)
-    BER = np.sum(np.abs(x - x_optim)/2)/(2*N)
+    BER = np.sum(np.abs(x - x_optim)/2)/(np.sqrt(M)*N)
     return BER
