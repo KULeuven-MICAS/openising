@@ -119,6 +119,5 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
     # Compute the calculated symbols
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
     x_optim = T @ (sigma_optim + np.ones((r * N,))) - (np.sqrt(M) - 1) * np.ones((N,))
-    print("optimal solution: ", x_optim)
     BER = np.sum(np.abs(x - x_optim)/2)/(np.sqrt(M)*N)
     return BER
