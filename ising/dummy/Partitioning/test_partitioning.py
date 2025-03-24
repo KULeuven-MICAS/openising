@@ -203,10 +203,12 @@ def test_dual_decomposition():
     model = MaxCut(G)
     s_mod = partitioning_modularity(model)
     s_spec = spectral_partitioning(model)
+    plot_partitioning(G, s_mod, "modularity_test_dual.png")
+    plot_partitioning(G, s_spec, "spectral_test_dual.png")
     # plot_partitioning(G, s_mod, "modularity_test_dual.png")
     hyperparameters = {"initial_temp": 50, "cooling_rate": 0.9, "seed": 1}
 
-
+    print("Get solution with exhaustive solver")
     state, energy = ExhaustiveSolver().solve(model)
     print(f"Optimal energy is {energy} and state is {state}")
 
@@ -222,9 +224,10 @@ def test_dual_decomposition():
     state, energy = optimal_state_from_partitioning(s1, s2, model, s_mod, replica_nodes)
 
     print(f"Solution of dual decomposition is: {state} with energy: {energy}")
-
+    plot_partitioning(G, state, "optimal_solution_modularity.png")
     print("--------------------")
     print("Solving with specular partitioning")
+    print(s_spec)
     model1, model2, A, C, replica_nodes = apply_partitioning(model, s_spec)
     s1 = np.random.choice([-1, 1], size=(model1.num_variables,), p=[0.5, 0.5])
     s2 = np.random.choice([-1, 1], size=(model2.num_variables,), p=[0.5, 0.5])
@@ -232,7 +235,9 @@ def test_dual_decomposition():
     s1, s2, lambda_k = dual_decomposition((s1, model1), (s2, model2), A, C, 200, "SA", 0.01, **hyperparameters)
 
     print(f"At optimal point, the lagrange parameters are {lambda_k}")
-    state, energy = optimal_state_from_partitioning(s1, s2, model, s_mod, replica_nodes)
+    state, energy = optimal_state_from_partitioning(s1, s2, model, s_spec, replica_nodes)
+    plot_partitioning(G, state, "optimal_solution_spectral.png")
+
 
     print(f"Solution of dual decomposition is: {state} with energy: {energy}")
 

@@ -10,7 +10,7 @@ def spectral_partitioning(model:IsingModel):
 
     lam, V = np.linalg.eig(L)
 
-    res = sorted(lam)[1]
-    mean = np.median(V[:, res])
-    s = np.where(V[:, res] >= mean, -1, 1)
+    res = sorted(range(len(lam)), key=lambda sub: lam[sub])[:2]
+    mean = np.median(V[:, res[-1]])
+    s = np.where(V[:, res[-1]] >= mean, -1, 1)
     return s
