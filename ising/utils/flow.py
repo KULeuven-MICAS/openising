@@ -38,6 +38,7 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
 
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
+    hyperparameters["coupling_annealing"] = bool(int(args.coupling_annealing))
 
     # BRIM parameters
     dtBRIM = float(args.dtBRIM)
@@ -107,9 +108,10 @@ def run_solver(
     solvers = {
         "BRIM": (
             BRIM().solve,
-            ["dtBRIM", "C", "stop_criterion", "initial_temp_cont", "end_temp_cont", "seed"],
+            ["dtBRIM", "C", "stop_criterion", "initial_temp_cont", "end_temp_cont", "seed", "coupling_annealing"],
         ),
-        "Multiplicative": (Multiplicative().solve, ["dtMult", "initial_temp_cont", "end_temp_cont", "seed"]),
+        "Multiplicative": (Multiplicative().solve,
+                           ["dtMult", "initial_temp_cont", "end_temp_cont", "seed", "coupling_annealing"]),
         "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
         "DSA": (DSASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
         "SCA": (SCA().solve, ["initial_temp", "cooling_rate", "q", "r_q", "seed"]),

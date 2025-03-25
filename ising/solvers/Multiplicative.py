@@ -1,6 +1,7 @@
 import numpy as np
 import pathlib
 import time
+import os
 
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
@@ -12,6 +13,18 @@ class Multiplicative(SolverBase):
     def __init__(self):
         self.name = "Multiplicative"
 
+    def Ka(self, time:float, end_time:float)->float:
+        """Returns the coupling annealing term.
+
+        Args:
+            time (float): the time.
+            end_time (float): the end time.
+        Returns:
+            Ka (float): the coupling annealing term.
+        """
+        return 1-np.exp(-time/end_time)
+
+
     def solve(
         self,
         model: IsingModel,
@@ -22,6 +35,7 @@ class Multiplicative(SolverBase):
         initial_temp_cont: float = 1.0,
         end_temp_cont: float = 0.05,
         stop_criterion: float = 1e-8,
+        coupling_annealing: bool = False,
         file: pathlib.Path | None = None,
     ) -> tuple[float, np.ndarray]:
         """Solves the given problem using a multiplicative coupling scheme.
@@ -31,6 +45,13 @@ class Multiplicative(SolverBase):
             initial_state (np.ndarray): the initial spins of the nodes.
             dtMult (float): time step.
             num_iterations (int): the number of iterations.
+            seed (int, optional): the seed for random number generation. Defaults to 0.
+            initial_temp_cont (float, optional): the initial temperature for the additive voltage noise.
+                                                 Defaults to 1.0.
+            end_temp_cont (float, optional): the final temperature for the additive voltage noise. Defaults to 0.05.
+            stop_criterion (float, optional): the stopping criterion to stop the solver when the voltages don't change
+                                              too much anymore. Defaults to 1e-8.
+            coupling_annealing (bool, optional): whether to anneal the coupling matrix. Defaults to False.
             file (pathlib.Path, None, optional): the path to the logfile. Defaults to None.
 
         Returns:
@@ -51,6 +72,8 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         N = model.num_variables
+        if N == 2000:
+            initial_state = np.loadtxt(pathlib.Path(os.getenv("TOP")) / "ising/flow/000.txt")[:N]
         v = np.block([initial_state, 1.0])
 
         # Schema for logging
@@ -73,12 +96,13 @@ class Multiplicative(SolverBase):
             vt[-1] = 1.0
 
             # Compute the voltage change dv
-            dv = np.dot(coupling, vt) * 1 / 2
+            k = np.tanh(3*vt)
+            dv = np.dot(coupling, k)
 
             # Ensure the voltages stay in the range [-1, 1]
-            cond1 = (dv > 0) & (vt >= 1)
-            cond2 = (dv < 0) & (vt <= -1)
-            dv *= np.where(cond1 | cond2, 0.0, 1)
+            cond1 = (dv > 0) & (vt > 1)
+            cond2 = (dv < 0) & (vt < -1)
+            dv *= np.where(cond1 | cond2, 0.0, 1.)
 
             # Ensure the bias node does not change
             dv[-1] = 0.0
@@ -92,6 +116,7 @@ class Multiplicative(SolverBase):
                 num_iterations=num_iterations,
                 time_step=dtMult,
                 temperature=initial_temp_cont,
+                coupling_annealing=coupling_annealing
             )
 
             # Set up the simulation
@@ -101,17 +126,21 @@ class Multiplicative(SolverBase):
             cooling_rate = (
                 (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
             )
-            start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
-            previous_voltages = np.copy(v) + start_noise
-            previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
-                                          1/np.abs(previous_voltages), 1.0)
+            # start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
+            previous_voltages = np.copy(v) #+ start_noise
+            # previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
+                                        #   1/np.abs(previous_voltages), 1.0)
 
             while i < num_iterations and max_change > stop_criterion:
                 tk = t_eval[i]
 
+                if coupling_annealing:
+                    Ka = self.Ka(tk, tend)
+                else:
+                    Ka = 1.0
                 # Runge Kutta steps
-                k1 = dtMult * dvdt(tk, previous_voltages, J)
-                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, J)
+                k1 = dtMult * dvdt(tk, previous_voltages, Ka*J)
+                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, Ka*J)
 
                 # Add noise and update the voltages
                 if Temp != 0.0:
@@ -122,7 +151,6 @@ class Multiplicative(SolverBase):
                 else:
                     noise = np.zeros_like(previous_voltages)
                 new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
-
                 Temp *= cooling_rate
 
                 # Log everything

@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import pathlib
+import os
 
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
@@ -11,6 +12,17 @@ from ising.utils.numpy import triu_to_symm
 class BRIM(SolverBase):
     def __init__(self):
         self.name = "BRIM"
+
+    def Ka(self, time:float, end_time:float)->float:
+        """Returns the coupling annealing term.
+
+        Args:
+            time (float): the time.
+            end_time (float): the end time.
+        Returns:
+            Ka (float): the coupling annealing term.
+        """
+        return 1-np.exp(-time/end_time)
 
     def k(self, kmax: float, kmin: float, t: float, t_final: float) -> float:
         """Returns the gain of the latches at time t.
@@ -37,6 +49,7 @@ class BRIM(SolverBase):
         file: pathlib.Path | None = None,
         initial_temp_cont: float = 1.0,
         end_temp_cont: float = 0.05,
+        coupling_annealing: bool = False,
         seed: int = 0,
     ) -> tuple[np.ndarray, float]:
         """Simulates the BLIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
@@ -53,6 +66,7 @@ class BRIM(SolverBase):
                                                  nothing is logged.
             initial_temp (float, optional): initial temperature. Defaults to 1.0.
             end_temp (float, optional): end temperature. Defaults to 0.05.
+            coupling_annealing (bool, optional): whether to anneal the coupling matrix. Defaults to False.
             seed (int, optional): seed for the random number generator. Defaults to 0.
 
         Returns:
@@ -77,6 +91,8 @@ class BRIM(SolverBase):
 
         # Ensure the bias node is added and add noise to the initial voltages
         N = model.num_variables
+        if N == 2000:
+            initial_state = np.loadtxt(pathlib.Path(os.getenv("TOP")) / "ising/flow/000.txt")[:N]
         v = np.block([initial_state, 1.0])
 
         # Schema for the logging
@@ -111,14 +127,15 @@ class BRIM(SolverBase):
                 seed=seed,
                 temperature=initial_temp_cont,
                 stop_criterion=stop_criterion,
+                coupling_annealing=coupling_annealing
             )
 
             # Initialize the simulation variables
             i = 0
-            start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
-            previous_voltages = np.copy(v) + start_noise
-            previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
-                                          1/np.abs(previous_voltages), 1.0)
+            # start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
+            previous_voltages = np.copy(v) #+ start_noise
+            # previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
+            #                               1/np.abs(previous_voltages), 1.0)
             max_change = np.inf
             Temp = initial_temp_cont if initial_temp_cont <= 1.0 else 0.5
             cooling_rate = (
@@ -133,9 +150,14 @@ class BRIM(SolverBase):
             while i < (num_iterations) and max_change > stop_criterion:
                 tk = t_eval[i]
 
+                if coupling_annealing:
+                    Ka = self.Ka(tk, tend)
+                else:
+                    Ka = 1.0
+
                 # Runge Kutta steps
-                k1 = dtBRIM * dvdt(tk, previous_voltages, J)
-                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J)
+                k1 = dtBRIM * dvdt(tk, previous_voltages, Ka*J)
+                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, Ka*J)
 
                 # Add noise and update the voltages
                 if Temp != 0.0:

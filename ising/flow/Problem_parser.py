@@ -36,6 +36,7 @@ parser.add_argument("-M", help="The QAM scheme", default=4)
 parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.01)
 parser.add_argument("-T_cont", help="Annealing temperature for continuous solvers", default=0.05)
 parser.add_argument("-T_final_cont", help="Final annealing temperature for continuous solvers", default=0.0005)
+parser.add_argument("-coupling_annealing", help="Whether to anneal the coupling matrix", default=False)
 
 # BRIM parameters
 parser.add_argument("-dtBRIM", help="time step for the BRIM solver", default=0.01)
