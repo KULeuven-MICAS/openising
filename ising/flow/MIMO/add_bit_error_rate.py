@@ -15,5 +15,5 @@ def add_bit_error_rate(logfiles:list[pathlib.Path], xtilde:np.ndarray, M:int, SN
     for logfile in logfiles:
         sigma_optim = return_metadata(logfile, "solution_state")
         BER = compute_difference(sigma_optim, xtilde, M)
-        with HDF5Logger(logfile, schema={"x":float}, mode="a") as logger:
+        with HDF5Logger(logfile,schema=dict(), mode="a") as logger:
             logger.write_metadata(BER=BER, SNR=SNR)
