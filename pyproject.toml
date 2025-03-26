@@ -9,7 +9,7 @@ cache_dir = ".cache/pytest"
 
 [tool.ruff]
 src = ["ising", "tests"]
-extend-exclude = ["ising/dummy/"]
+extend-exclude = ["ising/under_dev/"]
 line-length = 120
 indent-width = 4
 cache-dir = ".cache/ruff"
