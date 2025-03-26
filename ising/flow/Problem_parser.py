@@ -5,7 +5,7 @@ from ising.flow.MaxCut.MaxCut_benchmark import run_benchmark
 from ising.flow.MaxCut.MaxCut_dummy import run_dummy
 from ising.flow.TSP.TSP_benchmark import run_TSP_benchmark
 from ising.flow.TSP.TSP_dummy import run_TSP_dummy
-from ising.flow.MIMO.test_MIMO import test_MIMO
+from ising.ising.flow.MIMO.MIMO_benchmarks import test_MIMO
 
 from ising.utils.flow import compute_list_from_arg
 

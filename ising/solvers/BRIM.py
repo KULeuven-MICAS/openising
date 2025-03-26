@@ -132,10 +132,7 @@ class BRIM(SolverBase):
 
             # Initialize the simulation variables
             i = 0
-            # start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
-            previous_voltages = np.copy(v) #+ start_noise
-            # previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
-            #                               1/np.abs(previous_voltages), 1.0)
+            previous_voltages = np.copy(v)
             max_change = np.inf
             Temp = initial_temp_cont if initial_temp_cont <= 1.0 else 0.5
             cooling_rate = (
@@ -155,7 +152,7 @@ class BRIM(SolverBase):
                 else:
                     Ka = 1.0
 
-                # Runge Kutta steps
+                # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
                 k1 = dtBRIM * dvdt(tk, previous_voltages, Ka*J)
                 k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, Ka*J)
 

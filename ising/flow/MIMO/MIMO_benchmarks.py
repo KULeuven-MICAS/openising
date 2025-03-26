@@ -4,7 +4,8 @@ import pathlib
 
 from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
 from ising.utils.flow import return_c0, return_q, return_rx, make_directory, parse_hyperparameters, run_solver
-from ising.flow.MIMO.add_bit_error_rate import add_bit_error_rate
+from ising.utils.HDF5Logger import HDF5Logger, return_metadata
+from ising.generators.MIMO import compute_difference
 from ising.solvers.Gurobi import Gurobi
 
 TOP = pathlib.Path(os.getenv("TOP"))
@@ -64,4 +65,20 @@ def test_MIMO(SNR_list, solvers, args):
                 current_logfiles.append(logfile)
 
             add_bit_error_rate(current_logfiles, xtilde, M, SNR)
+
+
+def add_bit_error_rate(logfiles:list[pathlib.Path], xtilde:np.ndarray, M:int, SNR:int) -> None:
+    """Adds the bit error rate to the logfiles.
+
+    Args:
+        logfiles (list[pathlib.Path]): list of all the logfiles that solve the problem with solution xtilde.
+        xtilde (np.ndarray): the solution to the MU-MIMO problem.
+        M (int): the modulation order.
+    """
+    for logfile in logfiles:
+        sigma_optim = return_metadata(logfile, "solution_state")
+        BER = compute_difference(sigma_optim, xtilde, M)
+        with HDF5Logger(logfile,schema=dict(), mode="a") as logger:
+            logger.write_metadata(BER=BER, SNR=SNR)
+
 

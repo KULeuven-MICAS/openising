@@ -96,8 +96,7 @@ class Multiplicative(SolverBase):
             vt[-1] = 1.0
 
             # Compute the voltage change dv
-            k = np.tanh(3*vt)
-            dv = np.dot(coupling, k)
+            dv = np.dot(coupling, vt)
 
             # Ensure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
@@ -126,10 +125,7 @@ class Multiplicative(SolverBase):
             cooling_rate = (
                 (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
             )
-            # start_noise = np.block([np.random.normal(scale=1 / 1.96, size=(N,)), 0.])
-            previous_voltages = np.copy(v) #+ start_noise
-            # previous_voltages *= np.where((previous_voltages > 1)| (previous_voltages < -1),
-                                        #   1/np.abs(previous_voltages), 1.0)
+            previous_voltages = np.copy(v)
 
             while i < num_iterations and max_change > stop_criterion:
                 tk = t_eval[i]
@@ -138,7 +134,8 @@ class Multiplicative(SolverBase):
                     Ka = self.Ka(tk, tend)
                 else:
                     Ka = 1.0
-                # Runge Kutta steps
+
+                # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
                 k1 = dtMult * dvdt(tk, previous_voltages, Ka*J)
                 k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, Ka*J)
 
