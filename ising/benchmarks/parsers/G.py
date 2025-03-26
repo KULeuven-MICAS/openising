@@ -10,6 +10,7 @@ def G_parser(benchmark: pathlib.Path | str):
 
     Returns:
         G (nx.Graph): graph generated from the benchmark
+        best_found (float): best found cut value.
     """
     data = False
     G = nx.Graph()

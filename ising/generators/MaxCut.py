@@ -31,7 +31,7 @@ def MaxCut(graph: nx.Graph) -> IsingModel:
     return IsingModel(J, h, c)
 
 
-def random_MaxCut(N: int) -> IsingModel:
+def random_MaxCut(N: int, seed:int=0) -> IsingModel:
     """Generates a random Max Cut problem. If there is a benchmark present for the given amount of nodes,
     the dummy benchmark is used.
 
@@ -46,7 +46,8 @@ def random_MaxCut(N: int) -> IsingModel:
         graph, _ = G_parser(filePath)
         return MaxCut(graph)
     else:
-        J = np.random.choice([-0.5, 0.0, 0.5], (N, N), [0.6, 0.2, 0.2])
+        np.random.seed(seed)
+        J = np.random.choice([-0.5, 0.0, 0.5], (N, N), p=[0.3, 0.3, 0.4])
         J = np.triu(J, k=1)
         h = np.zeros((N,))
         c = np.sum(J)

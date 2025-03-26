@@ -8,6 +8,10 @@ from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 
 class Gurobi(SolverBase):
+
+    def __init__(self):
+        self.name = "Gurobi"
+
     def convert(self, model:IsingModel) -> np.ndarray:
         """Converts the Ising model to a Gurobi instance.
 
@@ -54,4 +58,4 @@ class Gurobi(SolverBase):
             c: constant value of the transformation of Ising to QUBO form.
         """
         with HDF5Logger(file, {"iteration":int}) as logger:
-            logger.write_metadata(solution_state=result, solution_energy=objective_val)
+            logger.write_metadata(solver=self.name, solution_state=result, solution_energy=objective_val)

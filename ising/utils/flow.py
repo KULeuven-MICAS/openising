@@ -38,18 +38,22 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
 
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
+    hyperparameters["coupling_annealing"] = bool(int(args.coupling_annealing))
 
     # BRIM parameters
     dtBRIM = float(args.dtBRIM)
     hyperparameters["dtBRIM"] = dtBRIM
     hyperparameters["C"] = float(args.C)
-    hyperparameters["random_flip"] = bool(args.flip)
     hyperparameters["stop_criterion"] = float(args.stop_criterion)
+    hyperparameters["initial_temp_cont"] = float(args.T_cont)
+    hyperparameters["end_temp_cont"] = float(args.T_final_cont)
 
     # SA parameters
     hyperparameters["initial_temp"] = float(args.T)
     Tfin = float(args.T_final)
-    hyperparameters["cooling_rate"] = return_rx(num_iter, hyperparameters["initial_temp"], Tfin)
+    hyperparameters["cooling_rate"] = (
+        return_rx(num_iter, hyperparameters["initial_temp"], Tfin) if hyperparameters["initial_temp"] != 0 else 0.0
+    )
     hyperparameters["seed"] = int(args.seed)
 
     # SCA parameters
@@ -97,16 +101,17 @@ def run_solver(
         logfile (pathlib.Path | None, optional): path to logfile to store data. Defaults to None.
 
     Returns:
-        tuple[np.ndarray, float]: optimal state and energy of the specified solver.
+        optim_state,optim_energy (tuple[np.ndarray, float]): optimal state and energy of the specified solver.
     """
     optim_state = np.zeros((model.num_variables,))
     optim_energy = None
     solvers = {
         "BRIM": (
             BRIM().solve,
-            ["dtBRIM", "C", "stop_criterion", "random_flip", "initial_temp", "cooling_rate", "seed"],
+            ["dtBRIM", "C", "stop_criterion", "initial_temp_cont", "end_temp_cont", "seed", "coupling_annealing"],
         ),
-        "Multiplicative": (Multiplicative().solve, ["dtMult"]),
+        "Multiplicative": (Multiplicative().solve,
+                           ["dtMult", "initial_temp_cont", "end_temp_cont", "seed", "coupling_annealing"]),
         "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
         "DSA": (DSASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
         "SCA": (SCA().solve, ["initial_temp", "cooling_rate", "q", "r_q", "seed"]),
@@ -155,16 +160,16 @@ def return_c0(model: IsingModel) -> float:
     )
 
 
-def return_G(problem: IsingModel) -> float:
+def return_G(J: np.ndarray) -> float:
     """Returns the optimal latch resistant value for the given problem.
 
     Args:
-        problem (IsingModel): the problem that will be solved with BRIM.
+        J (np.ndarray): the coefficient matrix of the problem that will be solved with BRIM.
 
     Returns:
         float: the latch resistance.
     """
-    sumJ = np.sum(np.abs(triu_to_symm(problem.J)), axis=0)
+    sumJ = np.sum(np.abs(triu_to_symm(J)), axis=0)
     return np.average(sumJ) * 2
 
 

@@ -76,7 +76,7 @@ class SASolver(SolverBase):
 
             # Setup initial state and energy
             T = initial_temp
-            state = initial_state
+            state = np.sign(initial_state)
             energy = model.evaluate(state)
             clocker.add_operations(2 * model.num_variables**2)
             clocker.perform_operations()

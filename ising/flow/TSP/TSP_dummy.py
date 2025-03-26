@@ -105,4 +105,3 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
         #         solution_state = return_metadata(fileName=logfiles[solver][-1], metadata="solution_state")
         #         print(f"Solution state for {solver} is: {solution_state}")
 
-    print("Done")

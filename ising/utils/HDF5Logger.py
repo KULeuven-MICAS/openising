@@ -34,8 +34,8 @@ class HDF5Logger:
                   Example: { "iteration": "i", "state": ("b", (10,)), "output": ("f4", (2, 2, 3)) }
         - buffer_size: Buffer size for batch writes.
         """
-        if len(schema) == 0:
-            raise ValueError("Schema should contain at least one entry")
+        # if len(schema) == 0:
+        #     raise ValueError("Schema should contain at least one entry")
         if buffer_size <= 0:
             raise ValueError("Buffer-size must be a strictly positive integer")
 
@@ -72,7 +72,7 @@ class HDF5Logger:
             raise RuntimeError("Logger is already active. Cannot enter context manager multiple times.")
 
         # Create the HDF5 file
-        self.file = h5py.File(self.filename, self.mode)
+        self.file = h5py.File(self.filename, self.mode, track_order=True)
 
         # Create datasets based on the schema.
         # The first dimension should be initialized with length 0 and unlimited size.

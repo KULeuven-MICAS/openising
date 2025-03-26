@@ -1,5 +1,7 @@
 import numpy as np
 import pathlib
+import time
+import os
 
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
@@ -11,60 +13,159 @@ class Multiplicative(SolverBase):
     def __init__(self):
         self.name = "Multiplicative"
 
+    def Ka(self, time:float, end_time:float)->float:
+        """Returns the coupling annealing term.
+
+        Args:
+            time (float): the time.
+            end_time (float): the end time.
+        Returns:
+            Ka (float): the coupling annealing term.
+        """
+        return 1-np.exp(-time/end_time)
+
+
     def solve(
         self,
         model: IsingModel,
         initial_state: np.ndarray,
         dtMult: float,
         num_iterations: int,
-        file: pathlib.Path|None=None,
+        seed: int = 0,
+        initial_temp_cont: float = 1.0,
+        end_temp_cont: float = 0.05,
+        stop_criterion: float = 1e-8,
+        coupling_annealing: bool = False,
+        file: pathlib.Path | None = None,
     ) -> tuple[float, np.ndarray]:
         """Solves the given problem using a multiplicative coupling scheme.
 
         Args:
             model (IsingModel): the model to solve.
-            v (np.ndarray): the initial voltages.
-            dt (float): time step.
+            initial_state (np.ndarray): the initial spins of the nodes.
+            dtMult (float): time step.
             num_iterations (int): the number of iterations.
-            logfile (pathlib.Path, None, optional): the path to the logfile. Defaults to None.
+            seed (int, optional): the seed for random number generation. Defaults to 0.
+            initial_temp_cont (float, optional): the initial temperature for the additive voltage noise.
+                                                 Defaults to 1.0.
+            end_temp_cont (float, optional): the final temperature for the additive voltage noise. Defaults to 0.05.
+            stop_criterion (float, optional): the stopping criterion to stop the solver when the voltages don't change
+                                              too much anymore. Defaults to 1e-8.
+            coupling_annealing (bool, optional): whether to anneal the coupling matrix. Defaults to False.
+            file (pathlib.Path, None, optional): the path to the logfile. Defaults to None.
 
         Returns:
             tuple[float, np.ndarray]: the best energy and the best sample.
         """
-        # print(f"{dt=}")
-        N = model.num_variables
+        # Set up the time evaluations
         tend = dtMult * num_iterations
         t_eval = np.linspace(0.0, tend, num_iterations)
 
+        # Transform the model to one with no h and mean variance of J
         new_model = model.transform_to_no_h()
         J = triu_to_symm(new_model.J)
-        v = np.block([0.5*initial_state, 1.0])
 
+        # make sure the correct random seed is used
+        if seed == 0:
+            seed = int(time.time())
+        np.random.seed(seed)
+
+        # Set up the bias node and add noise to the initial voltages
+        N = model.num_variables
+        if N == 2000:
+            initial_state = np.loadtxt(pathlib.Path(os.getenv("TOP")) / "ising/flow/000.txt")[:N]
+        v = np.block([initial_state, 1.0])
+
+        # Schema for logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
-        def dvdt(t, vt):
+        # Define the system equations
+        def dvdt(t: float, vt: np.ndarray, coupling: np.ndarray):
+            """Differential equations for the multiplicative BRIM model.
+
+            Args:
+                t (float): time
+                vt (np.ndarray): current voltages
+                coupling (np.ndarray): coupling matrix J
+
+            Returns:
+                dv (np.ndarray): the change of the voltages
+            """
+
+            # set bias node to 1.
             vt[-1] = 1.0
-            k = np.tanh(3*vt)
-            coupling = 1 / 2 * np.dot(J, k)
-            cond1 = (coupling > 0) & (vt > 0)
-            cond2 = (coupling < 0) & (vt < 0)
-            dv = coupling * np.where(cond1 | cond2, 1 - v**2, 1)
-            # print(f"{dv=}")
+
+            # Compute the voltage change dv
+            dv = np.dot(coupling, vt)
+
+            # Ensure the voltages stay in the range [-1, 1]
+            cond1 = (dv > 0) & (vt > 1)
+            cond2 = (dv < 0) & (vt < -1)
+            dv *= np.where(cond1 | cond2, 0.0, 1.)
+
+            # Ensure the bias node does not change
             dv[-1] = 0.0
             return dv
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
-                logger=log, initial_state=np.sign(v[:-1]), model=model, num_iterations=num_iterations, time_step=dtMult
+                logger=log,
+                initial_state=np.sign(v[:-1]),
+                model=model,
+                num_iterations=num_iterations,
+                time_step=dtMult,
+                temperature=initial_temp_cont,
+                coupling_annealing=coupling_annealing
             )
-            for i in range(num_iterations):
+
+            # Set up the simulation
+            i = 0
+            max_change = np.inf
+            Temp = initial_temp_cont if initial_temp_cont < 1.0 else 0.5
+            cooling_rate = (
+                (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
+            )
+            previous_voltages = np.copy(v)
+
+            while i < num_iterations and max_change > stop_criterion:
                 tk = t_eval[i]
-                k1 = dtMult * dvdt(tk, v)
-                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, v + 2 / 3 * k1)
-                # print(f"{k2=}")
-                v += 1.0 / 4.0 * (k1 + 3.0 * k2)
-                sample = np.sign(v[:N])
+
+                if coupling_annealing:
+                    Ka = self.Ka(tk, tend)
+                else:
+                    Ka = 1.0
+
+                # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
+                k1 = dtMult * dvdt(tk, previous_voltages, Ka*J)
+                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, Ka*J)
+
+                # Add noise and update the voltages
+                if Temp != 0.0:
+                    noise = Temp * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
+                    cond1 = (previous_voltages >= 1) & (noise > 0)
+                    cond2 = (previous_voltages <= -1) & (noise < 0)
+                    noise *= np.where(cond1 | cond2, 0.0, 1.0)
+                else:
+                    noise = np.zeros_like(previous_voltages)
+                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
+                Temp *= cooling_rate
+
+                # Log everything
+                sample = np.sign(new_voltages[:N]) * np.sign(new_voltages[-1])
                 energy = model.evaluate(sample)
-                log.log(time_clock=tk, energy=energy, state=sample, voltages=v[:N])
+                log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
+
+                # Update the criterion changes
+                max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
+                    previous_voltages, ord=np.inf
+                )
+                previous_voltages = np.copy(new_voltages)
+                i += 1
+            # Make sure to log to the last iteration if the stop criterion is reached
+            if max_change < stop_criterion:
+                for j in range(i, num_iterations):
+                    tk = t_eval[j]
+                    log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
+
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy

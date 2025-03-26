@@ -15,11 +15,12 @@ def compute_averages_energies(
         - The value for each x-axis data point is a list of all the possible y-axis data point (due to multiple runs).
 
     Args:
-        data (dict[str : dict[float : np.ndarray]]): A dictionary conatining all the data,
+        data (dict[str:dict[float:np.ndarray]]): A dictionary conatining all the data,
                                                      which is structured as explained above.
 
     Returns:
-        _type_: _description_
+        out (tuple[dict[str:np.ndarray],dict[str:np.ndarray],dict[str:np.ndarray],dict[str:float]]):
+            the average, min and max energies for each solver sorted per x data point and the x data points.
     """
     x_data = {solver : [x_dat for (x_dat, _) in data[solver].items()] for solver in data.keys()}
     avg_energies = {solver: [] for solver in data.keys()}
@@ -28,8 +29,9 @@ def compute_averages_energies(
 
     for solver_name, plot_info in data.items():
         for _, y_data in plot_info.items():
-            avg_energies[solver_name].append(np.mean(np.array(y_data), axis=0))
-            std = np.std(np.array(y_data), axis=0)
+            y = np.array(y_data)
+            avg_energies[solver_name].append(np.mean(y, axis=0))
+            std = np.std(y, axis=0)
             min_energies[solver_name].append(avg_energies[solver_name][-1] - std)
             max_energies[solver_name].append(avg_energies[solver_name][-1] + std)
             # x_data[solver_name].append(x_dat)

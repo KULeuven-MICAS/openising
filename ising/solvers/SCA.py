@@ -56,6 +56,7 @@ class SCA(SolverBase):
         J = triu_to_symm(model.J)
         flipped_states = []
         clocker = clock(clock_freq, clock_op)
+        initial_state = np.sign(initial_state)
 
         if seed is None:
             seed = int(time.time() * 1000)
@@ -125,4 +126,4 @@ class SCA(SolverBase):
             probability (np.ndarray): probability of accepting the change of all nodes.
         """
         val = 1 / T * (np.multiply(hs, sample) + q) / 2
-        return np.exp(val) / (2 * np.cosh(-val))
+        return 1 / (1 + np.exp(-val))
