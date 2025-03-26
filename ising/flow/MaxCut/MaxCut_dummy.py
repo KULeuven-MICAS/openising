@@ -1,9 +1,9 @@
-import os
-import pathlib
 import numpy as np
 import networkx as nx
 import time
 import argparse
+
+from ising.flow import LOGGER, TOP
 
 from ising.generators.MaxCut import random_MaxCut
 
@@ -11,7 +11,6 @@ from ising.utils.flow import return_c0, return_rx, return_q, make_directory, par
 from ising.postprocessing.MC_plot import plot_MC_solution
 from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 
-TOP = pathlib.Path(os.getenv("TOP"))
 
 def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> None:
     """Runs some dummy Max-Cut problems with the specified size of the problems.
@@ -51,6 +50,7 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
 
 
     logtop = TOP / "ising/flow/MaxCut/logs"
+    LOGGER.debug("Logpath: "+ str(logtop))
     make_directory(logtop)
     figtop = TOP / "ising/flow/MaxCut/plots" / str(args.fig_folder)
     make_directory(figtop)
@@ -70,19 +70,14 @@ def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> N
 
 
     for N in N_list:
-        print(f"Solving with {N} variables")
+        LOGGER.info(f"Solving with {N} variables")
         problem = problems[N]
         if change_c:
             hyperparameters["c0"] = return_c0(model=problem)
         if change_q:
             hyperparameters["q"] = return_q(problem)
-        # logfiles = {}
 
         logfiles = {solver: [logtop / f"{solver}_N{N}_run{run}.log" for run in range(nb_runs)] for solver in solvers}
-        # for solver in solvers:
-        #     logfiles[solver] = []
-        #     for nb_run in range(nb_runs):
-        #         logfiles[solver].append(logtop / f"{solver}_N{N}_run{nb_run}.log")
         make_solvers_thread(
             solvers=solvers,
             num_iter=num_iter,

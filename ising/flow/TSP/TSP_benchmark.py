@@ -1,8 +1,7 @@
-import pathlib
-import os
 import argparse
 import numpy as np
 
+from ising.flow import TOP, LOGGER
 from ising.benchmarks.parsers.TSP import TSP_parser
 from ising.generators.TSP import TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
@@ -10,8 +9,6 @@ from ising.utils.flow import make_directory, parse_hyperparameters, return_q, re
 from ising.utils.threading import make_solvers_thread
 from ising.solvers.Gurobi import Gurobi
 from ising.postprocessing.TSP_plot import plot_graph_solution
-
-TOP = pathlib.Path(os.getenv("TOP"))
 
 
 def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], args: argparse.Namespace):
@@ -24,17 +21,19 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
         solvers (list[str]): a list with all the solvers to run.
         args (_type_): the arguments parsed with ising/flow/Problem_parser.py
     """
-    print("Generating benchmark: ", benchmark)
+    LOGGER.info("Generating benchmark: ", benchmark)
     graph_orig, best_found = TSP_parser(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
     A = float(args.weight_constant)
     model = TSP(graph=graph_orig, weight_constant=A)
     if best_found is not None:
-        print(f"Best found: {best_found}")
-    print("Generated benchmark")
+        LOGGER.info(f"Best found: {best_found}")
+    LOGGER.info("Generated benchmark")
 
     nb_runs = int(args.nb_runs)
     logpath = TOP / "ising/flow/TSP/logs"
     figtop = TOP / "ising/flow/TSP/plots" / args.fig_folder
+    LOGGER.debug(f"Logpath: {logpath}")
+    LOGGER.debug(f"Figtop: {figtop}")
     make_directory(logpath)
     make_directory(figtop)
 
@@ -47,7 +46,7 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
         )
 
     for num_iter in iter_list:
-        print(f"Running for {num_iter} iterations")
+        LOGGER.info(f"Running for {num_iter} iterations")
         hyperparameters = parse_hyperparameters(args, num_iter)
         if hyperparameters["q"] == 0.0:
             hyperparameters["q"] = return_q(model)

@@ -1,14 +1,12 @@
 import numpy as np
-import os
 import pathlib
 
+from ising.flow import TOP, LOGGER
 from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
 from ising.utils.flow import return_c0, return_q, return_rx, make_directory, parse_hyperparameters, run_solver
 from ising.utils.HDF5Logger import HDF5Logger, return_metadata
 from ising.generators.MIMO import compute_difference
 from ising.solvers.Gurobi import Gurobi
-
-TOP = pathlib.Path(os.getenv("TOP"))
 
 
 def test_MIMO(SNR_list, solvers, args):
@@ -32,10 +30,11 @@ def test_MIMO(SNR_list, solvers, args):
         change_c = False
 
     logtop = TOP / "ising/flow/MIMO/logs"
+    LOGGER.debug(f"Logtop: {logtop}")
     make_directory(logtop)
     H, symbols = MU_MIMO(Nt, Nr, M, hyperparameters["seed"])
     for SNR in SNR_list:
-        print(f"running for SNR {SNR}")
+        LOGGER.info(f"running for SNR {SNR}")
         for run in range(nb_runs):
             x = np.random.choice(symbols, (Nt,)) + 1j*np.random.choice(symbols, (Nt,))
             model, xtilde = MIMO_to_Ising(H, x, SNR, Nr, Nt, M, hyperparameters["seed"])

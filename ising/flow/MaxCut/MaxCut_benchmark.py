@@ -1,14 +1,12 @@
-import os
-import pathlib
 import argparse
 
+from ising.flow import LOGGER, TOP
 from ising.benchmarks.parsers.G import G_parser
 from ising.generators.MaxCut import MaxCut
 from ising.solvers.Gurobi import Gurobi
-from ising.utils.flow import make_directory, parse_hyperparameters, return_c0, return_rx, return_q#, run_solver
+from ising.utils.flow import make_directory, parse_hyperparameters, return_c0, return_rx, return_q
 from ising.utils.threading import make_solvers_thread
 
-TOP = pathlib.Path(os.getenv("TOP"))
 
 def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:argparse.Namespace) -> None:
     """Runs a given benchmark with the specified list of iteration lengths.
@@ -19,17 +17,18 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
         iter_list (tuple[int]): the list of iterations lengths.
         solvers (list[str]): the list of solvers to run.
     """
-    print("Generating benchmark: ", benchmark)
+    LOGGER.info("Generating benchmark: " + benchmark)
     graph, best_found = G_parser(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
     model = MaxCut(graph=graph)
     if best_found is not None:
-        print("Best found energy: ", -best_found)
-    print("Generated benchmark")
+        LOGGER.info("Best found energy: " +  str(-best_found))
+    LOGGER.info("Generated benchmark")
 
     nb_runs = int(args.nb_runs)
 
-    print("Setting up solvers")
+    LOGGER.info("Setting up solvers")
     logpath = TOP / "ising/flow/MaxCut/logs"
+    LOGGER.debug("Logpath: "+ str(logpath))
     make_directory(logpath)
 
     if bool(int(args.use_gurobi)):
@@ -37,7 +36,7 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
         Gurobi().solve(model=model, file=gurobi_log)
 
     for num_iter in iter_list:
-        print(f"Running for {num_iter} iterations")
+        LOGGER.info(f"Running for {num_iter} iterations")
         hyperparameters = parse_hyperparameters(args, num_iter)
 
         if hyperparameters["c0"] == 0.0:
@@ -53,8 +52,6 @@ def run_benchmark(benchmark:str, iter_list:list[int], solvers:list[str], args:ar
             for run in range(nb_runs):
                 logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
                 logfiles[solver].append(logfile)
-                # s_init = np.random.choice([-1,1], (model.num_variables,))
-                # run_solver(solver, num_iter, v_init, model, logfile, **hyperparameters)
 
         make_solvers_thread(
             solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
