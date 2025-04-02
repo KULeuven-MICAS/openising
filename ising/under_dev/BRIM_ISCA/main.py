@@ -62,7 +62,7 @@ def main():
                                        logfile)
     LOGGER.info(f"Best energy: {energy} with state: {state}")
 
-    plot_energies_multiple(logfiles, f"comparison_ISCA_own{"_coupling" if parameters.coupling else ""}{"_flipping" if parameters.sh_enable else ""}.png",
+    plot_energies_multiple(logfiles, f"comparison_ISCA_own{"_coupling" if parameters.anneal_type else ""}{"_flipping" if parameters.sh_enable else ""}.png",
                            best_found=graph_K2000[1])
     # # See if results are the same as the C++ code
     # cpp_log = TOP / "no_backup/logs_BRIM_code"

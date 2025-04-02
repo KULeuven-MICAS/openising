@@ -4,7 +4,17 @@ from ising.model.ising import IsingModel
 from ising.utils.numpy import triu_to_symm
 
 
-def partitioning_modularity(model:IsingModel):
+def partitioning_modularity(model:IsingModel, nb_cores:int=2):
+    """partitions the models nodes into a number of partitions according to the modularity partitioning scheme.
+    The number of partitions is determined by the parameter nb_cores.
+
+    Args:
+        model (IsingModel): the model to be partitioned
+        nb_cores (int): the number of partitions to be created
+
+    Returns:
+        s (np.ndarray): the partitioning of the model 
+    """
     J = triu_to_symm(model.J)
     A = np.where(J != 0, 1., 0.)
     k = np.sum(A, axis=0)
@@ -12,7 +22,22 @@ def partitioning_modularity(model:IsingModel):
     B = A - np.outer(k, k) / (2*m)
 
     lam, V = np.linalg.eig(B)
-    s = np.sign(V[:,np.argmax(lam)])
-    s = np.where(s == 0, -1, s)
+    v = V[:,np.argmax(lam)]
+    
+    # Calculate thresholds using percentiles
+    thresholds = np.percentile(v, np.linspace(0, 100, nb_cores+1)[1:-1])
+    
+    # Initialize partitioning array
+    s = np.zeros(model.num_variables)
+    
+    # Assign partitions based on thresholds
+    for i in range(nb_cores):
+        if i == 0:
+            mask = v >= thresholds[0]
+        elif i == nb_cores - 1:
+            mask = v < thresholds[-1]
+        else:
+            mask = (v >= thresholds[i]) & (v < thresholds[i-1])
+        s[mask] = i
     return s
 

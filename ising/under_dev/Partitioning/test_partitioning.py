@@ -1,10 +1,11 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-import os
-import pathlib
+import logging
 
-from ising.generators.MaxCut import MaxCut
+from ising.flow import TOP, LOGGER
+
+from ising.generators.MaxCut import MaxCut, random_MaxCut
 from ising.model.ising import IsingModel
 
 from ising.solvers.exhaustive import ExhaustiveSolver
@@ -18,21 +19,25 @@ from ising.under_dev.Partitioning.dual_decomposition import dual_decomposition
 from ising.utils.flow import make_directory
 from ising.utils.numpy import triu_to_symm
 
-TOP = pathlib.Path(os.getenv("TOP"))
-figtop = TOP / "ising/dummy/Partitioning/plots"
+figtop = TOP / "ising/under_dev/Partitioning/plots"
 make_directory(figtop)
+logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.INFO)
 
 
-def plot_partitioning(G, s, fig_name):
+def plot_partitioning(G:nx.Graph, s, fig_name):
     pos = nx.spring_layout(G, k=5 / np.sqrt(5))
     _, (ax1, ax2) = plt.subplots(2, 1)
 
     nx.draw_networkx(G, pos, ax=ax1)
 
-    red_nodes = [node for node in G.nodes if s[node] == 1.0]
-    blue_nodes = [node for node in G.nodes if s[node] == -1.0]
-    nx.draw_networkx_nodes(G, pos, nodelist=red_nodes, node_color="tab:red", ax=ax2)
-    nx.draw_networkx_nodes(G, pos, nodelist=blue_nodes, node_color="tab:blue", ax=ax2)
+    unique_partitions = np.unique(s)
+    LOGGER.info(unique_partitions)
+    colors = plt.cm.tab10(np.linspace(0, len(unique_partitions)))
+    LOGGER.info(colors)
+
+    for idx, partition in enumerate(unique_partitions):
+        nodes_in_partition = [node for node in G.nodes if s[node] == partition]
+        nx.draw_networkx_nodes(G, pos, nodelist=nodes_in_partition, node_color=colors[idx], ax=ax2)
     for edge in G.edges:
         if s[edge[0]] != s[edge[1]]:
             nx.draw_networkx_edges(G, pos, edgelist=[edge], ax=ax2, style="--")
@@ -242,8 +247,22 @@ def test_dual_decomposition():
 
     print(f"Solution of dual decomposition is: {state} with energy: {energy}")
 
+def test_accuracy():
+    model = random_MaxCut(25, 1)
+    G = nx.Graph(-2*triu_to_symm(model.J))
+
+    cores = range(2, 6)
+
+    for nb_cores in cores:
+        s_mod = partitioning_modularity(model, nb_cores)
+        plot_partitioning(G, s_mod, f"modularity_test_{nb_cores}.png")
+
+
+
+
 
 if __name__ == "__main__":
     # test_compare_small()
     # test_compare_big()
-    test_dual_decomposition()
+    # test_dual_decomposition()
+    test_accuracy()
