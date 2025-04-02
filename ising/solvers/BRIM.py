@@ -1,8 +1,8 @@
 import time
 import numpy as np
 import pathlib
-import os
 
+from ising.flow import LOGGER, TOP
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -87,6 +87,7 @@ class BRIM(SolverBase):
             new_model = model
             zero_h = True
         J = triu_to_symm(new_model.J)
+        LOGGER.debug(f"norm of original J: {np.linalg.norm(J, "fro")}")
         model.reconstruct()
 
         # Make sure the correct seed is used
@@ -96,8 +97,7 @@ class BRIM(SolverBase):
 
         # Ensure the bias node is added and add noise to the initial voltages
         N = model.num_variables
-        if N == 2000:
-            initial_state = np.loadtxt(pathlib.Path(os.getenv("TOP")) / "ising/flow/000.txt")[:N]
+        initial_state = np.loadtxt(TOP / "ising/flow/000.txt")[:N]
         if not zero_h:
             v = np.block([initial_state, 1.0])
         else:
@@ -106,19 +106,20 @@ class BRIM(SolverBase):
         # Schema for the logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
-        def dvdt(t, vt, coupling):
+        def dvdt(t, vt, coupling, Ka):
             # Make sure the bias node is 1
             if not zero_h:
                 vt[-1] = 1.0
 
             # Compute the differential equation
             V_mat = np.array([vt] * vt.shape[0])
-            dv = -1 / C * np.sum(coupling * (V_mat.T - V_mat), axis=1)
+            dv = -1 / C * np.sum(Ka * coupling * (V_mat.T - V_mat), axis=1)
 
             # Make sure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
             cond2 = (dv < 0) & (vt < -1)
             dv *= np.where(cond1 | cond2, 0.0, 1)
+            LOGGER.debug(f"norm of dv: {np.linalg.norm(dv)}")
 
             # Make sure the bias node does not change
             if not zero_h:
@@ -163,8 +164,8 @@ class BRIM(SolverBase):
                     Ka = 1.0
 
                 # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
-                k1 = dtBRIM * dvdt(tk, previous_voltages, Ka*J)
-                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, Ka*J)
+                k1 = dtBRIM * dvdt(tk, previous_voltages, J, Ka)
+                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J, Ka)
 
                 # Add noise and update the voltages
                 if Temp != 0.0:
@@ -185,9 +186,10 @@ class BRIM(SolverBase):
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
                 # Update criterion changes
-                max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
-                    previous_voltages, ord=np.inf
-                )
+                if i > 0:
+                    max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
+                        previous_voltages, ord=np.inf
+                    )
                 previous_voltages = np.copy(new_voltages)
                 i += 1
 

@@ -1,8 +1,8 @@
 import numpy as np
 import pathlib
 import time
-import os
 
+from ising.flow import LOGGER, TOP
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -69,6 +69,8 @@ class Multiplicative(SolverBase):
             new_model = model
             zero_h = True
         J = triu_to_symm(new_model.J)
+        lam, _ = np.linalg.eig(J + np.eye(J.shape[0]))
+        LOGGER.debug("Maximal eigenvalue of J + I: ", lam[0])
 
         # make sure the correct random seed is used
         if seed == 0:
@@ -77,8 +79,7 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         N = model.num_variables
-        if N == 2000:
-            initial_state = np.loadtxt(pathlib.Path(os.getenv("TOP")) / "ising/flow/000.txt")[:N]
+        initial_state = np.loadtxt(TOP / "ising/flow/000.txt")[:N]
         if not zero_h:
             v = np.block([initial_state, 1.0])
         else:
@@ -104,8 +105,11 @@ class Multiplicative(SolverBase):
             if not zero_h:
                 vt[-1] = 1.0
 
+            # ZIV diode
+            # z = (vt + 1)*(vt-1)*vt
+
             # Compute the voltage change dv
-            dv = np.dot(coupling, vt)
+            dv = np.dot(coupling, vt) #- z
 
             # Ensure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
@@ -166,9 +170,10 @@ class Multiplicative(SolverBase):
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
                 # Update the criterion changes
-                max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
-                    previous_voltages, ord=np.inf
-                )
+                if i > 0:
+                    max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
+                        previous_voltages, ord=np.inf
+                    )
                 previous_voltages = np.copy(new_voltages)
                 i += 1
             # Make sure to log to the last iteration if the stop criterion is reached
