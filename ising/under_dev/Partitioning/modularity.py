@@ -26,18 +26,16 @@ def partitioning_modularity(model:IsingModel, nb_cores:int=2):
     
     # Calculate thresholds using percentiles
     thresholds = np.percentile(v, np.linspace(0, 100, nb_cores+1)[1:-1])
-    
     # Initialize partitioning array
     s = np.zeros(model.num_variables)
     
     # Assign partitions based on thresholds
-    for i in range(nb_cores):
-        if i == 0:
-            mask = v >= thresholds[0]
-        elif i == nb_cores - 1:
-            mask = v < thresholds[-1]
+    for i in range(1, nb_cores):
+        if i == nb_cores - 1:
+            mask = v >= thresholds[-1]
         else:
-            mask = (v >= thresholds[i]) & (v < thresholds[i-1])
+            mask = (v >= thresholds[i-1]) & (v < thresholds[i])
         s[mask] = i
+        print(s)
     return s
 
