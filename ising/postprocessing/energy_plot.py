@@ -64,7 +64,7 @@ def plot_energies_multiple(
     y_data:str="energy",
     best_found: float = None,
     save: bool = True,
-    save_folder: pathlib.Path = ".",
+    save_folder: pathlib.Path = pathlib.Path(),
     percentage: float = 1.0
 ):
     """Plots the energies of multiple optimisation processes.
@@ -86,13 +86,14 @@ def plot_energies_multiple(
     plt.figure()
     for solver in avg_energies.keys():
         num_iterations = len(avg_energies[solver][0])
-        iterations = range(percentage_plot*num_iterations, num_iterations)
+        iterations = range(int(percentage_plot*num_iterations), num_iterations)
+        begin_iter = int(percentage_plot*num_iterations)
         plt.semilogx(iterations,
-                    avg_energies[solver][0][percentage_plot*num_iterations:, :], label=solver)
+                    avg_energies[solver][0][begin_iter:], label=solver + f": {avg_energies[solver][0][-1]}")
         plt.fill_between(
             iterations,
-            min_energies[solver][0][percentage_plot*num_iterations:, :],
-            max_energies[solver][0][percentage_plot*num_iterations:, :],
+            min_energies[solver][0][begin_iter:],
+            max_energies[solver][0][begin_iter:],
             alpha=0.2
         )
     if best_found is not None:
@@ -100,12 +101,12 @@ def plot_energies_multiple(
         plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
         plt.axhline(0.9*best_found, linestyle="-.", color="k", label="0.9 of Best Found")
 
-    plt.legend()
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.title("Energy comparison of different optimisation processes")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / figName, dpi=600, bbox_inches="tight")
     plt.close()
 
 
