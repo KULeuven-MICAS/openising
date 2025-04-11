@@ -22,6 +22,8 @@ def multiplicative_own(
         end_temp_cont: float = 0.05,
         stop_criterion: float = 1e-8,
         coupling_annealing: bool = False,
+        ZIV: bool= False,
+        flipping: bool = False,
         file: pathlib.Path | None = None,
     ) -> tuple[float, np.ndarray]:
         """Solves the given problem using a multiplicative coupling scheme.
@@ -72,6 +74,17 @@ def multiplicative_own(
         # Schema for logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
+        sh_tv = np.zeros((2000,))
+        sh_ts = np.full((2000,), False)
+        sh_cnt = -1*np.ones((2000,))
+        par = params()
+        par.C = capacitance
+        par.Rc = resistance
+        par.R = resistance
+        par.bias = zero_h
+        par.steps = num_iterations
+        sf = SpinFlip(N, par)
+
         # Define the system equations
         def dvdt(t: float, vt: np.ndarray, coupling: np.ndarray):
             """Differential equations for the multiplicative BRIM model.
@@ -88,12 +101,23 @@ def multiplicative_own(
             # set bias node to 1.
             if not zero_h:
                 vt[-1] = 1.0
+            
+            # Buffering
+            c = np.where((vt < -1.) | (vt > 1.), 1/np.abs(vt), 1.0)
 
             # ZIV diode
-            # z = (vt + 1)*(vt-1)*vt
+            if ZIV:
+                z = vt/resistance*(vt-1)*(vt+1) * mu(t, tend)
+            else:
+                z = np.zeros_like(vt)
 
             # Compute the voltage change dv
-            dv = 1/capacitance * np.dot(coupling, vt) #- z
+            if flipping:
+                flip = (sh_tv - vt) / resistance
+                not_sh_ts =  np.where(sh_ts, False, True)
+                dv = np.where(not_sh_ts, -z + np.dot(coupling,(vt*c)), flip) /capacitance
+            else:
+                dv = 1/capacitance * (np.dot(coupling, c*vt) - z)
 
             # Ensure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
@@ -108,6 +132,7 @@ def multiplicative_own(
         with HDF5Logger(file, schema) as log:
             log_metadata(
                 logger=log,
+                name=f"Multiplicative_own{"_own_ZIV" if ZIV else ""}",
                 initial_state=np.sign(v[:-1]),
                 model=model,
                 num_iterations=num_iterations,
@@ -124,18 +149,21 @@ def multiplicative_own(
                 (end_temp_cont / initial_temp_cont) ** (1 / (num_iterations - 1)) if initial_temp_cont != 0.0 else 1.0
             )
             previous_voltages = np.copy(v)
+            NUM_ODE_STEPS = 2
+            dt = dtMult / NUM_ODE_STEPS
 
             while i < num_iterations and max_change > stop_criterion:
                 tk = t_eval[i]
 
                 if coupling_annealing:
-                    K = Ka(tk, Kap)
+                    
+                    coupling_ann = Ka(tk, Kap)
                 else:
-                    K = 1.0
+                    coupling_ann = 1.0
 
                 # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
-                k1 = dtMult * dvdt(tk, previous_voltages, K*J)
-                k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, K*J)
+                
+                # k2 = dtMult * dvdt(tk + 2 / 3 * dtMult, previous_voltages + 2 / 3 * k1, K*J)
 
                 # Add noise and update the voltages
                 if Temp != 0.0:
@@ -145,8 +173,17 @@ def multiplicative_own(
                     noise *= np.where(cond1 | cond2, 0.0, 1.0)
                 else:
                     noise = np.zeros_like(previous_voltages)
-                new_voltages = previous_voltages + 1.0 / 4.0 * (k1 + 3.0 * k2) + noise
+                ib_voltages = np.copy(previous_voltages)
+
+                for _ in range(NUM_ODE_STEPS):
+                    k1 = dt * dvdt(tk, previous_voltages, coupling_ann*J)
+                    ib_voltages = ib_voltages + k1 + noise/NUM_ODE_STEPS
+                    tk += dt
                 Temp *= cooling_rate
+                
+                new_voltages = np.copy(ib_voltages)
+                if flipping:
+                    sh_cnt, sh_tv, sh_ts = do_spinflip(sf, new_voltages, sh_cnt, sh_tv, sh_ts, par)
 
                 # Log everything
                 sample = np.sign(new_voltages[:N])
@@ -158,6 +195,11 @@ def multiplicative_own(
                     max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
                         previous_voltages, ord=np.inf
                     )
+
+                if i % 1000 == 0:
+                    LOGGER.info(
+                        f"Step {i} / {num_iterations} - Energy: {energy} - Time: {tk:.4e} - Coupling: {coupling_ann:.4f} - max change: {max_change:.4e} - max absolute voltage: {np.max(np.abs(new_voltages[:N]))}"
+                        )
                 previous_voltages = np.copy(new_voltages)
                 i += 1
             # Make sure to log to the last iteration if the stop criterion is reached
@@ -168,3 +210,7 @@ def multiplicative_own(
 
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
         return sample, energy
+
+def mu(t: float, tend: float) -> float:
+    return 2*(t/tend)**4 - 1
+
