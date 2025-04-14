@@ -45,8 +45,8 @@ def main():
     # LOGGER.info(f"Best energy: {energy} with state: {state}")
     
     LOGGER.info("Setting up own solver")
-    resistance = parameters.Rc
-    capacitance = parameters.C
+    resistance = parameters.Rc*10
+    capacitance = parameters.C*20
     tau_own = resistance * capacitance
     tau_ISCA = parameters.Rc * parameters.C
     alpha = tau_own / tau_ISCA
@@ -54,12 +54,12 @@ def main():
     dtMult = parameters.tstep
     num_iterations = int(tend / dtMult)
     ZIV = True
-    coupling_annealing = True
+    coupling_annealing = False
     flipping = False
 
     LOGGER.info(f" resistance: {resistance}, capacitance: {capacitance}, tau_own: {tau_own}, tau_ISCA: {tau_ISCA}, alpha: {alpha}, tend: {tend}, dtMult: {dtMult}, num_iterations: {num_iterations}")
 
-    logfile = TOP / f"ising/under_dev/BRIM_ISCA/logs/K2000_own_alpha{alpha:.2f}{"_coupling" if coupling_annealing else ""}{"_flipping" if flipping else "_noise"}{"_own_ZIV2" if ZIV else ""}.log"
+    logfile = TOP / f"ising/under_dev/BRIM_ISCA/logs/K2000_own_alpha{alpha:.2f}{"_coupling" if coupling_annealing else ""}{"_flipping" if flipping else ""}{"_own_ZIV2" if ZIV else ""}.log"
     logfiles.append(logfile)
 
     # lam, _ = np.linalg.eig(triu_to_symm(model.J)/(resistance*capacitance))
@@ -70,7 +70,7 @@ def main():
                                        num_iterations,
                                        resistance, capacitance,
                                        parameters.seed,
-                                       1e-3, 1e-7, 
+                                       0.0, 1e-7, 
                                        stop_criterion=1e-10, 
                                        coupling_annealing=coupling_annealing, ZIV=ZIV, flipping=flipping,
                                        file=logfile)
@@ -121,5 +121,5 @@ def plot_original_logs():
     plot_energies_multiple(logfiles, figName="comparison_flipping_own_ZIV2_alpha1.png", save_folder=fig_folder, best_found=-33337.0)
 
 if __name__ == "__main__":
-    # main()
-    plot_original_logs()
+    main()
+    # plot_original_logs()

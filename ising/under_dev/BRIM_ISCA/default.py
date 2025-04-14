@@ -16,7 +16,7 @@ class params:
     steps: int = round((tstop-tstart)/tstep)
     anneal_type: int = 0
     seed: int = 1234
-    sh_enable: bool = True
+    sh_enable: bool = False
     debug: bool = True
     bias: bool = False
     cnt_flips: bool = True
