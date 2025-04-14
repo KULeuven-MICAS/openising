@@ -8,7 +8,7 @@ def dual_decomposition(models: dict[int: IsingModel], constraints: dict[int: np.
                       num_iterations:int, solver: str, step:float, stop_criterion: float = 1e-8, **hyperparameters) ->tuple[dict[int: np.ndarray], np.ndarray]:
     
     partitions = list(models.keys())
-    lambda_k = 10*np.ones((constraints[partitions[0]].shape[0],))*np.max([np.average(np.sum(np.abs(triu_to_symm(m.J)), axis=1)) for m in models.values()])
+    lambda_k = np.zeros((constraints[partitions[0]].shape[0],))
 
     k = 0
     max_change = np.inf
@@ -26,7 +26,7 @@ def dual_decomposition(models: dict[int: IsingModel], constraints: dict[int: np.
         lambda_new += lambda_k 
 
         k += 1
-        max_change = np.linalg.norm(lambda_new - lambda_k, ord=np.inf) / np.linalg.norm(lambda_k, ord=np.inf)
+        max_change = np.linalg.norm(lambda_new - lambda_k, ord=np.inf) / (np.linalg.norm(lambda_k, ord=np.inf) if np.linalg.norm(lambda_k, ord=np.inf) > 0 else 1)
         lambda_k = lambda_new
     
     return initial_states, lambda_k

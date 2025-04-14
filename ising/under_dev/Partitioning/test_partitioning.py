@@ -10,6 +10,7 @@ from ising.generators.MaxCut import MaxCut, random_MaxCut
 from ising.model.ising import IsingModel
 
 from ising.solvers.exhaustive import ExhaustiveSolver
+from ising.solvers.SB import ballisticSB
 
 from ising.under_dev.Partitioning.modularity import partitioning_modularity
 from ising.under_dev.Partitioning.spectral_partitioning import spectral_partitioning
@@ -65,13 +66,13 @@ def optimal_state_from_partitioning(optimal_states:dict[int: np.ndarray], model:
 
 
     for node, part in enumerate(partitioning):
-        amount_replicas = 2
+        amount_replicas = 3
         avg_node = 0
         for other_part, replica_node in replica_nodes.items():
             if node in replica_node and other_part != part:
                 amount_replicas += 1
                 avg_node += optimal_states[other_part][node_maps[other_part][node]]
-        avg_node += optimal_states[part][node_maps[part][node]]*2
+        avg_node += optimal_states[part][node_maps[part][node]]*3
         avg_node /= amount_replicas
         if avg_node == 0:
             state[node] = optimal_states[part][node_maps[part][node]]
@@ -82,6 +83,16 @@ def optimal_state_from_partitioning(optimal_states:dict[int: np.ndarray], model:
 
     return state, energy
 
+def plot_energies_cores(cores:list[int], energies:list[float], best_energy:float,  figname:str):
+
+    plt.figure()
+    plt.plot(cores, energies, "x-")
+    plt.axhline(best_energy, linestyle="--", color="k", label="Best energy")
+    plt.xlabel("Number of cores")
+    plt.ylabel("Optimal Energy")
+    plt.legend()
+    plt.savefig(figtop / figname)
+    plt.close()
 
 def test_compare_small():
     G = nx.Graph()
@@ -187,13 +198,14 @@ def test_dual_decomposition():
     print(f"Solution of dual decomposition is: {state} with energy: {energy}")
 
 def test_accuracy():
-    model = random_MaxCut(25, int(time.time()))
-    state, energy = ExhaustiveSolver().solve(model)
-    LOGGER.info(f"Optimal energy is {energy} and state is {state}")
+    model = random_MaxCut(50, 8)
+    # state, energy = ExhaustiveSolver().solve(model)
+    state, best_energy = ballisticSB().solve(model, np.random.choice([-1, 1], size=(model.num_variables, )), 1000, 0.7/np.sqrt(model.num_variables), 0.25, 1.0)
+    LOGGER.info(f"Optimal energy is {best_energy} and state is {state}")
     G = nx.Graph(-2*triu_to_symm(model.J))
 
-    cores = range(2, 6)
-
+    cores = range(2, 11)
+    energies = []
     for nb_cores in cores:
         s_mod = partitioning_modularity(model, nb_cores)
         # LOGGER.info(f"Different partitions: {s_mod}")
@@ -206,9 +218,10 @@ def test_accuracy():
         # LOGGER.info(f"At optimal point, the lagrange parameters are {lambda_k}")
 
         state, energy = optimal_state_from_partitioning(optimal_states, model, s_mod, replica_nodes)
-
+        energies.append(energy)
         LOGGER.info(f"Solution of dual decomposition is: {state} with energy: {energy}")
 
+    plot_energies_cores(cores, energies, best_energy, "energies_partitioning.png")
 
 if __name__ == "__main__":
     # test_compare_small()
