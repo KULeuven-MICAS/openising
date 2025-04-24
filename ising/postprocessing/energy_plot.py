@@ -97,7 +97,7 @@ def plot_energies_multiple(
             alpha=0.2
         )
     if best_found is not None:
-        plt.axhline(best_found, linestyle="--", color="k", label="Best Found")
+        plt.axhline(best_found, linestyle="--", color="k", label=f"Best Found: {best_found}")
         plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
         plt.axhline(0.9*best_found, linestyle="-.", color="k", label="0.9 of Best Found")
 

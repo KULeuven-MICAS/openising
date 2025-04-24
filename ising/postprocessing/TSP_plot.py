@@ -26,7 +26,7 @@ def plot_graph_solution(
     path = [None]*N
     sub_state = solution_state.reshape((N, N))
     for city in range(N):
-        city_state = sub_state[city, :]
+        city_state = sub_state[:, city]
         if np.any(city_state==1):
             nodes_in_path.append(city+1)
         ind = np.where(city_state==1)[0]
@@ -35,11 +35,12 @@ def plot_graph_solution(
 
     for i in range(N):
         city1 = path[i]
-        city2 = path[(i+1) % N]
+        city2 = path[(i+1) if i+1 < N else 0]
         if G_orig.has_edge(city1, city2):
             red_edges.append((city1, city2))
-    black_edges = [(i, j) for (i, j) in G_orig.edges() if (i, j) not in red_edges]
-
+            red_edges.append((city2, city1))
+    black_edges = [(i, j) for (i, j) in G_orig.edges() if (i, j) not in red_edges and i!= j]
+    print(path)
     pos = nx.spring_layout(G_orig, k=5/np.sqrt(G_orig.order()), seed=1)
 
     plt.figure()
@@ -48,7 +49,6 @@ def plot_graph_solution(
     nx.draw_networkx_edges(G_orig, pos, edgelist=red_edges, edge_color="r", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_edges(G_orig, pos, edgelist=black_edges, edge_color="k", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_labels(G_orig, pos, labels={i: i for i in range(1, N+1)})
-    nx.draw_networkx_edge_labels(G_orig, pos, edge_labels=nx.get_edge_attributes(G_orig, "weight"))
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
         plt.savefig(f"{save_folder}/{fig_name}")
