@@ -1,5 +1,4 @@
 import numpy as np
-import time
 import pathlib
 
 from ising.flow import LOGGER
@@ -20,23 +19,22 @@ def brim_isca(model: IsingModel,
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
             new_model = model.transform_to_no_h()
-            zero_h = False
+            parameters.bias = True
         else:
             new_model = model
-            zero_h = True
         J = triu_to_symm(new_model.J) * 2 / parameters.Rc
 
         # Set up the bias node and add noise to the initial voltages
         N = model.num_variables
-        if not zero_h:
+        if parameters.bias:
             v = np.block([initial_state, 1.0])
         else:
             v = initial_state
 
         sf = SpinFlip(N, parameters)
-        sh_tv = np.zeros((2000,))
-        sh_ts = np.full((2000,), False)
-        sh_cnt = -1*np.ones((2000,))
+        sh_tv = np.zeros((N + 1*int(parameters.bias),))
+        sh_ts = np.full((N + 1*int(parameters.bias),), False)
+        sh_cnt = -1*np.ones((N + 1*int(parameters.bias),))
 
         # Schema for logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
@@ -73,14 +71,14 @@ def brim_isca(model: IsingModel,
             dv *= np.where(cond1 | cond2, 0.0, 1.)
 
             # # Ensure the bias node does not change
-            if not zero_h:
+            if parameters.bias:
                 dv[-1] = 0.0
             return dv
 
         with HDF5Logger(file, schema) as log:
             log_metadata(
                 logger=log,
-                name="BRIM_ISCA",
+                name=f"BRIM_ISCA{"_coupling" if parameters.anneal_type else ""}{"_flipping" if parameters.sh_enable else ""}",
                 initial_state=np.sign(v[:-1]),
                 model=model,
                 num_iterations=parameters.steps,
@@ -114,7 +112,7 @@ def brim_isca(model: IsingModel,
                 new_voltages = np.copy(ib_voltages)
 
 
-                if parameters.sh_enable:
+                if parameters.sh_enable and i  % parameters.sf_freq == 0:
                     sh_cnt, sh_tv, sh_ts = do_spinflip(sf, new_voltages, sh_cnt, sh_tv, sh_ts, parameters)
                 # Log everything
                 sample = np.sign(new_voltages[:N])
@@ -126,7 +124,7 @@ def brim_isca(model: IsingModel,
                     max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
                         previous_voltages, ord=np.inf
                     )
-                if i % 1000 == 0 and parameters.debug:
+                if i % 1000 == 0:
                     LOGGER.info(
                         f"Step {i} / {parameters.steps} - Energy: {energy} - Time: {tk:.4e} - Coupling: {coupling_ann:.4f} - spin flip count: {sf.tot_sfs} - max change: {max_change:.4e} -  max absolute voltage: {np.max(np.abs(new_voltages[:N]))}"
                         )
