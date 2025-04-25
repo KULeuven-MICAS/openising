@@ -55,6 +55,6 @@ def do_spinflip(sf: SpinFlip, state:np.ndarray, sh_cnt:np.ndarray, sh_tv:np.ndar
     
     # Update statistics
     sf.tot_sfs += np.sum(sel_sf)
-    sf.p += sf.scale
+    sf.p += sf.scale*params.sf_freq
     
     return sh_cnt, sh_tv, sh_ts
