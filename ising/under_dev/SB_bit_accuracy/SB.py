@@ -76,11 +76,11 @@ class ballisticSB(SB):
         N  = model.num_variables
 
         # Set up the model and initial states with the correct data type
-        values        = np.block([np.linspace(-1, 0, 2**(bit_width-1)), np.linspace(0, 1, 2**(bit_width-1))])
+        values        = np.linspace(-1, 1, 2**(bit_width)-1)
         J             = np.array(triu_to_symm(model.J))
         h             = np.array(model.h)
         x             = np.zeros((model.num_variables,))
-        y             = 1.*np.ones_like(x)
+        y             = np.ones_like(x)
 
         schema = {
             "time"      : float,
