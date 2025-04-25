@@ -44,7 +44,7 @@ class BRIM(SolverBase):
         initial_state: np.ndarray,
         num_iterations: int,
         dtBRIM: float,
-        C: float,
+        capacitance: float,
         stop_criterion: float = 1e-8,
         file: pathlib.Path | None = None,
         initial_temp_cont: float = 1.0,
@@ -113,7 +113,7 @@ class BRIM(SolverBase):
 
             # Compute the differential equation
             V_mat = np.array([vt] * vt.shape[0])
-            dv = -1 / C * np.sum(Ka * coupling * (V_mat.T - V_mat), axis=1)
+            dv = -1 / capacitance * np.sum(Ka * coupling * (V_mat.T - V_mat), axis=1)
 
             # Make sure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
@@ -133,7 +133,7 @@ class BRIM(SolverBase):
                 initial_state=np.sign(v),
                 model=model,
                 num_iterations=num_iterations,
-                C=C,
+                C=capacitance,
                 time_step=dtBRIM,
                 seed=seed,
                 temperature=initial_temp_cont,
