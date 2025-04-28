@@ -50,7 +50,8 @@ class ballisticSB(SB):
         dtSB:           float,
         a0:             float = 1.0,
         file:           pathlib.Path | None = None,
-        bit_width:      int = 16
+        bit_width_x:      int = 16,
+        bit_width_y:      int = 16,
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -72,11 +73,12 @@ class ballisticSB(SB):
         Returns:
             sample, energy (tuple[np.ndarray, float]): optimal solution and energy
         """
-        self.name += f"_{bit_width}"
+        self.name += f"_{bit_width_x}_{bit_width_y}"
         N  = model.num_variables
 
         # Set up the model and initial states with the correct data type
-        values        = np.linspace(-1, 1, 2**(bit_width)-1)
+        x_values        = np.linspace(-1, 1, 2**(bit_width_x)-1)
+        y_values        = np.linspace(-1, 1, 2**(bit_width_y)-1)
         J             = np.array(triu_to_symm(model.J))
         h             = np.array(model.h)
         x             = np.zeros((model.num_variables,))
@@ -110,11 +112,12 @@ class ballisticSB(SB):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 *  h) * dtSB
-                y = self.cast_to_values(y, values)
+                y = self.cast_to_values(y, y_values)
                 x += self.update_x(y, dtSB, a0)
+                x = self.cast_to_values(x, x_values)
 
-                y = np.where(np.abs(x) > 1, 0, y)
-                x = np.where(np.abs(x) > 1, np.sign(x), x)
+                y = np.where(np.abs(x) >= 1, 0, y)
+                x = np.where(np.abs(x) >= 1, np.sign(x), x)
 
                 sample = np.sign(x)
                 energy = model.evaluate(sample)

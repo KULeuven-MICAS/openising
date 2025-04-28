@@ -16,8 +16,9 @@ make_directory(figtop)
 logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.INFO)
 
 def main():
-    bit_width_list = [4, 8, 16]
-    benchmark = "K2000"
+    bit_width_list_y = [4, 8, 16]
+    bit_width_x =  16
+    benchmark = "G1"
     graph, best_found = G_parser(TOP / f"ising/benchmarks/G/{benchmark}.txt")
     LOGGER.info(f"best found: {-best_found}")
 
@@ -27,11 +28,11 @@ def main():
     dt = 0.25
     num_iter = 5000
 
-    for bit_width in bit_width_list:
-        logfile = logtop / f"SB_{benchmark}_bitwidth_{bit_width}.log"
-        LOGGER.info(f"bit_width: {bit_width}")
+    for bit_width in bit_width_list_y:
+        logfile = logtop / f"SB_{benchmark}_bitwidth_{bit_width}_x_{bit_width_x}.log"
+        LOGGER.info(f"bit_width y: {bit_width}")
 
-        state, energy = ballisticSB().solve(model, num_iter, c0, dt, a0, logfile, bit_width)
+        state, energy = ballisticSB().solve(model, num_iter, c0, dt, a0, logfile, bit_width_x, bit_width)
         LOGGER.info(f"Solved with energy: {energy}")
 
 def test():
@@ -50,8 +51,8 @@ def test():
     LOGGER.info(f"Solved with energy: {energy} and state: {state}")
 
 def plot_logs():
-    logfiles = [logtop / f"SB_K2000_bitwidth_{bit_width}.log" for bit_width in [4, 8, 16]]
-    plot_energies_multiple(logfiles, figName="SB_bit_accuray_K2000.png", best_found=-33337, save_folder=figtop, percentage=0.4)
+    logfiles = [logtop / f"SB_G1_bitwidth_{y}_x_{bit_width}.log" for y in [4, 8, 16] for bit_width in [4, 8, 16]]
+    plot_energies_multiple(logfiles, figName="SB_bit_accuray_G1_diff_quantization.png", best_found=-11624, save_folder=figtop, percentage=0.4)
 
 if __name__ == "__main__":
     # main()
