@@ -119,7 +119,7 @@ def multiplicative_own(
 
             # Compute the voltage change dv
             if flipping:
-                flip = (sh_tv - vt) / resistance
+                flip = (sh_tv - vt) / (resistance*dtMult)
                 not_sh_ts =  np.where(sh_ts, False, True)
                 dv = np.where(not_sh_ts, -z + np.dot(coupling,(vt*c)), flip) /capacitance
             else:
@@ -144,7 +144,13 @@ def multiplicative_own(
                 num_iterations=num_iterations,
                 time_step=dtMult,
                 temperature=initial_temp_cont,
-                coupling_annealing=coupling_annealing
+                coupling_annealing=coupling_annealing,
+                resistance=resistance,
+                capacitance=capacitance,
+                flipping=flipping,
+                flipping_freq=flipping_freq,
+                flipping_prob=flipping_prob,
+                mu_param=mu_param,
             )
 
             # Set up the simulation

@@ -165,7 +165,7 @@ def other_benchmarks():
     resistance = 1
     capacitance = 1
     dt = 1e-6
-    num_iter = 5000
+    num_iter = 30000
     benchmark = "burma14"
     if parameters.debug:
         logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.DEBUG)
@@ -175,28 +175,34 @@ def other_benchmarks():
     LOGGER.info(f"parsing {benchmark} benchmark")
     graph = TSP_parser(TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
     LOGGER.info(f"Best found solution: {graph[1]}")
-    model = TSP(graph[0], weight_constant=1.5)
+    model = TSP(graph[0], weight_constant=2)
         
-    initial_state = np.loadtxt(TOP / "ising/flow/000.txt")[:model.num_variables]
-
     cond = np.linalg.cond(triu_to_symm(model.J))
     eig,_ = np.linalg.eig(triu_to_symm(model.J))
     LOGGER.info(f"Condition number and largest eigenvalue of J are: {cond}, {np.max(np.abs(eig))}")
     LOGGER.info(parameters)
-    logfile = logfolder / f"{benchmark}_isca{"_coupling" if parameters.anneal_type else ""}{"_flipping" if parameters.sh_enable else ""}.log"
-    state, energy = multiplicative_own(model, 
-                              initial_state, 
-                              dt, num_iter, 
-                              resistance, capacitance, parameters.seed,
-                              0.0, stop_criterion=parameters.stop_criterion,
-                              coupling_annealing=False, mu_param=-3.33, flipping=False,
-                              file=logfile,
-                              name="Multiplicative_own")
-    TSP_val = get_TSP_value(graph[0], state)
-    calculate_TSP_energy([logfile], graph[0], False)
-    LOGGER.info(f"Best energy: {TSP_val} with state: {state}")
-    plot_state_continuous(logfile, f"{benchmark}_state_isca.png", save_folder=fig_folder)
-    plot_graph_solution(logfile, graph[0], f"{benchmark}_solution.png", save_folder=fig_folder)
+    logfiles = []
+    np.random.seed(parameters.seed)
+    nb_runs = 5
+    initial_states = np.random.uniform(-1, 1, (nb_runs*model.num_variables,))
+    for run in range(nb_runs):
+        initial_state = initial_states[run*model.num_variables:(run+1)*model.num_variables]
+        logfile = logfolder / f"{benchmark}_own_{run}.log"
+        state, energy = multiplicative_own(model, 
+                                initial_state, 
+                                dt, num_iter, 
+                                resistance, capacitance, parameters.seed,
+                                0.0, stop_criterion=parameters.stop_criterion,
+                                coupling_annealing=False, mu_param=-3.33, flipping=False, flipping_freq=100, flipping_prob=0.02,
+                                file=logfile,
+                                name=f"Multiplicative_own_{run}")
+        logfiles.append(logfile)
+        TSP_val = get_TSP_value(graph[0], state)
+        calculate_TSP_energy([logfile], graph[0], False)
+        LOGGER.info(f"Best energy: {TSP_val} with state: {state}")
+        plot_state_continuous(logfile, f"{benchmark}_state_isca_{run}.png", save_folder=fig_folder)
+        plot_graph_solution(logfile, graph[0], f"{benchmark}_solution_{run}.png", save_folder=fig_folder)
+    plot_energies_multiple(logfiles, figName=f"{benchmark}_comparison_own.png", save_folder=fig_folder, best_found=graph[1])
 
 def spin_flip_tests():
     parameters = params()
@@ -210,8 +216,8 @@ def spin_flip_tests():
     coupling = False
     mu_value = -3.22
     sf_freq_list = [1, 10, 100, 1000]
-
-    benchmark = "K2000"
+    sf_prob_list = [0.001799, 0.002, 0.02, 0.2]
+    benchmark = "G1"
     if parameters.debug:
         logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.DEBUG)
     else:
@@ -228,15 +234,16 @@ def spin_flip_tests():
     eig,_ = np.linalg.eig(triu_to_symm(model.J))
     LOGGER.info(f"Condition number and largest eigenvalue of J are: {cond}, {np.max(np.abs(eig))}")
     LOGGER.info(parameters)
-    for sh_freq in sf_freq_list:
-        logfile = logfolder / f"{benchmark}_own_flippingfreq_{sh_freq}_test.log"
+    for ind, sh_freq in enumerate(sf_freq_list):
+        sf_prob = sf_prob_list[ind]
+        logfile = logfolder / f"{benchmark}_own_flippingfreq_{sh_freq}_flippingprob_{sf_prob}.log"
         state, energy = multiplicative_own(model, 
                                 initial_state, 
                                 dt, num_iter,
                                 resistance, capacitance, parameters.seed,
                                 stop_criterion=parameters.stop_criterion, initial_temp_cont=0.0, 
                                 coupling_annealing=coupling, mu_param=mu_value, flipping=flipping,
-                                flipping_freq=sh_freq,
+                                flipping_freq=sh_freq, flipping_prob=sf_prob,
                                 file=logfile,
                                 name=f"Multiplicative_sf_freq_{sh_freq}")
         LOGGER.info(f"Best energy: {energy} with state: {state}")
@@ -289,14 +296,14 @@ def probability_tests():
 def plot_original_logs():
     logtop = TOP / "ising/under_dev/BRIM_ISCA/logs"
 
-    logfiles = [logtop / f"K2000_own_flippingfreq_10_flippingprob_0.001799_mu-3.55.log"]
+    logfiles = [logtop / f"burma14_own_.log"]
     plot_energies_multiple(logfiles, figName="comparison_flipping_freq_own.png", save_folder=fig_folder, best_found=-33337.0)
 
 if __name__ == "__main__":
     # main()
-    only_multiplicative()
+    # only_multiplicative()
     # other_benchmarks()
     # plot_original_logs()
-    # spin_flip_tests()
+    spin_flip_tests()
     # probability_tests()
     
