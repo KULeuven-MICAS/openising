@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 
 from ising.flow import TOP, LOGGER
-from ising.benchmarks.parsers.TSP import TSP_parser
+from ising.benchmarks.parsers.ATSP import ATSP_parser
 from ising.generators.TSP import TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
 from ising.utils.flow import run_solver, make_directory, parse_hyperparameters, return_q, return_c0
@@ -11,7 +11,7 @@ from ising.solvers.Gurobi import Gurobi
 from ising.postprocessing.TSP_plot import plot_graph_solution
 
 
-def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], args: argparse.Namespace):
+def run_ATSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], args: argparse.Namespace):
     """Runs the given TSP benchmark on different solvers.
     Each solver is run nb_run times with the specified number of iterations.
 
@@ -22,7 +22,7 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
         args (_type_): the arguments parsed with ising/flow/Problem_parser.py
     """
     LOGGER.info("Generating benchmark: " + str(benchmark))
-    graph_orig, best_found = TSP_parser(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
+    graph_orig, best_found = ATSP_parser(benchmark=TOP / f"ising/benchmarks/ATSP/{benchmark}.atsp")
     A = float(args.weight_constant)
     model = TSP(graph=graph_orig, weight_constant=A)
     if best_found is not None:
@@ -30,8 +30,8 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
     LOGGER.info("Generated benchmark")
 
     nb_runs = int(args.nb_runs)
-    logpath = TOP / "ising/flow/TSP/logs_TSP"
-    figtop = TOP / "ising/flow/TSP/plots_TSP" / args.fig_folder
+    logpath = TOP / "ising/flow/TSP/logs_ATSP"
+    figtop = TOP / "ising/flow/TSP/plots_ATSP" / args.fig_folder
     LOGGER.debug(f"Logpath: {logpath}")
     LOGGER.debug(f"Figtop: {figtop}")
     make_directory(logpath)
@@ -66,6 +66,7 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
             for solver in solvers:
                 logfile = logfiles[solver][run]
                 run_solver(solver, num_iter, init_state, model, logfile, **hyperparameters)
+
         # make_solvers_thread(
         #     solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
         # )

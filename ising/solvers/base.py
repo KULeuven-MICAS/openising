@@ -35,6 +35,7 @@ class SolverBase(ABC):
         """
         metadata = {
             "solver": self.name,
+            "model_name": model.name,
             "problem_size": model.num_variables,
             "initial_state": initial_state,
             "num_iterations": num_iterations,

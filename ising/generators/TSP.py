@@ -89,7 +89,7 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     constant -= np.sum(np.diag(J))/2
     J = (J + J.T)/2
     J = np.triu(J, 1)
-    return IsingModel(J, h, constant)
+    return IsingModel(J, h, constant, name=graph.name)
 
 
 def generate_random_TSP(
