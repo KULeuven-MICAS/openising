@@ -19,7 +19,7 @@ def TSP_parser(benchmark:pathlib.Path)->tuple[nx.DiGraph, float]:
     benchmark = str(benchmark)
     problem = tsplib95.load(benchmark)
     graph = problem.get_graph()
-    graph.name = benchmark.split("/").split(".")[0]
+    graph.name = benchmark.split("/")[-1].split(".")[0]
     best_found = get_optim_value(benchmark)
     return graph, best_found
 
