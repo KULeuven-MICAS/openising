@@ -119,7 +119,7 @@ def multiplicative_own(
 
             # Compute the voltage change dv
             if flipping:
-                flip = (sh_tv - vt) / (resistance*dtMult)
+                flip = (sh_tv - vt) / (resistance)*10
                 not_sh_ts =  np.where(sh_ts, False, True)
                 dv = np.where(not_sh_ts, -z + np.dot(coupling,(vt*c)), flip) /capacitance
             else:
