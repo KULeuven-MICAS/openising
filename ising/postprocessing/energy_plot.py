@@ -64,7 +64,8 @@ def plot_energies_multiple(
     y_data:str="energy",
     best_found: float = None,
     save: bool = True,
-    save_folder: pathlib.Path = ".",
+    save_folder: pathlib.Path = pathlib.Path(),
+    percentage: float = 1.0
 ):
     """Plots the energies of multiple optimisation processes.
 
@@ -75,28 +76,37 @@ def plot_energies_multiple(
         best_found (float, optional): best found energy value of the problem. Defaults to 0.0.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where the figure should be stored. Defaults to ".".
+        percentage (float, optional): percentage of the last iterations that will be plotted. Defaults to 100%.
     """
     #TODO: voeg gurobi toe
     data = get_data_from_logfiles(logfiles, y_data=y_data, x_data="num_iterations")
     avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
 
+    percentage_plot = 1.0 - percentage
     plt.figure()
     for solver in avg_energies.keys():
-        plt.semilogx(range(len(avg_energies[solver][0])), avg_energies[solver][0], label=solver)
+        num_iterations = len(avg_energies[solver][0])
+        iterations = range(int(percentage_plot*num_iterations), num_iterations)
+        begin_iter = int(percentage_plot*num_iterations)
+        plt.semilogx(iterations,
+                    avg_energies[solver][0][begin_iter:], label=solver + f": {avg_energies[solver][0][-1]}")
         plt.fill_between(
-            range(len(avg_energies[solver][0])), min_energies[solver][0], max_energies[solver][0], alpha=0.2
+            iterations,
+            min_energies[solver][0][begin_iter:],
+            max_energies[solver][0][begin_iter:],
+            alpha=0.2
         )
     if best_found is not None:
-        plt.axhline(best_found, linestyle="--", color="k", label="Best Found")
+        plt.axhline(best_found, linestyle="--", color="k", label=f"Best Found: {best_found}")
         plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
         plt.axhline(0.9*best_found, linestyle="-.", color="k", label="0.9 of Best Found")
 
-    plt.legend()
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.title("Energy comparison of different optimisation processes")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / figName, dpi=600, bbox_inches="tight")
     plt.close()
 
 

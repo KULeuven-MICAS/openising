@@ -17,7 +17,7 @@ class IsingModel:
         c (float): A constant term in the Hamiltonian.
     """
 
-    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0) -> None:
+    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0, name:str=None) -> None:
         """
         Initialize an Ising model with the specified interaction matrix, bias vector, and constant.
 
@@ -37,6 +37,7 @@ class IsingModel:
         self.J = J
         self.h = h
         self.c = c
+        self.benchmark_name = name
         self.transformation_history = []
 
     def __repr__(self) -> str:
@@ -188,7 +189,7 @@ class IsingModel:
         Returns:
             float: The calculated Hamiltonian value for the given sample.
         """
-        return -np.dot(sample.T, np.dot(self.J, sample)) - np.dot(self.h.T, sample) + self.c
+        return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
 
     @classmethod
     def from_qubo(cls, Q: np.ndarray) -> IsingModel:

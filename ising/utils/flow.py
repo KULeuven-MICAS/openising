@@ -39,11 +39,16 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
     hyperparameters["coupling_annealing"] = bool(int(args.coupling_annealing))
+    hyperparameters["resistance"] = float(args.resistance)
+    hyperparameters["flipping"] = bool(int(args.flipping))
+    hyperparameters["flipping_freq"] = int(args.flipping_freq)
+    hyperparameters["flipping_prob"] = float(args.flipping_prob)
+    hyperparameters["mu_param"] = float(args.mu_param)
 
     # BRIM parameters
     dtBRIM = float(args.dtBRIM)
     hyperparameters["dtBRIM"] = dtBRIM
-    hyperparameters["C"] = float(args.C)
+    hyperparameters["capacitance"] = float(args.capacitance)
     hyperparameters["stop_criterion"] = float(args.stop_criterion)
     hyperparameters["initial_temp_cont"] = float(args.T_cont)
     hyperparameters["end_temp_cont"] = float(args.T_final_cont)
@@ -82,6 +87,22 @@ def get_best_found_gurobi(gurobi_files: list[pathlib.Path]) -> list[float]:
         best_found_list.append(best_found)
     return best_found_list
 
+def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:int=0) -> np.ndarray:
+    """Go over all the benchmarks in the given directory.
+
+    Args:
+        which_benchmark (pathlib.Path): the path to the benchmark directory.
+
+    Returns:
+        np.ndarray: a list of all the benchmarks.
+    """
+    optimal_energies = which_benchmark / "optimal_energy.txt"
+    benchmarks = np.loadtxt(optimal_energies, dtype=str)[:, 0]
+    percentage = int(len(benchmarks) * percentage)
+    if (part+1)*percentage == 1.0:
+        return benchmarks[part*percentage:]
+    else:
+        return benchmarks[part*percentage:(part+1)*percentage]
 
 def run_solver(
     solver: str,
@@ -108,10 +129,32 @@ def run_solver(
     solvers = {
         "BRIM": (
             BRIM().solve,
-            ["dtBRIM", "C", "stop_criterion", "initial_temp_cont", "end_temp_cont", "seed", "coupling_annealing"],
+            [
+                "dtBRIM",
+                "capacitance",
+                "stop_criterion",
+                "initial_temp_cont",
+                "end_temp_cont",
+                "seed",
+                "coupling_annealing",
+            ],
         ),
-        "Multiplicative": (Multiplicative().solve,
-                           ["dtMult", "initial_temp_cont", "end_temp_cont", "seed", "coupling_annealing"]),
+        "Multiplicative": (
+            Multiplicative().solve,
+            [
+                "dtMult",
+                "initial_temp_cont",
+                "end_temp_cont",
+                "seed",
+                "coupling_annealing",
+                "capacitance",
+                "resistance",
+                "flipping",
+                "flipping_freq",
+                "flipping_prob",
+                "mu_param",
+            ],
+        ),
         "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
         "DSA": (DSASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
         "SCA": (SCA().solve, ["initial_temp", "cooling_rate", "q", "r_q", "seed"]),

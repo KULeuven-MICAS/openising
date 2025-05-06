@@ -1,17 +1,14 @@
-import pathlib
-import os
 import argparse
 import numpy as np
 
+from ising.flow import TOP, LOGGER
 from ising.benchmarks.parsers.TSP import TSP_parser
 from ising.generators.TSP import TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
-from ising.utils.flow import make_directory, parse_hyperparameters, return_q, return_c0
-from ising.utils.threading import make_solvers_thread
+from ising.utils.flow import run_solver, make_directory, parse_hyperparameters, return_q, return_c0
+# from ising.utils.threading import make_solvers_thread
 from ising.solvers.Gurobi import Gurobi
 from ising.postprocessing.TSP_plot import plot_graph_solution
-
-TOP = pathlib.Path(os.getenv("TOP"))
 
 
 def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], args: argparse.Namespace):
@@ -24,17 +21,19 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
         solvers (list[str]): a list with all the solvers to run.
         args (_type_): the arguments parsed with ising/flow/Problem_parser.py
     """
-    print("Generating benchmark: ", benchmark)
+    LOGGER.info("Generating benchmark: " + str(benchmark))
     graph_orig, best_found = TSP_parser(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
     A = float(args.weight_constant)
     model = TSP(graph=graph_orig, weight_constant=A)
     if best_found is not None:
-        print(f"Best found: {best_found}")
-    print("Generated benchmark")
+        LOGGER.info(f"Best found: {best_found}")
+    LOGGER.info("Generated benchmark")
 
     nb_runs = int(args.nb_runs)
-    logpath = TOP / "ising/flow/TSP/logs"
-    figtop = TOP / "ising/flow/TSP/plots" / args.fig_folder
+    logpath = TOP / "ising/flow/TSP/logs_TSP"
+    figtop = TOP / "ising/flow/TSP/plots_TSP" / args.fig_folder
+    LOGGER.debug(f"Logpath: {logpath}")
+    LOGGER.debug(f"Figtop: {figtop}")
     make_directory(logpath)
     make_directory(figtop)
 
@@ -47,8 +46,9 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
         )
 
     for num_iter in iter_list:
-        print(f"Running for {num_iter} iterations")
+        LOGGER.info(f"Running for {num_iter} iterations")
         hyperparameters = parse_hyperparameters(args, num_iter)
+        orig_seed = hyperparameters["seed"]
         if hyperparameters["q"] == 0.0:
             hyperparameters["q"] = return_q(model)
             hyperparameters["r_q"] = 1.0
@@ -62,15 +62,11 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
                 logfile = logpath / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log"
                 logfiles[solver].append(logfile)
 
-        make_solvers_thread(
-            solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
-        )
+        for run in range(nb_runs):
+            hyperparameters["seed"] = run + orig_seed + 1
+            init_state = np.random.uniform(-1, 1, (model.num_variables,))
+            for solver in solvers:
+                logfile = logfiles[solver][run]
+                run_solver(solver, num_iter, init_state, model, logfile, **hyperparameters)
 
         calculate_TSP_energy(np.array([logfile for (solver, logfile) in logfiles.items()]).flatten(), graph_orig)
-        for solver in solvers:
-            plot_graph_solution(
-                fileName=logfiles[solver][-1],
-                G_orig=graph_orig,
-                save_folder=figtop,
-                fig_name=f"{solver}_{benchmark}_graph.png",
-            )

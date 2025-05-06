@@ -1,9 +1,9 @@
 import numpy as np
 import argparse
 import sys
-import os
-import pathlib
 
+
+from ising.flow import LOGGER, TOP
 from ising.benchmarks.parsers.G import get_optim_value
 from ising.postprocessing.energy_plot import (
     plot_energy_dist_multiple_solvers,
@@ -13,8 +13,6 @@ from ising.postprocessing.energy_plot import (
 from ising.postprocessing.plot_solutions import plot_state
 from ising.utils.flow import make_directory, compute_list_from_arg
 from ising.utils.HDF5Logger import get_Gurobi_data
-
-TOP = pathlib.Path(os.getenv("TOP"))
 
 # Defining all arguments
 parser = argparse.ArgumentParser()
@@ -35,6 +33,8 @@ if args.solvers == "all":
     solvers = ["SA", "SCA", "bSB", "dSB", "BRIM", "Multiplicative"]
 else:
     solvers = args.solvers[0].split()
+
+LOGGER.info("Plotting for solvers: " + str(solvers))
 nb_runs = int(args.nb_runs)
 
 # Defining the top paths and list for the logfiles
@@ -47,7 +47,7 @@ fig_name = str(args.fig_name)
 use_gurobi = bool(int(args.use_gurobi))
 
 if args.benchmark is not None:
-    print("Benchmark logs are plotted")
+    LOGGER.info("Benchmark logs are plotted")
     # Benchmark is given and should be plotted
     benchmark = str(args.benchmark)
 
@@ -88,7 +88,7 @@ if args.benchmark is not None:
         best_found = np.ones((len(iter_list),)) * best_found
 
     if best_found is not None:
-        print("Plotting relative error")
+        LOGGER.info("Plotting relative error")
         plot_relative_error(
             logfiles,
             best_found,
@@ -96,10 +96,10 @@ if args.benchmark is not None:
             save_folder=figtop,
             fig_name=f"{benchmark}_relative_error_{fig_name}",
         )
-        print("Done plotting relative error")
+        LOGGER.info("Done plotting relative error")
 
 elif args.N_list is not None:
-    print("Problem size logs are plotted")
+    LOGGER.info("Problem size logs are plotted")
     # List of problem sizes is given
     N_list = args.N_list[0].split()
     N_list = np.array(range(int(N_list[0]), int(N_list[1]), 10))
@@ -134,7 +134,7 @@ else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
 
-print("Plotting energy distribution")
+LOGGER.info("Plotting energy distribution")
 plot_energy_dist_multiple_solvers(
     logfiles,
     best_found=best_found,
@@ -143,4 +143,4 @@ plot_energy_dist_multiple_solvers(
     save_folder=figtop,
     fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
 )
-print("figures plotted succesfully")
+LOGGER.info("figures plotted succesfully")

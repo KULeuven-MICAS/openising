@@ -16,8 +16,10 @@ def ATSP_parser(benchmark:pathlib.Path|str) -> tuple[nx.DiGraph, float]:
         print("Benchmark does not exist")
         return None
     benchmark = str(benchmark)
+    name = benchmark.split("/")[-1].split(".")[0]
     problem = tsplib95.load(benchmark)
     G = problem.get_graph()
+    G.name = name
     best_found = get_optim_value(benchmark)
     return G, best_found
 

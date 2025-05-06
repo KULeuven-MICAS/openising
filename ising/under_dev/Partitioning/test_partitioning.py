@@ -1,38 +1,43 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-import os
-import pathlib
+import logging
+import time
 
-from ising.generators.MaxCut import MaxCut
+from ising.flow import TOP, LOGGER
+
+from ising.generators.MaxCut import MaxCut, random_MaxCut
 from ising.model.ising import IsingModel
 
 from ising.solvers.exhaustive import ExhaustiveSolver
+from ising.solvers.SB import ballisticSB
 
 from ising.under_dev.Partitioning.modularity import partitioning_modularity
 from ising.under_dev.Partitioning.spectral_partitioning import spectral_partitioning
 from ising.under_dev.Partitioning.random_partitioning import random_partitioning
 
+from ising.under_dev.Partitioning.apply_partitioning import apply_partitioning
 from ising.under_dev.Partitioning.dual_decomposition import dual_decomposition
 
-from ising.utils.flow import make_directory
+from ising.utils.flow import make_directory, return_c0
 from ising.utils.numpy import triu_to_symm
 
-TOP = pathlib.Path(os.getenv("TOP"))
-figtop = TOP / "ising/dummy/Partitioning/plots"
+figtop = TOP / "ising/under_dev/Partitioning/plots"
 make_directory(figtop)
+logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.INFO)
 
 
-def plot_partitioning(G, s, fig_name):
+def plot_partitioning(G:nx.Graph, s, fig_name):
     pos = nx.spring_layout(G, k=5 / np.sqrt(5))
     _, (ax1, ax2) = plt.subplots(2, 1)
 
     nx.draw_networkx(G, pos, ax=ax1)
+    unique_partitions = np.unique(s)
+    colors = plt.cm.tab10(np.arange(len(unique_partitions)))
 
-    red_nodes = [node for node in G.nodes if s[node] == 1.0]
-    blue_nodes = [node for node in G.nodes if s[node] == -1.0]
-    nx.draw_networkx_nodes(G, pos, nodelist=red_nodes, node_color="tab:red", ax=ax2)
-    nx.draw_networkx_nodes(G, pos, nodelist=blue_nodes, node_color="tab:blue", ax=ax2)
+    for idx, partition in enumerate(unique_partitions):
+        nodes_in_partition = [node for node in G.nodes if s[node] == partition]
+        nx.draw_networkx_nodes(G, pos, nodelist=nodes_in_partition, node_color=[colors[idx]], ax=ax2)
     for edge in G.edges:
         if s[edge[0]] != s[edge[1]]:
             nx.draw_networkx_edges(G, pos, edgelist=[edge], ax=ax2, style="--")
@@ -42,102 +47,52 @@ def plot_partitioning(G, s, fig_name):
 
     plt.savefig(figtop / fig_name)
 
-
-def apply_partitioning(model, partitioning):
-    nodes_1 = []
-    nodes_2 = []
-
-    # Separate the nodes based on the partitioning
-    for node, part in enumerate(partitioning):
-        if part == 1:
-            nodes_1.append(node)
-        else:
-            nodes_2.append(node)
-
-    # Replicate nodes in order to have fully separated models
-    replica_nodes = set()
-    triu_J = triu_to_symm(model.J)
-    for node1 in nodes_1:
-        connected_nodes = np.nonzero(triu_J[node1, :])[0]
-        for other_node in connected_nodes:
-            if other_node in nodes_2:
-                replica_nodes.add(other_node)
-                replica_nodes.add(node1)
-
-    nodes_1 = list(set(nodes_1) | (replica_nodes))
-    nodes_1.sort()
-    nodes_2 = list(set(nodes_2) | (replica_nodes))
-    nodes_2.sort()
-    replica_nodes = list(replica_nodes)
-
-    n1 = len(nodes_1)
-    n2 = len(nodes_2)
-
-    J1 = np.zeros((n1, n1))
-    h1 = np.zeros((n1,))
-
-    J2 = np.zeros((n2, n2))
-    h2 = np.zeros((n2,))
-
-    # Fill in J1 and h1
-    for i, node_i in enumerate(nodes_1):
-        h1[i] = model.h[node_i]
-        for j, node_j in enumerate(nodes_1):
-            J1[i, j] = model.J[node_i, node_j]
-
-    # Fill in J2 and h2
-    for i, node_i in enumerate(nodes_2):
-        h2[i] = model.h[node_i]
-        for j, node_j in enumerate(nodes_2):
-            J2[i, j] = model.J[node_i, node_j]
-
-    A = np.zeros((len(replica_nodes), n1))
-    C = np.zeros((len(replica_nodes), n2))
-
-    map1 = {node: idx for idx, node in enumerate(nodes_1)}
-    map2 = {node: idx for idx, node in enumerate(nodes_2)}
-
-    # For each replica node, add agreement constraints
-    for rep_ind, node in enumerate(replica_nodes):
-        idx1 = map1[node]  # Index in first partition
-        idx2 = map2[node]  # Index in second partition
-
-        # Add diagonal entries for the agreement constraints
-        A[rep_ind, idx1] = 1
-        C[rep_ind, idx2] = -1
-
-    return IsingModel(J1, h1), IsingModel(J2, h2), A, C, replica_nodes
-
-
-def optimal_state_from_partitioning(s1, s2, model: IsingModel, partitioning, replica_nodes):
+def optimal_state_from_partitioning(optimal_states:dict[int: np.ndarray], model: IsingModel, partitioning: np.ndarray, replica_nodes: dict[int:np.ndarray]):
     state = np.zeros((model.num_variables,))
-    nodes_1 = []
-    nodes_2 = []
+    partitions = np.unique(partitioning)
+    
+    nodes_partitions = {i:[] for i in np.unique(partitioning)}
+    node_maps = dict()
+    for node, part in enumerate(partitioning):
+        nodes_partitions[part].append(node)
+
+    for _, part in enumerate(partitions):
+        part_nodes = set(nodes_partitions[part])
+        part_nodes = list(part_nodes | replica_nodes[part])
+        part_nodes.sort()
+
+        node_map = {node: idx for idx, node in enumerate(part_nodes)}
+        node_maps[part] = node_map
+
 
     for node, part in enumerate(partitioning):
-        if part == 1:
-            nodes_1.append(node)
+        amount_replicas = 3
+        avg_node = 0
+        for other_part, replica_node in replica_nodes.items():
+            if node in replica_node and other_part != part:
+                amount_replicas += 1
+                avg_node += optimal_states[other_part][node_maps[other_part][node]]
+        avg_node += optimal_states[part][node_maps[part][node]]*3
+        avg_node /= amount_replicas
+        if avg_node == 0:
+            state[node] = optimal_states[part][node_maps[part][node]]
         else:
-            nodes_2.append(node)
-
-    nodes_1 = list(set(nodes_1) | set(replica_nodes))
-    nodes_2 = list(set(nodes_2) | set(replica_nodes))
-
-    map1 = {node: ind for ind, node in enumerate(nodes_1)}
-    map2 = {node: ind for ind, node in enumerate(nodes_2)}
-
-    for node, part in enumerate(partitioning):
-        if node in replica_nodes and s1[map1[node]] != s2[map2[node]]:
-            state[node] = s1[map1[node]] if part == 1 else s2[map2[node]]
-        elif part == 1:
-            state[node] = s1[map1[node]]
-        else:
-            state[node] = s2[map2[node]]
+            state[node] = np.sign(avg_node)
 
     energy = model.evaluate(state)
 
     return state, energy
 
+def plot_energies_cores(cores:list[int], energies:list[float], best_energy:float,  figname:str):
+
+    plt.figure()
+    plt.plot(cores, energies, "x-")
+    plt.axhline(best_energy, linestyle="--", color="k", label="Best energy")
+    plt.xlabel("Number of cores")
+    plt.ylabel("Optimal Energy")
+    plt.legend()
+    plt.savefig(figtop / figname)
+    plt.close()
 
 def test_compare_small():
     G = nx.Graph()
@@ -242,8 +197,34 @@ def test_dual_decomposition():
 
     print(f"Solution of dual decomposition is: {state} with energy: {energy}")
 
+def test_accuracy():
+    model = random_MaxCut(50, 8)
+    # state, energy = ExhaustiveSolver().solve(model)
+    state, best_energy = ballisticSB().solve(model, np.random.choice([-1, 1], size=(model.num_variables, )), 1000, 0.7/np.sqrt(model.num_variables), 0.25, 1.0)
+    LOGGER.info(f"Optimal energy is {best_energy} and state is {state}")
+    G = nx.Graph(-2*triu_to_symm(model.J))
+
+    cores = range(2, 11)
+    energies = []
+    for nb_cores in cores:
+        s_mod = partitioning_modularity(model, nb_cores)
+        # LOGGER.info(f"Different partitions: {s_mod}")
+        # plot_partitioning(G, s_mod, f"modularity_test_{nb_cores}.png")
+        models, constraints, replica_nodes = apply_partitioning(model, s_mod)
+
+        initial_states = {part: np.random.choice([-1, 1], size=(m.num_variables,), p=[0.5, 0.5]) for part, m in models.items()}
+        hyperparameters = {"a0": 1, "c0": return_c0(model), "dtSB": 0.25}
+        optimal_states, lambda_k = dual_decomposition(models, constraints, initial_states, 1000, "bSB", 1e-3, 0.0, **hyperparameters)
+        # LOGGER.info(f"At optimal point, the lagrange parameters are {lambda_k}")
+
+        state, energy = optimal_state_from_partitioning(optimal_states, model, s_mod, replica_nodes)
+        energies.append(energy)
+        LOGGER.info(f"Solution of dual decomposition is: {state} with energy: {energy}")
+
+    plot_energies_cores(cores, energies, best_energy, "energies_partitioning.png")
 
 if __name__ == "__main__":
     # test_compare_small()
     # test_compare_big()
-    test_dual_decomposition()
+    # test_dual_decomposition()
+    test_accuracy()

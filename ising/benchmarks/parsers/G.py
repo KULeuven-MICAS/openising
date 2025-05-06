@@ -13,7 +13,8 @@ def G_parser(benchmark: pathlib.Path | str):
         best_found (float): best found cut value.
     """
     data = False
-    G = nx.Graph()
+    name = str(benchmark).split("/")[-1].split(".")[0]
+    G = nx.Graph(name=name)
     with benchmark.open() as f:
         for line in f:
             if not data:

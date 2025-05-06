@@ -1,8 +1,8 @@
 import time
 import numpy as np
 import pathlib
-import os
 
+from ising.flow import LOGGER, TOP
 from ising.solvers.base import SolverBase
 from ising.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -44,7 +44,7 @@ class BRIM(SolverBase):
         initial_state: np.ndarray,
         num_iterations: int,
         dtBRIM: float,
-        C: float,
+        capacitance: float,
         stop_criterion: float = 1e-8,
         file: pathlib.Path | None = None,
         initial_temp_cont: float = 1.0,
@@ -80,8 +80,14 @@ class BRIM(SolverBase):
         # Transform the model to one with no h and mean variance of J
         if np.linalg.cond(model.J) > 1e10:
             model.normalize()
-        new_model = model.transform_to_no_h()
+        if np.linalg.norm(model.h) >= 1e-10:
+            new_model = model.transform_to_no_h()
+            zero_h = False
+        else:
+            new_model = model
+            zero_h = True
         J = triu_to_symm(new_model.J)
+        LOGGER.debug(f"norm of original J: {np.linalg.norm(J, "fro")}")
         model.reconstruct()
 
         # Make sure the correct seed is used
@@ -91,28 +97,33 @@ class BRIM(SolverBase):
 
         # Ensure the bias node is added and add noise to the initial voltages
         N = model.num_variables
-        if N == 2000:
-            initial_state = np.loadtxt(pathlib.Path(os.getenv("TOP")) / "ising/flow/000.txt")[:N]
-        v = np.block([initial_state, 1.0])
+        initial_state = np.loadtxt(TOP / "ising/flow/000.txt")[:N]
+        if not zero_h:
+            v = np.block([initial_state, 1.0])
+        else:
+            v = initial_state
 
         # Schema for the logging
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
-        def dvdt(t, vt, coupling):
+        def dvdt(t, vt, coupling, Ka):
             # Make sure the bias node is 1
-            vt[-1] = 1.0
+            if not zero_h:
+                vt[-1] = 1.0
 
             # Compute the differential equation
             V_mat = np.array([vt] * vt.shape[0])
-            dv = -1 / C * np.sum(coupling * (V_mat.T - V_mat), axis=1)
+            dv = -1 / capacitance * np.sum(Ka * coupling * (V_mat.T - V_mat), axis=1)
 
             # Make sure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
             cond2 = (dv < 0) & (vt < -1)
             dv *= np.where(cond1 | cond2, 0.0, 1)
+            LOGGER.debug(f"norm of dv: {np.linalg.norm(dv)}")
 
             # Make sure the bias node does not change
-            dv[-1] = 0.0
+            if not zero_h:
+                dv[-1] = 0.0
             return dv
 
         with HDF5Logger(file, schema) as log:
@@ -122,7 +133,7 @@ class BRIM(SolverBase):
                 initial_state=np.sign(v),
                 model=model,
                 num_iterations=num_iterations,
-                C=C,
+                C=capacitance,
                 time_step=dtBRIM,
                 seed=seed,
                 temperature=initial_temp_cont,
@@ -153,12 +164,12 @@ class BRIM(SolverBase):
                     Ka = 1.0
 
                 # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
-                k1 = dtBRIM * dvdt(tk, previous_voltages, Ka*J)
-                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, Ka*J)
+                k1 = dtBRIM * dvdt(tk, previous_voltages, J, Ka)
+                k2 = dtBRIM * dvdt(tk + 2 / 3 * dtBRIM, previous_voltages + 2 / 3 * k1, J, Ka)
 
                 # Add noise and update the voltages
                 if Temp != 0.0:
-                    noise = Temp * (np.random.normal(scale=1 / 1.96, size=(N + 1,)))
+                    noise = Temp * (np.random.normal(scale=1 / 1.96, size=previous_voltages.shape))
                     cond1 = (previous_voltages >= 1) & (noise > 0)
                     cond2 = (previous_voltages <= -1) & (noise < 0)
                     noise *= np.where(cond1 | cond2, 0.0, 1.0)
@@ -170,14 +181,15 @@ class BRIM(SolverBase):
                 Temp *= cooling_rate
 
                 # Log everything
-                sample = np.sign(new_voltages[:N]) * np.sign(new_voltages[-1])
+                sample = np.sign(new_voltages[:N])
                 energy = model.evaluate(sample)
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
                 # Update criterion changes
-                max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
-                    previous_voltages, ord=np.inf
-                )
+                if i > 0:
+                    max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
+                        previous_voltages, ord=np.inf
+                    )
                 previous_voltages = np.copy(new_voltages)
                 i += 1
 

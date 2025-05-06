@@ -23,8 +23,7 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     N = len(graph.nodes)
     W = nx.linalg.adjacency_matrix(graph).toarray()
     maxW = np.max(W)
-    B = weight_constant * maxW
-    C = weight_constant * maxW
+    constraint_weight = weight_constant * maxW
 
     # Add pseudo weights for non-existing connections
     for i in range(N):
@@ -35,13 +34,62 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     # Make a QUBO representation of the TSP problem
     J = np.zeros((N**2, N**2))
     h = np.zeros(N**2)
-    add_HA(J, h, W, N, A=weight_constant)
-    add_HB(J, h, N, B=B)
-    add_HC(J, h, N, C=C)
-    # Q = np.triu(Q, k=0)
-    print(np.linalg.cond(J))
-    J = np.triu(J, k=1)
-    return IsingModel(J, h)
+    constant = 0
+
+    # Construct J
+    # tour
+    for u in range(N):
+        for v in range(N):
+            weight = W[u, v]
+            for j in range(N):
+                pos1 = get_index(j, u, N)
+                pos2 = get_index(j+1, v, N)
+                J[pos1, pos2] += -weight/2
+
+    # time constraint
+    for i in range(N):
+        for u in range(N):
+            pos1 = get_index(i, u, N)
+            for v in range(N):
+                pos2 = get_index(i, v, N)
+                J[pos1, pos2] -= constraint_weight/2
+    # place constraint
+    for u in range(N):
+        for i in range(N):
+            pos1 = get_index(i, u, N)
+            for j in range(N):
+                pos2 = get_index(j, u, N)
+                J[pos1, pos2] -= constraint_weight/2
+
+    # construct h
+    # tour
+    for u in range(N):
+        weight_sum = 0
+        for v in range(N):
+            weight_sum += W[u, v]
+        for j in range(N):
+            pos = get_index(j, u, N)
+            h[pos] -= weight_sum/2
+    # time constraint
+    for i in range(N):
+        for u in range(N):
+            pos = get_index(i, u, N)
+            h[pos] -= (N-2)/2*constraint_weight
+    # place constraint
+    for u in range(N):
+        for i in range(N):
+            pos = get_index(i, u, N)
+            h[pos] -= (N-2)/2*constraint_weight
+
+    for u in range(N):
+        for v in range(N):
+            weight = W[u, v]
+            constant += weight*N/4
+    constant += 2*N*((N/2 - 1)**2)*constraint_weight
+    constant -= np.sum(np.diag(J))/2
+    J = (J + J.T)/2
+    J = np.triu(J, 1)
+    return IsingModel(J, h, constant, name=graph.name)
 
 
 def generate_random_TSP(
@@ -93,38 +141,29 @@ def get_index(time: int, city: int, N: int) -> int:
     return (city * N) + time
 
 
-def add_HA(J: np.ndarray, h: np.ndarray, W: np.ndarray, N: int, A: float):
+def add_HA(J: np.ndarray, h: np.ndarray, W: np.ndarray, N: int):
     """Generates the objective function term for the transformed TSP problem in QUBO formulation.
 
     Args:
         Q (np.ndarray): the current QUBO matrix.
         W (np.ndarray): the weight matrix
         N (int): the amount of cities.
-        A (float): the objective function constant.
     """
+    for u in range(N):
+        for v in range(N):
+            weight = W[u, v]
+            for j in range(N):
+                pos1 = get_index(j, u, N)
+                pos2 = get_index(j+1, v, N)
+                J[pos1, pos2] -= weight/2
 
-    for city1 in range(N):
-        for time1 in range(N):
-            index1 = get_index(time1, city1, N)
-            for city2 in range(N):
-                if city1 != city2:
-                    h[index1] -= A / 2 * W[city1, city2]
-                for time2 in range(N):
-                    if (
-                        time2 == (time1 + 1)%N
-                        # or (time1 == 0 and time2 == N - 1)
-                        # or (time1 == N - 1 and time2 == 0)
-                        or time1 == (time2 + 1) % N
-                    ) and city1 != city2:
-                        index2 = get_index(time2, city2, N)
-                        J[index1, index2] -= A / 8 * W[city1, city2]
-
-    # for city1 in range(N):
-    #     for city2 in range(N):
-    #         for time in range(N):
-    #             index1 = get_index(time, city1, N)
-    #             index2 = get_index(time + 1, city2, N)
-    #             Q[index1, index2] += A * W[city1, city2]
+    for u in range(N):
+        weight_sum = 0
+        for v in range(N):
+            weight_sum += W[u, v]
+        for j in range(N):
+            pos = get_index(j, u, N)
+            h[pos] -= weight_sum/2
 
 
 def add_HB(J: np.ndarray, h: np.ndarray, N: int, B: float):
@@ -135,18 +174,16 @@ def add_HB(J: np.ndarray, h: np.ndarray, N: int, B: float):
         N (int): the amount of cities
         B (float): the time constraint constant.
     """
-    for time1 in range(N):
-        for city1 in range(N):
-            index1 = get_index(time1, city1, N)
-            h[index1] -= (N - 2) * B / 2
-            for city2 in range(N):
-                for time2 in range(N):
-                    index2 = get_index(time2, city2, N)
-                    if time1 == time2 and city1 != city2:
-                        J[index1, index2] -= B / 4
-                    elif city1 == city2 and time1 == time2:
-                        J[index1, index2] -= B / 4
-                    # Q[index2, index1] += B *2
+    for i in range(N):
+        for u in range(N):
+            pos1 = get_index(i, u, N)
+            for v in range(N):
+                pos2 = get_index(i, v, N)
+                J[pos1, pos2] -= B/2
+    for i in range(N):
+        for u in range(N):
+            pos = get_index(i, u, N)
+            h[pos] -= (N-2)/2*B
 
 
 def add_HC(J: np.ndarray, h: np.ndarray, N: int, C: float):
@@ -157,19 +194,16 @@ def add_HC(J: np.ndarray, h: np.ndarray, N: int, C: float):
         N (int): the amount of cities.
         C (float): the place constraint constant.
     """
-    for city1 in range(N):
-        for time1 in range(N):
-            index1 = get_index(time1, city1, N)
-            h[index1] -= (N - 2) * C / 2
-            for city2 in range(N):
-                for time2 in range(N):
-                    index2 = get_index(time2, city2, N)
-                    if (city1 == city2) and (time1 != time2):
-                        J[index1, index2] -= C / 4
-                    elif (city1 == city2) and (time1 == time2):
-                        J[index1, index2] -= C / 4
-                    # Q[index1, index2] += C * 2
-                    # Q[index2, index1] += C * 2
+    for u in range(N):
+        for i in range(N):
+            pos1 = get_index(i, u, N)
+            for j in range(N):
+                pos2 = get_index(j, u, N)
+                J[pos1, pos2] -= C/2
+    for u in range(N):
+        for i in range(N):
+            pos = get_index(i, u, N)
+            h[pos] -= (N-2)/2*C
 
 
 def get_TSP_value(graph: nx.DiGraph, sample: np.ndarray):

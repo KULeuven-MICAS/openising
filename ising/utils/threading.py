@@ -3,7 +3,7 @@ import pathlib
 from multiprocessing import Pool
 from functools import partial
 
-
+from ising.flow import LOGGER
 from ising.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
 from ising.utils.flow import run_solver
@@ -27,11 +27,11 @@ def solver_thread(
         logfiles (list[pathlib.Path]): the logfiles to store the data.
     """
     for run in range(nb_runs):
-        s_init = np.random.choice([-1, 1], (model.num_variables,), p=[0.5, 0.5])
+        s_init = np.random.uniform(-1, 1, (model.num_variables,))
         logfile = logfiles[run]
         run_solver(solver=solver, num_iter=num_iter, s_init=s_init, model=model,
                                                logfile=logfile, **hyperparameters)
-    print(f"{solver} done")
+    LOGGER.info(f"{solver} done")
 
 def make_solvers_thread(
     solvers: list[str],
@@ -64,9 +64,9 @@ def solve_Gurobi(model: IsingModel, file: pathlib.Path) -> None:
         model (IsingModel): the model to solve with Gurobi.
         file (pathlib.Path): The logfile in which the results are stored.
     """
-    print(f"Solving with Gurobi with {model.num_variables} variables")
+    LOGGER.info(f"Solving with Gurobi with {model.num_variables} variables")
     state, energy = Gurobi().solve(model=model, file=file)
-    print(f"Optimal {state=}, with {energy=}")
+    LOGGER.info(f"Optimal {state=}, with {energy=}")
 
 
 def make_Gurobi_thread(models: dict[int:IsingModel], logfiles: dict[int : pathlib.Path],) -> None:

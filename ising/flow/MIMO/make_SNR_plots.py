@@ -1,13 +1,10 @@
-import pathlib
-import os
 import argparse
 
+from ising.flow import LOGGER, TOP
 from ising.postprocessing.plot_solutions import plot_state
 from ising.postprocessing.energy_plot import plot_energies_multiple
 from ising.postprocessing.MIMO_plot import plot_error_SNR
 from ising.utils.flow import make_directory, compute_list_from_arg
-
-TOP = pathlib.Path(os.getenv("TOP"))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--SNR", help="Range of Signal to Noise ratios", default=None, nargs="+")
@@ -21,6 +18,7 @@ args = parser.parse_args()
 
 figtop = TOP / "ising/flow/MIMO/plots" / args.fig_folder
 make_directory(figtop)
+LOGGER.debug(f"Fig folder: {figtop}")
 logtop = TOP / "ising/flow/MIMO/logs"
 
 if args.solvers == "all":
@@ -51,4 +49,4 @@ for SNR in SNR_list:
             )
 
 plot_error_SNR(logfiles, gurobi_files, save_folder=figtop, figname="error_SNR_" + args.fig_name)
-
+LOGGER.info("Done plotting figures")
