@@ -5,7 +5,7 @@ The pdf file can be found [here](http://comopt.ifi.uni-heidelberg.de/software/TS
 # Best known values
 Below the best known values of the benchmarks in this file are shown. These aren't all the benchmarks that are available. If you want to consult more, go to [here](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/atsp/). The best known values of all the benchmarks are also listed [here](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/ATSP.html).
 
-| **Benchmark** | **Best known cut** |
+| **Benchmark** | **Best known distance** |
 |---------------|--------------------|
 br17 |39
 ft53 |6905
