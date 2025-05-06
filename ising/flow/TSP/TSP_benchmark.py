@@ -48,6 +48,7 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
     for num_iter in iter_list:
         LOGGER.info(f"Running for {num_iter} iterations")
         hyperparameters = parse_hyperparameters(args, num_iter)
+        orig_seed = hyperparameters["seed"]
         if hyperparameters["q"] == 0.0:
             hyperparameters["q"] = return_q(model)
             hyperparameters["r_q"] = 1.0
@@ -62,19 +63,10 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
                 logfiles[solver].append(logfile)
 
         for run in range(nb_runs):
+            hyperparameters["seed"] = run + orig_seed + 1
             init_state = np.random.uniform(-1, 1, (model.num_variables,))
             for solver in solvers:
                 logfile = logfiles[solver][run]
                 run_solver(solver, num_iter, init_state, model, logfile, **hyperparameters)
-        # make_solvers_thread(
-        #     solvers, model=model, num_iter=num_iter, nb_runs=nb_runs, logfiles=logfiles, **hyperparameters
-        # )
 
         calculate_TSP_energy(np.array([logfile for (solver, logfile) in logfiles.items()]).flatten(), graph_orig)
-        # for solver in solvers:
-        #     plot_graph_solution(
-        #         fileName=logfiles[solver][-1],
-        #         G_orig=graph_orig,
-        #         save_folder=figtop,
-        #         fig_name=f"{solver}_{benchmark}_graph.png",
-        #     )

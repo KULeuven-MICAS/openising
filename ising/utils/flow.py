@@ -87,6 +87,22 @@ def get_best_found_gurobi(gurobi_files: list[pathlib.Path]) -> list[float]:
         best_found_list.append(best_found)
     return best_found_list
 
+def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:int=0) -> np.ndarray:
+    """Go over all the benchmarks in the given directory.
+
+    Args:
+        which_benchmark (pathlib.Path): the path to the benchmark directory.
+
+    Returns:
+        np.ndarray: a list of all the benchmarks.
+    """
+    optimal_energies = which_benchmark / "optimal_energy.txt"
+    benchmarks = np.loadtxt(optimal_energies, dtype=str)[:, 0]
+    percentage = int(len(benchmarks) * percentage)
+    if (part+1)*percentage == 1.0:
+        return benchmarks[part*percentage:]
+    else:
+        return benchmarks[part*percentage:(part+1)*percentage]
 
 def run_solver(
     solver: str,
