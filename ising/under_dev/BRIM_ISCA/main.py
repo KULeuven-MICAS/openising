@@ -137,7 +137,7 @@ def only_multiplicative():
     capacitance = 1
 
     dt = 1.1e-4
-    num_iter = int(5e5)
+    num_iter = int(7e5)
 
     coupling_annealing = False
     flipping = True
@@ -153,14 +153,15 @@ def only_multiplicative():
     for flipping_prob in flipping_prob_list:
         logfile = logfolder / f"K2000_own_flippingfreq_{flipping_freq}_flippingprob_{flipping_prob:.2f}_mu{mu:.2f}.log"
         logfiles.append(logfile)
-        multiplicative_own(model=model, initial_state=initial_state, dtMult=dt, num_iterations=num_iter, 
+        energy, _ = multiplicative_own(model=model, initial_state=initial_state, dtMult=dt, num_iterations=num_iter, 
                         resistance=resistance, capacitance=capacitance, seed=parameters.seed,
                         initial_temp_cont=initial_temp, end_temp_cont=end_temp, 
                         stop_criterion=stop_criterion,
                         coupling_annealing=coupling_annealing, mu_param=mu, flipping=flipping, 
                         flipping_freq=flipping_freq, flipping_prob=flipping_prob,
                         file=logfile,
-                        name=f"Multiplicative_own")
+                        name=f"Multiplicative_own_prob{flipping_prob:.2f}")
+        LOGGER.info(f"Best found energy: {energy}")
 
     plot_energies_multiple(logfiles, figName="comparison_own_flipping_prob.png", best_found=graph_K2000[1], save_folder=fig_folder)
 
@@ -305,8 +306,8 @@ def plot_original_logs():
 
 if __name__ == "__main__":
     # main()
-    # only_multiplicative()
-    other_benchmarks()
+    only_multiplicative()
+    # other_benchmarks()
     # plot_original_logs()
     # spin_flip_tests()
     # probability_tests()

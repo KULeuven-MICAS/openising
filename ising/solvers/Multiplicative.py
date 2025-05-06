@@ -57,14 +57,18 @@ class Multiplicative(SolverBase):
         self.tot_sfs += np.sum(sel_sf)
         self.p += self.scale*self.sf_freq
 
-    def set_spinflip(self, num_iterations: int, initial_prob:float, seed:int):
+    def set_spinflip(self, N:int, bias:bool, num_iterations: int, initial_prob:float, seed:int, flipping_freq:int):
+        self.sh_tv = np.zeros((N + int( bias),))
+        self.sh_ts = np.full((N + int( bias),), False)
+        self.sh_cnt = -np.ones((N + int( bias),))
         self.tot_sfs = 0
         self.count = 0
-        self.sh_iters = 2e-4*num_iterations
+        self.sh_iters = 10
         self.p0 = initial_prob
         self.p1 = 2e-6
         self.p = self.p0
         self.scale = ((self.p1 - self.p0) / float(num_iterations - 1)) if num_iterations > 1 else 0
+        self.sf_freq = flipping_freq
 
         self.generator = Generator(MT19937(seed=seed))
         self.rng_: Callable = lambda size: self.generator.uniform(0, 1, size)
@@ -121,10 +125,10 @@ class Multiplicative(SolverBase):
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
             new_model = model.transform_to_no_h()
-            zero_h = False
+            bias = True
         else:
             new_model = model
-            zero_h = True
+            bias = False
         J = triu_to_symm(new_model.J) * 2/resistance
 
         # make sure the correct random seed is used
@@ -134,7 +138,7 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         N = model.num_variables
-        if not zero_h:
+        if bias:
             v = np.block([initial_state, 1.0])
         else:
             v = initial_state
@@ -143,10 +147,8 @@ class Multiplicative(SolverBase):
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         # Set up the spin flipping
-        self.sh_tv = np.zeros((N + int(not zero_h),))
-        self.sh_ts = np.full((N + int(not zero_h),), False)
-        self.sh_cnt = -np.ones((N + int(not zero_h),))
-        self.set_spinflip(num_iterations, flipping_prob, seed)
+        self.set_spinflip(N, bias, num_iterations, flipping_prob, seed, flipping_freq)
+        flip_resistance = resistance / 1000
 
         # Define the system equations
         def dvdt(t: float, vt: np.ndarray, coupling: np.ndarray):
@@ -162,7 +164,7 @@ class Multiplicative(SolverBase):
             """
 
             # set bias node to 1.
-            if not zero_h:
+            if bias:
                 vt[-1] = 1.0
 
             # Buffering
@@ -173,7 +175,7 @@ class Multiplicative(SolverBase):
 
             # Compute the voltage change dv
             if flipping:
-                flip = (self.sh_tv - vt) / resistance
+                flip = (self.sh_tv - vt) / flip_resistance
                 not_sh_ts =  np.where(self.sh_ts, False, True)
                 dv = np.where(not_sh_ts, -z + np.dot(coupling,(vt*c)), flip) /capacitance
             else:
@@ -185,7 +187,7 @@ class Multiplicative(SolverBase):
             dv *= np.where(cond1 | cond2, 0.0, 1.)
 
             # Ensure the bias node does not change
-            if not zero_h:
+            if bias:
                 dv[-1] = 0.0
             return dv
 
@@ -234,8 +236,9 @@ class Multiplicative(SolverBase):
                 Temp *= cooling_rate
 
                 if flipping and i % flipping_freq == 0:
-                    self.do_spinflip(new_voltages, zero_h)
-
+                    self.do_spinflip(new_voltages, bias)
+                elif flipping and i % (flipping_freq + 10) == 0:
+                    self.sh_ts = np.full_like(self.sh_ts, False)
 
                 # Log everything
                 sample = np.sign(new_voltages[:N])
