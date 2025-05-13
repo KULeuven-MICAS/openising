@@ -4,7 +4,8 @@ import logging
 from ising.flow import LOGGER, TOP
 from ising.utils.flow import go_over_benchmark
 from ising.postprocessing.plot_all_benchmarks import plot_energy_distribution, plot_energy_average
-from ising.utils.flow import make_directory
+from ising.postprocessing.plot_solutions import plot_state
+from ising.utils.helper_functions import make_directory
 
 parser = argparse.ArgumentParser(
     description="Plot the solution energy of all the benchmarks in a given set. "
@@ -53,6 +54,11 @@ logfiles = [
     for bench in benchmark_list
     for run in range(nb_runs)
 ]
+
+for solver in solvers:
+    for bench in benchmark_list:
+        logfile = logtop / f"{solver}_{bench}_nbiter{num_iter}_run{nb_runs-1}.log"
+        plot_state(solver, logfile, f"{solver}_{bench}_state.png", figtop=figtop / args.fig_folder)
 
 LOGGER.info("plotting data of the logfiles")
 

@@ -26,11 +26,11 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
 
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
-    hyperparameters["coupling_annealing"] = bool(int(args.coupling_annealing))
     hyperparameters["resistance"] = float(args.resistance)
     hyperparameters["flipping"] = bool(int(args.flipping))
     hyperparameters["flipping_freq"] = int(args.flipping_freq)
     hyperparameters["flipping_prob"] = float(args.flipping_prob)
+    hyperparameters["flipping_time"] = float(args.flipping_time)
     hyperparameters["mu_param"] = float(args.mu_param)
 
     # BRIM parameters
@@ -134,12 +134,12 @@ def run_solver(
                 "initial_temp_cont",
                 "end_temp_cont",
                 "seed",
-                "coupling_annealing",
                 "capacitance",
                 "resistance",
                 "flipping",
                 "flipping_freq",
                 "flipping_prob",
+                "flipping_time",
                 "mu_param",
             ],
         ),

@@ -30,11 +30,11 @@ def main():
     parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.01)
     parser.add_argument("-T_cont", help="Annealing temperature for continuous solvers", default=0.05)
     parser.add_argument("-T_final_cont", help="Final annealing temperature for continuous solvers", default=0.0005)
-    parser.add_argument("-coupling_annealing", help="Whether to anneal the coupling matrix", default=False)
     parser.add_argument("-resistance", help="Resistance of the system", default=1.0)
     parser.add_argument("-flipping", help="Whether to use flipping", default=False)
-    parser.add_argument("-flipping_freq", help="Frequency of flipping", default=1)
+    parser.add_argument("-flipping_freq", help="Frequency of flipping in Hz", default=10000)
     parser.add_argument("-flipping_prob", help="Probability of flipping", default=0.001799)
+    parser.add_argument("-flipping_time", help="Time for the system to flip", default=5e-4)
     parser.add_argument("-mu_param", help="Mu parameter for the multiplicative solver", default=-3.55)
 
     # BRIM parameters
@@ -97,7 +97,7 @@ def main():
 
     for thread in threads:
         thread.join()
-        # LOGGER.info(f"Thread {thread.name} finished")
+        LOGGER.info(f"Thread {thread.name} finished")
     LOGGER.info("All threads finished")
 
 if __name__ == "__main__":
