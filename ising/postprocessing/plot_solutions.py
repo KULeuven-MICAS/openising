@@ -13,9 +13,9 @@ def plot_state(solver:str, logfile:pathlib.Path, figName:str, figtop:pathlib.Pat
         figtop (pathlib.Path, optional): the absolute path to where the figure should be stored. Defaults to ".".
     """
     if solver in ["BRIM", "bSB", "dSB", "Multiplicative"]:
-        plot_state_continuous(logfile=logfile, figname=figName, save_folder=figtop)
+        plot_state_continuous(logfile=logfile, figName=figName, save_folder=figtop)
     else:
-        plot_state_discrete(logfile=logfile, figname=figName, save_folder=figtop)
+        plot_state_discrete(logfile=logfile, figName=figName, save_folder=figtop)
 
 
 def plot_state_discrete(logfile:pathlib.Path, figName:str, save:bool=True, save_folder:pathlib.Path='.'):
