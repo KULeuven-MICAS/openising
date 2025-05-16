@@ -27,7 +27,7 @@ def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
 
 def plot_energies(
     fileName: pathlib.Path,
-    figName: str = "energies.png",
+    figName: str = "energies",
     best_found: float = 0.0,
     save: bool = True,
     save_folder: pathlib.Path = ".",
@@ -36,7 +36,7 @@ def plot_energies(
 
     Args:
         fileName (pathlib.Path): absolute path to the logfile.
-        figName (str, optional): name of the figure that should be saved. Defaults to "energies.png".
+        figName (str, optional): name of the figure that should be saved. Defaults to "energies".
         best_found (float, optional): Best found energy value of the problem. Defaults to 0.0.
         save (bool, optional): Whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): Folder to which the figure should be saved. Defaults to ".".
@@ -54,13 +54,13 @@ def plot_energies(
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()
 
 
 def plot_energies_multiple(
     logfiles: list[pathlib.Path],
-    figName: str = "multiple_energies.png",
+    figName: str = "multiple_energies",
     y_data:str="energy",
     best_found: float = None,
     save: bool = True,
@@ -71,14 +71,13 @@ def plot_energies_multiple(
 
     Args:
         logfiles (list[pathlib.Path]): list of all the absolute paths to the logfiles.
-        figName (str, optional): name of the figure that will be saved. Defaults to "multiple_energies.png".
+        figName (str, optional): name of the figure that will be saved. Defaults to "multiple_energies".
         y_data (str, optional): the data that is used for the y axis. Defaults to "energy".
         best_found (float, optional): best found energy value of the problem. Defaults to 0.0.
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where the figure should be stored. Defaults to ".".
         percentage (float, optional): percentage of the last iterations that will be plotted. Defaults to 100%.
     """
-    #TODO: voeg gurobi toe
     data = get_data_from_logfiles(logfiles, y_data=y_data, x_data="num_iterations")
     avg_energies, min_energies, max_energies, _ = compute_averages_energies(data)
 
@@ -106,7 +105,7 @@ def plot_energies_multiple(
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / figName, dpi=600, bbox_inches="tight")
+        plt.savefig(save_folder / f"{figName}.pdf", dpi=600, bbox_inches="tight")
     plt.close()
 
 
@@ -114,7 +113,7 @@ def plot_energy_dist_multiple_solvers(
     logfiles: list[pathlib.Path],
     xlabel: str,
     y_data:str = "solution_energy",
-    fig_name: str = "multiple_solvers_energy_dist.png",
+    figName: str = "multiple_solvers_energy_dist",
     best_found: np.ndarray | None = None,
     best_Gurobi: np.ndarray=None,
     save: bool = True,
@@ -124,7 +123,7 @@ def plot_energy_dist_multiple_solvers(
 
     Args:
         logfiles (list[pathlib.Path]): list of all the absolute paths to the logfiles.
-        figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist.png".
+        figName (str, optional): name of the figure that will be saved. Defaults to "multiple_solvers_energy_dist".
         best_found (np.ndarray,None, optional): numpy ndarray of the best found solutions of the problem.
                                                 Defaults to None.
         best_Gurobi (np.ndarray, optional): Numpy ndarray with the best solution of Gurobi. Defaults to None.
@@ -148,7 +147,7 @@ def plot_energy_dist_multiple_solvers(
     plt.ylabel(y_data.replace("_", " "))
     plt.legend()
     if save:
-        plt.savefig(save_folder / fig_name)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()
 
 
@@ -157,7 +156,7 @@ def plot_relative_error(
     best_found: np.ndarray,
     x_label: str,
     y_data:str="solution_energy",
-    fig_name: str = "relative_error.png",
+    figName: str = "relative_error",
     save: bool = True,
     save_folder: pathlib.Path = ".",
 ):
@@ -170,7 +169,7 @@ def plot_relative_error(
         best_found (np.ndarray): an numpy ndarray holding the best found solution of the problem.
         x_data (str): the metadata that is used for the x axis.
         y_data (str, optional): the metadata that is used for the y axis. Defaults to "solution_energy".
-        fig_name (str, optional): name of the figure to be saved. Defaults to "relative_error.png".
+        fig_name (str, optional): name of the figure to be saved. Defaults to "relative_error".
         save (bool, optional): whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
     """
@@ -191,7 +190,7 @@ def plot_relative_error(
     plt.ylabel("Relative error with best found")
     plt.legend()
     if save:
-        plt.savefig(save_folder / fig_name)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()
 
 
@@ -200,7 +199,7 @@ def plot_energy_time(
     best_found: float | None = None,
     save: bool = True,
     save_folder: pathlib.Path = ".",
-    figName: str = "energy_time.png",
+    figName: str = "energy_time",
 ):
     """Plots the energy change over time of a solver.
 
@@ -209,7 +208,7 @@ def plot_energy_time(
         best_found (float | None, optional): the best found value of the problem. Defaults to None.
         save (bool, optional): Whether to save the figure. Defaults to True.
         save_folder (pathlib.Path, optional): where to save the figure. Defaults to ".".
-        figName (str, optional): the name of the figure to save. Defaults to "energy_time.png".
+        figName (str, optional): the name of the figure to save. Defaults to "energy_time".
     """
     time = return_data(logfile, "time_clock")
     energy = return_data(logfile, "energy")
@@ -222,7 +221,7 @@ def plot_energy_time(
     plt.ylabel("Energy")
     plt.legend()
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()
 
 
@@ -231,7 +230,7 @@ def plot_energy_time_multiple(
     best_found: float | None = None,
     save: bool = True,
     save_folder: pathlib.Path = ".",
-    figName: str = "energy_time.png",
+    figName: str = "energy_time",
 ):
     """Plots the average energy of multiple solvers over the run time.
 
@@ -240,7 +239,7 @@ def plot_energy_time_multiple(
         best_found (float | None, optional): best found solution of the problem. Defaults to None.
         save (bool, optional): _description_. Defaults to True.
         save_folder (pathlib.Path, optional): _description_. Defaults to '.'.
-        figName (str, optional): _description_. Defaults to "energy_time.png".
+        figName (str, optional): _description_. Defaults to "energy_time".
     """
     data = get_metadata_from_logfiles(logfiles, x_data="total_time", y_data="solution_energy")
     avg_energies, min_energies, max_energies, x_data = compute_averages_energies(data)
@@ -260,5 +259,5 @@ def plot_energy_time_multiple(
     plt.ylabel("Energy")
     plt.legend()
     if save:
-        plt.savefig(save_folder / figName)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()

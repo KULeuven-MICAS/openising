@@ -24,7 +24,7 @@ parser.add_argument("--iter_list", help="Number of iterations", default=None, na
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-use_gurobi", help="whether Gurobi was used", default=False)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
-parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy.png")
+parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy")
 
 # Parsing the arguments
 args = parser.parse_args()
@@ -74,7 +74,7 @@ if args.benchmark is not None:
                     plot_state(
                         solver,
                         logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log",
-                        f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png",
+                        f"{solver}_benchmark{benchmark}_state_iter{num_iter}",
                         figtop=figtop,
                     )
 
@@ -95,7 +95,7 @@ if args.benchmark is not None:
             best_found,
             x_label="num_iterations",
             save_folder=figtop,
-            fig_name=f"{benchmark}_relative_error_{fig_name}",
+            figName=f"{benchmark}_relative_error_{fig_name}",
         )
         LOGGER.info("Done plotting relative error")
 
@@ -114,7 +114,7 @@ elif args.N_list is not None:
                 logfile = logtop / f"{solver}_N{N}_run{run}.log"
                 new_logfiles.append(logfile)
             if run == nb_runs - 1:
-                plot_state(solver, logfile, f"{solver}_N{N}.png", figtop)
+                plot_state(solver, logfile, f"{solver}_N{N}", figtop)
         if use_gurobi:
             best_found.append(logtop / f"Gurobi_N{N}.log")
         plot_energies_multiple(
@@ -142,6 +142,6 @@ plot_energy_dist_multiple_solvers(
     best_Gurobi=None,
     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
     save_folder=figtop,
-    fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
+    figName=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
 )
 LOGGER.info("figures plotted succesfully")

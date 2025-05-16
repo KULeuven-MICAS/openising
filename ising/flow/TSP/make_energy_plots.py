@@ -23,7 +23,7 @@ parser.add_argument("--iter_list", help="Number of iterations", default=None, na
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-use_gurobi", help="whether Gurobi was used", default=False)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
-parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy.png")
+parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy")
 
 # Parsing the arguments
 args = parser.parse_args()
@@ -108,7 +108,7 @@ if args.benchmark is not None:
             x_label="num_iterations",
             y_data="solution_TSP_energy",
             save_folder=figtop,
-            fig_name=f"{benchmark}_relative_error_{fig_name}",
+            figName=f"{benchmark}_relative_error_{fig_name}",
         )
         LOGGER.info("Done plotting relative error")
 
@@ -145,7 +145,7 @@ plot_energy_dist_multiple_solvers(
     best_Gurobi=best_found_gurobi,
     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
     save_folder=figtop,
-    fig_name=f"{args.benchmark}_TSP_{fig_name}" if args.benchmark is not None else f"size_comparison_TSP_{fig_name}",
+    figName=f"{args.benchmark}_TSP_{fig_name}" if args.benchmark is not None else f"size_comparison_TSP_{fig_name}",
 )
 
 plot_energy_dist_multiple_solvers(
@@ -155,6 +155,6 @@ plot_energy_dist_multiple_solvers(
     best_Gurobi=best_found_gurobi,
     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
     save_folder=figtop,
-    fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
+    figName=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
 )
 LOGGER.info("figures plotted succesfully")
