@@ -15,7 +15,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.nda
         seed (int, optional): The seed for the random number generator. Defaults to 1.
 
     Returns:
-        tuple[IsingModel, np.ndarray]: the generated Ising model and the solution.
+        tuple[np.ndarray, np.ndarray]: The generated transfer function matrix and the symbols.
     """
     if seed == 0:
         seed = int(time.time())
@@ -23,7 +23,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.nda
 
     r = int(np.ceil(np.log2(np.sqrt(M))))
     symbols = np.concatenate(
-        ([-np.sqrt(M) + i for i in range(1, 1 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 1 + 2 * r, 2)])
+        ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
     )
 
     phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
@@ -99,7 +99,7 @@ def MIMO_to_Ising(
     h = np.transpose(2 * z.T @ Htilde @ T)
     c = np.inner(z, z)
 
-    return IsingModel(J, h, c), xtilde
+    return IsingModel(J, h, c, name=f"MIMO_{SNR}"), xtilde, T
 
 
 def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
