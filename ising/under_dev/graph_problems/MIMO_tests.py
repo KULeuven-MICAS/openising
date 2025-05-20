@@ -5,7 +5,6 @@ import logging
 from ising.flow import LOGGER
 from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
 from ising.solvers.Multiplicative import Multiplicative
-from ising.utils.flow import return_rx, return_q
 
 logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.INFO)
 
@@ -77,7 +76,7 @@ def Hamiltonian_test():
     N = 4
     M = 64
     r = int(np.ceil(np.log2(np.sqrt(M))))
-    SNR = 100
+    SNR = 10
     seed = 2
 
     H, symbols = MU_MIMO(N, N, M, seed)
@@ -89,18 +88,18 @@ def Hamiltonian_test():
     LOGGER.info(f"Decoded input signal: {sigma}, with energy: {energy_sol}")
     
     initial_state = np.random.choice([-1, 1], size=(model.num_variables,))
-    dtMult = 1e-3
-    num_iter = 100000
+    dtMult = 1e-4
+    num_iter = 300000
     mu_param = -3.55
-    flipping = True
-    flipping_freq = 100
-    flipping_prob = 0.1
+    flipping = False
+    flipping_freq = 1
+    flipping_prob = 0.05
 
     sigma_optim, energy = Multiplicative().solve(model, 
                                                  initial_state,
                                                  dtMult, 
                                                  num_iter, 
-                                                 initial_temp_cont=0.5, 
+                                                 initial_temp_cont=0.0, 
                                                  mu_param=mu_param, 
                                                  seed=seed, 
                                                  flipping=flipping, 
@@ -116,7 +115,7 @@ def Hamiltonian_test():
         diff_list.append(flipped_energy >= energy)
         sigma_optim[i] *= -1
     LOGGER.info(f"Difference list: {diff_list}")
-    # plot_energy(model, sigma, sigma_optim, energy_sol)
+    plot_energy(model, sigma, sigma_optim, energy_sol)
 
 
 

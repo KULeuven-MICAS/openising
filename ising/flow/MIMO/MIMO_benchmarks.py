@@ -29,42 +29,45 @@ def test_MIMO(SNR_list, solvers, args):
         change_c = True
     else:
         change_c = False
-
+    orig_seed = hyperparameters["seed"]
     logtop = TOP / "ising/flow/MIMO/logs"
     LOGGER.debug(f"Logtop: {logtop}")
     make_directory(logtop)
-    H, symbols = MU_MIMO(Nt, Nr, M, hyperparameters["seed"])
-    for SNR in SNR_list:
-        LOGGER.info(f"running for SNR {SNR}")
-        for run in range(nb_runs):
-            x = np.random.choice(symbols, (Nt,)) + 1j*np.random.choice(symbols, (Nt,))
-            model, xtilde, transfo = MIMO_to_Ising(H, x, SNR, Nr, Nt, M, hyperparameters["seed"])
+    for i in range(int(nb_runs/10)):
+        H, symbols = MU_MIMO(Nt, Nr, M, hyperparameters["seed"])
+        for SNR in SNR_list:
+            LOGGER.info(f"running for SNR {SNR}")
+            for run in range(nb_runs):
+                hyperparameters["seed"] = orig_seed + run
+                np.random.seed(hyperparameters["seed"])
+                x = np.random.choice(symbols, (Nt,)) + 1j*np.random.choice(symbols, (Nt,))
+                model, xtilde, transfo = MIMO_to_Ising(H, x, SNR, Nr, Nt, M, hyperparameters["seed"])
 
-            if use_gurobi:
-                gurobi_file = logtop / f"Gurobi_SNR{SNR}_run{run}.log"
-                Gurobi().solve(model, gurobi_file)
-                add_bit_error_rate([gurobi_file], xtilde, M, SNR)
+                if use_gurobi:
+                    gurobi_file = logtop / f"Gurobi_SNR{SNR}_run{run}.log"
+                    Gurobi().solve(model, gurobi_file)
+                    add_bit_error_rate([gurobi_file], xtilde, M, SNR)
 
-            if change_c:
-                hyperparameters["c0"] = return_c0(model=model)
-            if change_q:
-                hyperparameters["q"] = return_q(model)
-            current_logfiles = [logtop / f"{solver}_SNR{SNR}_run{run}.log" for solver in solvers]
+                if change_c:
+                    hyperparameters["c0"] = return_c0(model=model)
+                if change_q:
+                    hyperparameters["q"] = return_q(model)
+                current_logfiles = [logtop / f"{solver}_SNR{SNR}_run{run}.log" for solver in solvers]
 
-            for solver in solvers:
-                s_init = np.random.choice([-1, 1], (model.num_variables,))
-                logfile = logtop / f"{solver}_SNR{SNR}_run{run}.log"
-                run_solver(
-                    solver,
-                    num_iter=num_iter,
-                    s_init=s_init,
-                    logfile=logfile,
-                    model=model,
-                    **hyperparameters
-                )
-                current_logfiles.append(logfile)
+                for solver in solvers:
+                    s_init = np.random.uniform(-1, 1, (model.num_variables,))
+                    logfile = logtop / f"{solver}_SNR{SNR}_run{run}_model{i}.log"
+                    run_solver(
+                        solver,
+                        num_iter=num_iter,
+                        s_init=s_init,
+                        logfile=logfile,
+                        model=model,
+                        **hyperparameters
+                    )
+                    current_logfiles.append(logfile)
 
-            add_bit_error_rate(current_logfiles, xtilde, M, SNR)
+                add_bit_error_rate(current_logfiles, xtilde, M, SNR)
 
 
 def add_bit_error_rate(logfiles:list[pathlib.Path], xtilde:np.ndarray, M:int, SNR:int) -> None:

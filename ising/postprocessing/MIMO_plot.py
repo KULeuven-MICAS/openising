@@ -27,14 +27,15 @@ def plot_error_SNR(
 
     plt.figure()
     for solver_name, error in avg_error.items():
-        plt.semilogx(x_data[solver_name], error, label=solver_name)
+        plt.semilogy(x_data[solver_name], error, label=solver_name)
         # plt.fill_between(x_data[solver_name], min_error[solver_name], max_error[solver_name], alpha=0.2)
     if gurobi_files is not None:
-        plt.semilogx(gurobi_x["Gurobi"],gurobi_avg["Gurobi"], linestyle="--", label="Gurobi")
+        plt.semilogy(gurobi_x["Gurobi"],gurobi_avg["Gurobi"], linestyle="--", label="Gurobi")
         # plt.fill_between(gurobi_x["Gurobi"], gurobi_min["Gurobi"], gurobi_max["Gurobi"], alpha=0.2)
     plt.xlabel("SNR [dB]")
+    plt.xticks(x_data[solver_name])
     plt.ylabel("Bit Error Rate")
-    plt.legend()
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     if save:
-        plt.savefig(save_folder / f"{figName}.pdf")
+        plt.savefig(save_folder / f"{figName}.pdf", dpi=600, bbox_inches="tight")
     plt.close()
