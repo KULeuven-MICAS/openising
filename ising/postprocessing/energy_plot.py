@@ -28,7 +28,7 @@ def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
 def plot_energies(
     fileName: pathlib.Path,
     figName: str = "energies",
-    best_found: float = 0.0,
+    best_found: float = None,
     save: bool = True,
     save_folder: pathlib.Path = pathlib.Path("./"),
 ):
