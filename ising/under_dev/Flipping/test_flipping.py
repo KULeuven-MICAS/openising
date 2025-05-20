@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from ising.flow import TOP
+from ising.benchmarks.parsers import G_parser
+from ising.generators.MaxCut import MaxCut
 
 def dvdt(t, v, coupling, Rsettle, Rflip, C):
     v[-1] = 1.0
@@ -10,7 +13,7 @@ def dvdt(t, v, coupling, Rsettle, Rflip, C):
     z = v/Rsettle*(v-1)*(v+1) * (-63)
 
     # Flipping strength
-    flip = np.block([1.-v[0], np.zeros((len(v)-1,))])
+    flip = np.block([1.-v[0], -1 - v[1], np.zeros((len(v)-2,))])
 
     dv = 1/C * (np.dot(coupling / Rsettle, c*v) - z + flip / Rflip)
 
@@ -32,9 +35,9 @@ def flipping(coupling, time_flip, dt, Rflip, Rsettle, C, state):
         k3 = dvdt(time + dt/2, state + dt/4*(k1 + k2), coupling, Rsettle, Rflip, C)
 
         state += dt*(k1 / 6 + k2 / 6 + 2/3*k3)
+        print(f"time {time:.2e}, dv[1]: {(k1[1] / 6 + k2[1] / 6 + 2/3*k3[1]):.4e}")
         time += dt
         all_states[i+1, :] = state
-        print(f"time {time+dt:.2e} has value: {state[0]:.10f}")
     return all_states
 
 def test_worst_case():
@@ -78,36 +81,33 @@ def test_worst_case():
     plt.close()
 
 def test_any_case():
-    N = 5000
-    maxJ = 64
-    J = np.random.randint(-maxJ+1, maxJ, (N,N))
-    ind = np.random.randint(0, N, (2*N,2))
-    J[ind[:,0], ind[:,1]] = 0
-    J[ind[:,1], ind[:,0]] = 0
-    J = np.triu(J, k=1)
-    J = J + J.T
-    h = np.random.randint(-maxJ+1, maxJ, (N,1))
-    coupling = np.block([[J, h],[h.T, 0]])
+    graph, best_found = G_parser(TOP / "ising/benchmarks/G/K2000.txt")
+    model = MaxCut(graph)
+    coupling = model.J + model.J.T
+    h = model.h.reshape((model.num_variables, 1))
+    coupling = np.block([[coupling, h],[h.T, 0]])
 
     Rsettle = 1
     Capacitance = 1
     Rflip = Rsettle / (1e2*128)
-    max_Jav = np.max(np.sum(np.abs(J), axis=1))
+    max_Jav = np.max(np.sum(np.abs(coupling), axis=1))
     tau_settle = Rsettle * Capacitance / max_Jav
     tau_flip = Rflip * Capacitance
 
     print(f"tau_settle: {tau_settle:.2e}, tau_flip: {tau_flip:.2e}, Rflip: {Rflip:.2e}")
 
-    dt = 1e-7
+    dt = 1e-8
     time_flip = 7e-4
-    state = np.sign(np.random.uniform(-1, 1, (N+1,)))
+    state = np.random.uniform(-1, 1, (model.num_variables+1,))
     state[-1] = 1.0
     state[0] = -1.0
+    state[1] = 1.01
     all_states = flipping(coupling, time_flip, dt, Rflip, Rsettle, Capacitance, state)
 
     plt.figure()
-    plt.plot(np.arange(0, time_flip + 0.1*dt, dt), all_states[:, 1:])
+    plt.plot(np.arange(0, time_flip + 0.1*dt, dt), all_states[:, 2:])
     plt.plot(np.arange(0, time_flip + 0.1*dt, dt), all_states[:, 0], "--b")
+    plt.plot(np.arange(0, time_flip + 0.1*dt, dt), all_states[:, 1], "--g")
     plt.xlabel("Time (s)")
     plt.ylabel("State (V)")
     plt.savefig("./flipping_any_case.png")
