@@ -30,7 +30,7 @@ def plot_energies(
     figName: str = "energies",
     best_found: float = 0.0,
     save: bool = True,
-    save_folder: pathlib.Path = ".",
+    save_folder: pathlib.Path = pathlib.Path("./"),
 ):
     """Plots the energies of a given optimisation process using the logfile.
 
@@ -49,12 +49,13 @@ def plot_energies(
 
     plt.figure()
     plot_energies_on_figure(energies, label=solver_name)
-    plot_energies_on_figure(np.ones(energies.shape) * best_found, label="Best found")
-    plt.title(f"Best energy: {best_energy}")
+    if best_found is not None:
+        plot_energies_on_figure(np.ones(energies.shape) * best_found, label="Best found")
+        plt.title(f"Best energy: {best_energy}")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / f"{figName}.pdf")
+        plt.savefig(save_folder / f"{figName}.png")
     plt.close()
 
 
@@ -105,7 +106,7 @@ def plot_energies_multiple(
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / f"{figName}.pdf", dpi=600, bbox_inches="tight")
+        plt.savefig(save_folder / f"{figName}.pdf", bbox_inches="tight")
     plt.close()
 
 
