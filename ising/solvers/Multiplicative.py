@@ -4,7 +4,7 @@ import time
 from numpy.random import MT19937, Generator
 from collections.abc import Callable
 
-# from ising.flow import LOGGER
+from ising.flow import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -17,34 +17,21 @@ class Multiplicative(SolverBase):
         self.name = "Multiplicative"
 
     def do_spinflip(self, state: np.ndarray):
-        # Increment count
-        self.sh_cnt = np.where(self.sh_cnt != -1, self.sh_cnt + 1, -1)
-
         # Generate random numbers
         rnd_v = self.rng_(state.shape)
 
         # Select nodes for spin flip
-        sel_sf = rnd_v < self.p
+        self.chosen_nodes = rnd_v < self.p
 
         if self.bias:
-            sel_sf[-1] = False
+            self.chosen_nodes[-1] = False
 
         # Apply spin flip
-        absv = np.where(state > 0, 1, np.where(state < 0, -1, 0))
-        self.sh_tv = np.where(sel_sf, -absv, self.sh_tv)
-        self.sh_ts = np.where(sel_sf, True, self.sh_ts)
-
-        # Reset counters
-        self.sh_cnt = np.where(sel_sf, 0, self.sh_cnt)
-
-        # Handle timeout
-        time_up = self.sh_cnt == self.sh_iters
-        self.sh_tv = np.where(time_up, 0, self.sh_tv)
-        self.sh_ts = np.where(time_up, False, self.sh_ts)
-        self.sh_cnt = np.where(time_up, -1, self.sh_cnt)
+        absv = np.where(state > 0, -1, np.where(state < 0, 1, 0))
+        self.flip_value = np.where(self.chosen_nodes, absv, 0.0)
 
         # Update statistics
-        self.tot_sfs += np.sum(sel_sf)
+        self.tot_sfs += np.sum(self.chosen_nodes)
         self.p += self.scale * self.sf_freq
 
     def set_params(self, resistance: float, capacitance: float, mu_param: float, flipping: bool):
@@ -58,18 +45,17 @@ class Multiplicative(SolverBase):
         self.resistance = resistance
         self.capacitance = capacitance
         self.mu_param = mu_param
-        self.flip_resistance = resistance / (1e2 * 128)
+        self.flip_resistance = resistance / (1e4 * 128)
         self.flipping = flipping
 
     def set_spinflip(self, N: int, num_iterations: int, initial_prob: float, seed: int, flipping_freq: int):
-        self.sh_tv = np.zeros((N + int(self.bias),))
-        self.sh_ts = np.full((N + int(self.bias),), False)
-        self.sh_cnt = -np.ones((N + int(self.bias),))
+        self.flip_value = np.zeros((N + int(self.bias),))
+        self.chosen_nodes = np.full((N + int(self.bias),), False)
         self.tot_sfs = 0
         self.count = 0
         self.sh_iters = 10
         self.p0 = initial_prob
-        self.p1 = 2e-6
+        self.p1 = 2e-7
         self.p = self.p0
         self.scale = ((self.p1 - self.p0) / float(num_iterations - 1)) if num_iterations > 1 else 0
         self.sf_freq = int(1 / flipping_freq)
@@ -100,7 +86,7 @@ class Multiplicative(SolverBase):
         z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
 
         # Flipping changes
-        flip = np.where(self.sh_ts, (self.sh_tv - vt), 0.0)
+        flip = np.where(self.chosen_nodes, (self.flip_value - vt), 0.0)
 
         # Compute the voltage change dv
         dv = 1 / self.capacitance * (np.dot(coupling, c * vt) - z + flip / self.flip_resistance)
@@ -137,7 +123,7 @@ class Multiplicative(SolverBase):
             vt[-1] = 1.0
 
         # Buffering
-        c = 1 / np.abs(vt)
+        c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
 
         # ZIV diode
         z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
@@ -240,7 +226,9 @@ class Multiplicative(SolverBase):
 
         # Set up the spin flipping
         self.set_spinflip(N, num_iterations, flipping_prob, seed, flipping_freq)
-        flip_times = np.arange(0 + 1 / flipping_freq, tend, 1 / flipping_freq)
+        flip_period = 1/(flipping_freq*dtMult)
+        flip_iter = np.arange(0, num_iterations, flip_period)
+        flip_iter = np.delete(flip_iter, 0)
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
@@ -260,29 +248,30 @@ class Multiplicative(SolverBase):
                 return_rx(num_iterations, initial_temp_cont, end_temp_cont) if initial_temp_cont != 0.0 else 1.0
             )
             previous_voltages = np.copy(v)
-            tk = 0.0
             energy = model.evaluate(np.sign(initial_state))
 
-            log.log(time_clock=tk, energy=energy, state=np.sign(initial_state), voltages=initial_state)
+            log.log(time_clock=0.0, energy=energy, state=np.sign(initial_state), voltages=initial_state)
 
             while i < num_iterations and max_change > stop_criterion:
-                # Runge Kutta steps, k1 is the derivative at time step t, k2 is the derivative at time step t+2/3*dt
-                if flipping and tk in flip_times:
+                tk = i * dtMult
+                if flipping and i in flip_iter:
                     self.do_spinflip(previous_voltages)
                     dt_flip = dtMult * flipping_time
-
+                    first_flip = np.argmax(self.chosen_nodes)
+                    LOGGER.info(f"node {first_flip}, value: {previous_voltages[first_flip]}")
                     t_flip = tk
+                    just_flipped = True
                     for j in range(int(flipping_time / dt_flip)):
-                        k1 = dt_flip * self.dvdt_flip(tk, previous_voltages, J)
-                        k2 = dt_flip * self.dvdt_flip(tk + dtMult, previous_voltages + k1, J)
-                        k3 = dt_flip * self.dvdt_flip(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J)
+                        k1 = self.dvdt_flip(tk, previous_voltages, J)
+                        k2 = self.dvdt_flip(tk + dt_flip, previous_voltages + dt_flip * k1, J)
+                        k3 = self.dvdt_flip(tk + 1 / 2 * dt_flip, previous_voltages + dt_flip / 4 * (k1 + k2), J)
 
                         # Add noise and update the voltages
                         noise = self.noise(Temp, previous_voltages)
-                        new_voltages = previous_voltages + 1.0 / 6.0 * (k1 + k2 + 4.0 * k3) + noise
-
+                        new_voltages = previous_voltages + dt_flip / 6.0 * (k1 + k2 + 4.0 * k3) + noise
                         t_flip += dt_flip
                         if t_flip >= tk + dtMult:
+                            LOGGER.info(f"node {first_flip}, value: {new_voltages[first_flip]}")
                             tk += dtMult
                             i += 1
                             Temp *= cooling_rate
@@ -291,6 +280,7 @@ class Multiplicative(SolverBase):
                             log.log(
                                 time_clock=tk, energy=energy, state=np.sign(new_voltages[:N]), voltages=new_voltages[:N]
                             )
+                        previous_voltages = np.copy(new_voltages)
 
                     if t_flip < tk + dtMult:
                         dt = tk + dtMult - t_flip
@@ -304,6 +294,7 @@ class Multiplicative(SolverBase):
                         Temp *= cooling_rate
                         tk += dtMult
                 else:
+                    just_flipped = False
                     k1 = dtMult * self.dvdt(tk, previous_voltages, J)
                     k2 = dtMult * self.dvdt(tk + dtMult, previous_voltages + k1, J)
                     k3 = dtMult * self.dvdt(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J)
@@ -319,13 +310,16 @@ class Multiplicative(SolverBase):
                 energy = model.evaluate(sample)
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
+                if i % 1000 == 0:
+                    LOGGER.info(f"Iteration {i} - time {tk:.2e} - energy {energy:.2f} - total flips {self.tot_sfs}")
+
                 # Update the criterion changes
-                if i > 0:
+                if i > 0 and not just_flipped:
                     max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
                         previous_voltages, ord=np.inf
                     )
                 previous_voltages = np.copy(new_voltages)
-
+            LOGGER.info(f"Done at iteration {i} with energy {energy:.2f}")
             # Make sure to log to the last iteration if the stop criterion is reached
             if max_change < stop_criterion:
                 for j in range(i, num_iterations):

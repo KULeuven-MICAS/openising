@@ -30,8 +30,8 @@ class SB(SolverBase):
     def at(self, t, a0, dt, num_iterations):
         return a0 / (dt*num_iterations) * t
 
-    def bt(self, t, a0, dt, num_iterations):
-        return self.at(t, a0, dt, num_iterations) / 2
+    def cast_to_values(self, casted_values, actual_values):
+        return np.array([actual_values[np.argmin(np.abs(actual_values - xi))] for xi in casted_values])
 
     @abstractmethod
     def solve(self, model: IsingModel):
@@ -52,7 +52,8 @@ class ballisticSB(SB):
         dtSB:           float,
         a0:             float = 1.0,
         file:           pathlib.Path | None = None,
-        bit_width:      int = 16
+        bit_width_x:      int = 16,
+        bit_width_y:      int = 16,
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -77,27 +78,21 @@ class ballisticSB(SB):
         N  = model.num_variables
 
         # Set up the model and initial states with the correct data type
-        floatmap      = {16:np.float16, 32:np.float32, 64:np.float64}
-        dtype         = floatmap.get(bit_width, np.float16)
-        J             = np.array(triu_to_symm(model.J), dtype=dtype)
-        h             = np.array(model.h, dtype=dtype)
-        initial_state = np.array(initial_state, dtype=dtype)
-        x             = 1.0 * np.ones_like(initial_state)
-        y             = 1.*np.ones_like(x, dtype=dtype)
-
-        # Cast all the variables to the correct data type
-        dtSB = dtype(dtSB)
-        a0   = dtype(a0)
-        c0   = dtype(c0)
-        tk   = dtype(0.0)
+        x_values        = np.linspace(-1, 1, 2**(bit_width_x)-1)
+        y_values        = np.linspace(-1, 1, 2**(bit_width_y)-1)
+        J             = np.array(triu_to_symm(model.J))
+        h             = np.array(model.h)
+        initial_state = np.array(initial_state)
+        x             = np.zeros_like(initial_state)
+        y             = np.ones_like(x)
 
         schema = {
-            "time"      : dtype,
-            "energy"    : dtype,
+            "time"      : float,
+            "energy"    : float,
             "state"     : (np.int8, (N,)),
-            "positions" : (dtype, (N,)),
-            "momenta"   : (dtype, (N,)),
-            "at"        : dtype,
+            "positions" : (float, (N,)),
+            "momenta"   : (float, (N,)),
+            "at"        : float,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -113,17 +108,19 @@ class ballisticSB(SB):
 
             sample = np.sign(x)
             energy = model.evaluate(sample)
+            tk   = 0.0
             log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
-                atk = dtype(self.at(tk, a0, dtSB, num_iterations))
+                atk = self.at(tk, a0, dtSB, num_iterations)
                 # btk = dtype(self.bt(tk, a0, dtSB, num_iterations))
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 *  h) * dtSB
+                y = self.cast_to_values(y, y_values)
                 x += self.update_x(y, dtSB, a0)
+                x = self.cast_to_values(x, x_values)
 
-                for j in range(N):
-                    if np.abs(x[j]) > 1:
-                        self.update_rule(x, y, j)
+                y = np.where(np.abs(x) >= 1, 0, y)
+                x = np.where(np.abs(x) >= 1, np.sign(x), x)
 
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
