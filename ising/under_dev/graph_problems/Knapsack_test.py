@@ -130,7 +130,7 @@ energies = np.array(energies)
 
 # Create the plot
 plt.figure(figsize=(10, 6))
-plt.semilogy(range(num_states), energies, 'b-', label='Energy')
+plt.plot(range(num_states), energies, 'b-', label='Energy')
 plt.axvline(optimal_index, ymin=min(energies)-100, ymax=max(energies)+100, color='r', linestyle='-', label=f'Optimal State: {energy_optim:.2f}')
 plt.axvline(received_index, ymin=min(energies)-100, ymax=max(energies)+100, color='y', linestyle='--', label=f'Received State: {received_energy}')
 plt.axhline(y=energies[optimal_index], color='g', linestyle='--', label='Energy of Optimal State')
