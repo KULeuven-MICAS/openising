@@ -89,7 +89,7 @@ def plot_energies_multiple(
         iterations = range(int(percentage_plot*num_iterations), num_iterations)
         begin_iter = int(percentage_plot*num_iterations)
         plt.semilogx(iterations,
-                    avg_energies[solver][0][begin_iter:], label=solver + f": {avg_energies[solver][0][-1]}")
+                    avg_energies[solver][0][begin_iter:], label=solver + f": {avg_energies[solver][0][-1]:.2f}")
         plt.fill_between(
             iterations,
             min_energies[solver][0][begin_iter:],
@@ -97,7 +97,7 @@ def plot_energies_multiple(
             alpha=0.2
         )
     if best_found is not None:
-        plt.axhline(best_found, linestyle="--", color="k", label=f"Best Found: {best_found}")
+        plt.axhline(best_found, linestyle="--", color="k", label=f"Best Found: {best_found:.2f}")
         plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
         plt.axhline(0.9*best_found, linestyle="-.", color="k", label="0.9 of Best Found")
 

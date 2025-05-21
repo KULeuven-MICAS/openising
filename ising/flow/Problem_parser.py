@@ -89,6 +89,7 @@ else:
     solvers = args.solvers[0].split()
 LOGGER.info(f"Solving with the following solvers: {solvers}")
 
+LOGGER.info(f"Given arguments: {args}")
 use_benchmark = False
 use_dummy = False
 use_MIMO = False
