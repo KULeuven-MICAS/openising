@@ -103,14 +103,13 @@ def plot_energies_multiple(
         plt.axhline(best_found, linestyle="--", color="k", label=f"Best Found: {best_found:.2f}")
         plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
         plt.axhline(0.9*best_found, linestyle="-.", color="k", label="0.9 of Best Found")
-    else:
-        best_found=10
 
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.title("Energy comparison of different optimisation processes")
     plt.xlabel("iteration")
     plt.ylabel("Energy")
-    plt.ylim((best_found - 0.2*best_found, max_energy + 0.1*best_found))
+    if best_found is not None:
+        plt.ylim((best_found - 0.2*best_found, max_energy + 0.1*best_found))
     if save:
         plt.savefig(save_folder / f"{figName}.pdf", bbox_inches="tight")
     plt.close()
