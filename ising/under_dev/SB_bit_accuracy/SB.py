@@ -45,6 +45,7 @@ class ballisticSB(SB):
     def solve(
         self,
         model:          IsingModel,
+        initial_momenta: np.ndarray,
         num_iterations: int,
         c0:             float,
         dtSB:           float,
@@ -82,8 +83,8 @@ class ballisticSB(SB):
         J             = np.array(triu_to_symm(model.J))
         h             = np.array(model.h)
         x             = np.zeros((model.num_variables,))
-        y             = np.ones_like(x)
-
+        y             = initial_momenta
+        
         schema = {
             "time"      : float,
             "energy"    : float,

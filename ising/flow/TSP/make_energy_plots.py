@@ -78,7 +78,7 @@ if args.benchmark is not None:
             plot_state(
                 solver,
                 logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log",
-                f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png",
+                f"{solver}_benchmark{benchmark}_state_iter{num_iter}",
                 figtop=figtop,
             )
 
