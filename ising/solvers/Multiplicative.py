@@ -45,7 +45,7 @@ class Multiplicative(SolverBase):
         self.resistance = resistance
         self.capacitance = capacitance
         self.mu_param = mu_param
-        self.flip_resistance = resistance / (1e4 * 128)
+        self.flip_resistance = resistance / (1e2 * 128)
         self.flipping = flipping
 
     def set_spinflip(self, N: int, num_iterations: int, initial_prob: float, seed: int, flipping_freq: int):
@@ -169,7 +169,7 @@ class Multiplicative(SolverBase):
         flipping_prob: float = 0.001799,
         flipping_time: float = 1e-3,
         file: pathlib.Path | None = None,
-    ) -> tuple[float, np.ndarray]:
+    ) -> tuple[np.ndarray, float]:
         """Solves the given problem using a multiplicative coupling scheme.
 
         Args:
@@ -193,7 +193,7 @@ class Multiplicative(SolverBase):
             file (pathlib.Path, None, optional): the path to the logfile. Defaults to None.
 
         Returns:
-            tuple[float, np.ndarray]: the best energy and the best sample.
+            tuple[np.ndarray, float]: the best energy and the best sample.
         """
         # Set up the time evaluations
         tend = dtMult * num_iterations
@@ -257,8 +257,6 @@ class Multiplicative(SolverBase):
                 if flipping and i in flip_iter:
                     self.do_spinflip(previous_voltages)
                     dt_flip = dtMult * flipping_time
-                    first_flip = np.argmax(self.chosen_nodes)
-                    LOGGER.info(f"node {first_flip}, value: {previous_voltages[first_flip]}")
                     t_flip = tk
                     just_flipped = True
                     for j in range(int(flipping_time / dt_flip)):
@@ -271,7 +269,6 @@ class Multiplicative(SolverBase):
                         new_voltages = previous_voltages + dt_flip / 6.0 * (k1 + k2 + 4.0 * k3) + noise
                         t_flip += dt_flip
                         if t_flip >= tk + dtMult:
-                            LOGGER.info(f"node {first_flip}, value: {new_voltages[first_flip]}")
                             tk += dtMult
                             i += 1
                             Temp *= cooling_rate

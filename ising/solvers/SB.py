@@ -52,8 +52,8 @@ class ballisticSB(SB):
         dtSB:           float,
         a0:             float = 1.0,
         file:           pathlib.Path | None = None,
-        bit_width_x:      int = 16,
-        bit_width_y:      int = 16,
+        bit_width_x:      int = 8,
+        bit_width_y:      int = 8,
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -90,8 +90,8 @@ class ballisticSB(SB):
             "time"      : float,
             "energy"    : float,
             "state"     : (np.int8, (N,)),
-            "positions" : (float, (N,)),
-            "momenta"   : (float, (N,)),
+            "positions" : (np.float32, (N,)),
+            "momenta"   : (np.float32, (N,)),
             "at"        : float,
         }
 
