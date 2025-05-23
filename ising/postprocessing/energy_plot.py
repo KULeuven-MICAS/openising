@@ -103,6 +103,8 @@ def plot_energies_multiple(
         plt.axhline(best_found, linestyle="--", color="k", label=f"Best Found: {best_found:.2f}")
         plt.axhline(0.99*best_found, linestyle="-.", color="k", label="0.99 of Best Found")
         plt.axhline(0.9*best_found, linestyle="-.", color="k", label="0.9 of Best Found")
+    else:
+        best_found=10
 
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.title("Energy comparison of different optimisation processes")

@@ -17,7 +17,7 @@ parser.add_argument("--solvers", help="Which solvers to run", default="all", nar
 parser.add_argument("-nb_runs", help="Number of runs", default=5)
 parser.add_argument("-num_iter", help="The amount of iterations", default=None)
 parser.add_argument("-fig_folder", help="Folder of the figure to save", default=".")
-parser.add_argument("-fig_name", help="Name of the figure to save", default="benchmark_sweep.png")
+parser.add_argument("-fig_name", help="Name of the figure to save", default="benchmark_sweep")
 parser.add_argument("-percentage", help="percentage of benchmarks to run", default=1.0)
 
 
@@ -64,7 +64,7 @@ for bench in range(len(benchmark_list)):
     ]
     plot_energies_multiple(
         current_logfiles,
-        figName=f"{benchmark_list[bench]}_energies.png",
+        figName=f"{benchmark_list[bench]}_energies",
         best_found=float(best_found[bench]),
         save_folder=figtop / args.fig_folder,
     )
@@ -72,7 +72,7 @@ for bench in range(len(benchmark_list)):
 for solver in solvers:
     for bench in benchmark_list:
         logfile = logtop / f"{solver}_{bench}_nbiter{num_iter}_run{nb_runs - 1}.log"
-        plot_state(solver, logfile, f"{solver}_{bench}_state.png", figtop=figtop / args.fig_folder)
+        plot_state(solver, logfile, f"{solver}_{bench}_state", figtop=figtop / args.fig_folder)
 
 LOGGER.info("plotting data of the logfiles")
 
