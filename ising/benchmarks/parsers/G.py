@@ -1,6 +1,8 @@
 import pathlib
 import networkx as nx
-import os
+
+from ising.flow import TOP
+from ising.utils.parser import get_optim_value
 
 def G_parser(benchmark: pathlib.Path | str):
     """Creates undirected graph from G benchmark
@@ -29,25 +31,6 @@ def G_parser(benchmark: pathlib.Path | str):
                 weight = int(line[2])
                 G.add_edge(u, v, weight=weight)
 
-    best_found = get_optim_value(benchmark)
+    best_found = get_optim_value(benchmark, TOP / "ising/benchmarks/G/optimal_energy.txt")
     return G, best_found
 
-def get_optim_value(benchmark: pathlib.Path | str) -> float:
-    """Returns the best found value of the benchmark if the optimal value is known.
-
-    Args:
-        benchmark (pathlib.Path | str): absolute path to the benchmark
-
-    Returns:
-        float: the best found value of the benchmark.
-    """
-    best_found = None
-    optim_file = pathlib.Path(os.getenv("TOP")) / pathlib.Path("ising/benchmarks/G/optimal_energy.txt")
-    benchmark = str(benchmark).split("/")[-1][:-4]
-    with optim_file.open() as f:
-        for line in f:
-            line = line.split()
-            if line[0] == benchmark:
-                best_found = float(line[1])
-                break
-    return best_found
