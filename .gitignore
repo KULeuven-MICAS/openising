@@ -6,7 +6,11 @@
 *.out
 */outputs/
 **/no_backup
+<<<<<<< HEAD
 **.pkl
+=======
+*.pkl
+>>>>>>> e492455 (chore: added more requirements)
 
 # environment stuff
 .env
