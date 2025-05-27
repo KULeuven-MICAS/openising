@@ -4,6 +4,7 @@ import numpy as np
 from ising.flow import TOP, LOGGER
 from ising.benchmarks.parsers.TSP import TSP_parser
 from ising.generators.TSP import TSP
+from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
 from ising.utils.flow import run_solver, parse_hyperparameters
 from ising.utils.helper_functions import make_directory, return_c0, return_q
 # from ising.utils.threading import make_solvers_thread
@@ -67,3 +68,5 @@ def run_TSP_benchmark(benchmark: str, iter_list: list[int], solvers: list[str], 
             for solver in solvers:
                 logfile = logfiles[solver][run]
                 run_solver(solver, num_iter, init_state, model, logfile, **hyperparameters)
+
+        calculate_TSP_energy(np.array([logfile for (_, logfile) in logfiles.items()]).flatten(), graph_orig)

@@ -95,8 +95,8 @@ def Hamiltonian_test():
     N = 4
     M = 16
     r = int(np.ceil(np.log2(np.sqrt(M))))
-    SNR = 10
-    seed = 2
+    SNR = 100
+    np.random.seed(2)
 
     H, symbols = MU_MIMO(N, N, M)
     Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
