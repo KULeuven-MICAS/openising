@@ -8,6 +8,8 @@ from ising.flow.MaxCut.MaxCut_dummy import run_dummy
 from ising.flow.TSP.TSP_benchmark import run_TSP_benchmark
 from ising.flow.TSP.TSP_dummy import run_TSP_dummy
 from ising.flow.MIMO.MIMO_benchmarks import test_MIMO
+from ising.flow.Knapsack.Knapsack_benchmark import run_Knapsack_benchmark
+from ising.flow.Knapsack.Knapsack_dummy import run_Knapsack_dummy
 
 from ising.utils.flow import compute_list_from_arg
 
@@ -26,6 +28,7 @@ parser.add_argument("-use_gurobi", help="Whether to use Gurobi as baseline", def
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
 parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default=".png")
+parser.add_argument("-bit_width", help="Bit width for dummy problems", default=16)
 
 # TSP values
 parser.add_argument("-weight_constant", help="Weight constant for TSP", default=1.0)
@@ -35,6 +38,11 @@ parser.add_argument("--SNR", help='Signal to noise ratio', default=None, nargs="
 parser.add_argument("-Nt", help="The amount of users", default=2)
 parser.add_argument("-Nr", help="The amount of receivers", default=2)
 parser.add_argument("-M", help="The QAM scheme", default=4)
+
+# Knapsack arguments
+parser.add_argument("-penalty_val", help="Penalty value for the Knapsack problem", default=1.0)
+parser.add_argument("-dens", help="Density of the Knapsack problem", default=None)
+parser.add_argument("-size", help="Size of the Knapsack problem", default=None)
 
 # Multiplicative parameters
 parser.add_argument("-dtMult", help="time step for the Multiplicative solver", default=0.01)
@@ -93,6 +101,8 @@ LOGGER.info(f"Given arguments: {args}")
 use_benchmark = False
 use_dummy = False
 use_MIMO = False
+use_knapsack_benchmark = False
+use_knapsack_dummy = False
 if args.benchmark is not None and args.iter_list is not None:
     use_benchmark = True
     benchmark = args.benchmark
@@ -106,15 +116,27 @@ elif args.SNR is not None and args.num_iter is not None:
     use_MIMO = True
     SNR_list = compute_list_from_arg(args.SNR[0], 1)
     LOGGER.debug("Running for the following SNR values:" + str(SNR_list))
+elif args.dens is not None and (args.size is not None or args.N_list is not None) and args.num_iter is not None:
+    dens = int(args.dens)
+    if args.size is not None:
+        size = int(args.size)
+        use_knapsack_benchmark = True
+    else:
+        N_list = compute_list_from_arg(args.N_list[0], 100)
+        use_knapsack_dummy = True
 else:
     sys.exit("Problem is not implemented or some arguments are missing")
 
 run_function = {
-    ("MaxCut", True, False, False): (run_benchmark, ["benchmark", "iter_list", "solvers", "args"]),
-    ("MaxCut", False, True, False): (run_dummy, ["N_list", "solvers", "args"]),
-    ("TSP", True, False, False): (run_TSP_benchmark, ["benchmark", "iter_list", "solvers", "args"]),
-    ("TSP", False, True, False): (run_TSP_dummy, ["N_list", "solvers", "args"]),
-    ("MIMO", False, False, True): (test_MIMO, ["SNR_list", "solvers", "args"])
+    ("MaxCut", True, False, False, False, False): (run_benchmark, ["benchmark", "iter_list", "solvers", "args"]),
+    ("MaxCut", False, True, False, False, False): (run_dummy, ["N_list", "solvers", "args"]),
+    ("TSP", True, False, False, False, False): (run_TSP_benchmark, ["benchmark", "iter_list", "solvers", "args"]),
+    ("TSP", False, True, False, False, False): (run_TSP_dummy, ["N_list", "solvers", "args"]),
+    ("MIMO", False, False, True, False, False): (test_MIMO, ["SNR_list", "solvers", "args"]),
+    ("Knapsack", False, False, False, True, False): (run_Knapsack_benchmark,
+                                                     ["size", "dens", "num_iter", "solvers", "args"]),
+    ("Knapsack", False, False, False, False, True): (run_Knapsack_dummy,
+                                                     ["N_list", "dens", "num_iter", "solvers", "args"])
     # Add more problem types and conditions as needed
 }
 
@@ -125,11 +147,13 @@ kwargs.update({
     "iter_list": iter_list if use_benchmark else None,
     "N_list": N_list if use_dummy else None,
     "SNR_list": SNR_list if use_MIMO else None,
+    "size": size if use_knapsack_benchmark else None,
+    "dens": dens,
     "solvers": solvers,
     "args": args
 })
 
-key = (problem, use_benchmark, use_dummy, use_MIMO)
+key = (problem, use_benchmark, use_dummy, use_MIMO, use_knapsack_benchmark, use_knapsack_dummy)
 if key in run_function:
     LOGGER.info("Running...")
     func, expected_args = run_function[key]

@@ -1,7 +1,10 @@
 import numpy as np
 import pathlib
 
-def QKP_parser(benchmark:pathlib.Path | str) -> tuple[np.ndarray, np.ndarray, float]:
+from ising.flow import TOP
+from ising.utils.parser import get_optim_value
+
+def QKP_parser(benchmark:pathlib.Path | str) -> tuple[np.ndarray, np.ndarray, float, float]:
 
     profit_part = False
     capacity_part = False
@@ -46,8 +49,8 @@ def QKP_parser(benchmark:pathlib.Path | str) -> tuple[np.ndarray, np.ndarray, fl
                     first_profit_line = True
                 elif int(parts[0]) == 0:
                     capacity_part = True
-
-    return profit, weights, capacity
+    best_found = get_optim_value(benchmark, TOP / "ising/benchmarks/Knapsack/optimal_energy.txt")
+    return profit, weights, capacity, best_found
 
 
 
