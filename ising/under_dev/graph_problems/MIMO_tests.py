@@ -72,50 +72,58 @@ def plot_energy(model, optimal_state, received_state, optimal_energy):
     plt.savefig("./energy_landscape.png")
     plt.close()
 
+def energy_original(Htilde, ytilde, xtilde):
+    energy = ytilde - Htilde @ xtilde
+    energy = np.power(np.linalg.norm(energy, ord=2), 2)
+    return energy
+
+def energy_Ising(Htilde, ytilde, M, sigma:np.ndarray):
+    r = int(np.ceil(np.log2(np.sqrt(M))))
+    N = np.shape(ytilde)[0]
+    
+    T = np.block([2**(r-i)*np.eye(N) for i in range(1, r+1)])
+    constant = ytilde - Htilde @ (T @np.ones((r*N,)) - (np.sqrt(M) - 1) * np.ones((N,)))
+    bias = 2*(ytilde - Htilde@(T@np.ones((r*N,))-(np.sqrt(M)-1)*np.ones((N,))))
+    bias = bias.T @ Htilde @ T
+    coupling =  -2*T.T @ Htilde.T @ Htilde @ T 
+    diagonal = np.copy(np.diag(coupling))
+    np.fill_diagonal(coupling, 0)
+    energy = constant.T@constant - bias.T @ sigma - 1/2*sigma.T@coupling@sigma -1/2*np.sum(diagonal)
+    return energy
+
 def Hamiltonian_test():
     N = 4
-    M = 64
+    M = 16
     r = int(np.ceil(np.log2(np.sqrt(M))))
-    SNR = 10
-    seed = 2
+    SNR = 100
+    np.random.seed(2)
 
-    H, symbols = MU_MIMO(N, N, M, seed)
-    x = np.random.choice(symbols, size=(N,)) + 1j*np.random.choice(symbols, size=(N,))
-    model, xtilde, T = MIMO_to_Ising(H, x, SNR, N, N, M, seed)
-    LOGGER.info(f"Transformed input signal: {xtilde}")
+    H, symbols = MU_MIMO(N, N, M)
+    Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
+    x = np.random.choice(symbols, (N,)) + 1j* np.random.choice(symbols, (N,))
+    xtilde = np.reshape(np.block([np.real(x), np.imag(x)]), (-1, 1))
+    model, xtilde, ytilde = MIMO_to_Ising(H, x, SNR, N, N, M, 2)
     sigma = decode(M, xtilde)
-    energy_sol = model.evaluate(sigma)
-    LOGGER.info(f"Decoded input signal: {sigma}, with energy: {energy_sol}")
-    
-    initial_state = np.random.choice([-1, 1], size=(model.num_variables,))
-    dtMult = 1e-4
-    num_iter = 300000
-    mu_param = -3.55
-    flipping = False
-    flipping_freq = 1
-    flipping_prob = 0.05
 
-    sigma_optim, energy = Multiplicative().solve(model, 
-                                                 initial_state,
-                                                 dtMult, 
-                                                 num_iter, 
-                                                 initial_temp_cont=0.0, 
-                                                 mu_param=mu_param, 
-                                                 seed=seed, 
-                                                 flipping=flipping, 
-                                                 flipping_freq=flipping_freq, 
-                                                 flipping_prob=flipping_prob)
-    x_optim = T @ (sigma_optim + np.ones((r * 2*N,))) - (np.sqrt(M) - 1) * np.ones((2*N,))
-    LOGGER.info(f"Decoded optimal input signal: {sigma_optim}")
-    LOGGER.info(f"Optimal input signal: {x_optim}, with optimal energy: {energy}")
-    diff_list = []
-    for i in range(len(sigma_optim)):
-        sigma_optim[i] *= -1
-        flipped_energy = model.evaluate(sigma_optim)
-        diff_list.append(flipped_energy >= energy)
-        sigma_optim[i] *= -1
-    LOGGER.info(f"Difference list: {diff_list}")
-    plot_energy(model, sigma, sigma_optim, energy_sol)
+    LOGGER.info("================== Optimal solution ==================")
+    energy_orig = energy_original(Htilde, ytilde, xtilde)
+    energy_orig_ising = energy_Ising(Htilde, ytilde, M, sigma)
+    energy_model = model.evaluate(sigma)
+    LOGGER.info(f"Energy of original Hamiltonian: {energy_orig}")
+    LOGGER.info(f"Energy of original Ising Hamiltonian: {energy_orig_ising}")
+    LOGGER.info(f"Energy of Ising model: {energy_model}")
+
+    LOGGER.info("================== Random solution ==================")
+    x = np.random.choice(symbols, (N,)) + 1j* np.random.choice(symbols, (N,)) 
+    xtilde = np.reshape(np.block([np.real(x), np.imag(x)]), (-1, ))
+    sigma = decode(M, xtilde)
+
+    energy_orig = energy_original(Htilde, ytilde, xtilde)
+    energy_orig_ising = energy_Ising(Htilde, ytilde, M, sigma)
+    energy_model = model.evaluate(sigma)
+    LOGGER.info(f"Energy of original Hamiltonian: {energy_orig}")
+    LOGGER.info(f"Energy of original Ising Hamiltonian: {energy_orig_ising}")
+    LOGGER.info(f"Energy of Ising model: {energy_model}")
 
 
 

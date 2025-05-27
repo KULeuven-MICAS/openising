@@ -1,5 +1,6 @@
 import numpy as np
 import networkx as nx
+import time as t
 
 from ising.stages.model.ising import IsingModel
 
@@ -87,6 +88,42 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     J = (J + J.T)/2
     J = np.triu(J, 1)
     return IsingModel(J, h, constant, name=graph.name)
+
+
+def generate_random_TSP(
+    N: int, seed: int = 0, weight_constant: float = 1.0, bit_width: int = 16
+) -> tuple[IsingModel, nx.DiGraph]:
+    if seed == 0:
+        seed = int(t.time())
+
+    np.random.seed(seed)
+    coords_x = np.random.randint(0, int(2**bit_width - 1), N)
+    coords_y = np.random.randint(0, int(2**bit_width - 1), N)
+
+    graph = nx.DiGraph()
+    node = 1
+    for coordx, coordy in zip(coords_x, coords_y):
+        graph.add_node(node, pos=(coordx, coordy))
+        node += 1
+
+    for i in range(N):
+        for j in range(N):
+            if i!= j:
+                weight = compute_distance((coords_x[i], coords_y[i]), (coords_x[j], coords_y[j]))
+                graph.add_edge(i+1, j+1, weight=weight)
+    model = TSP(graph, weight_constant=weight_constant)
+    return model, graph
+
+def compute_distance(coords1: tuple[float, float], coords2: tuple[float, float])-> float:
+    """Computes the Euclidean distance between two coordinates.
+
+    Args:
+        coords1 (tuple[float, float]): the first coordinate (x, y).
+        coords2 (tuple[float, float]): the second coordinate (x, y).
+    Returns:
+        float: the Euclidean distance between the two coordinates.
+    """
+    return np.sqrt((coords1[0]-coords2[0])**2 + (coords1[1] - coords2[1])**2)
 
 def get_index(time: int, city: int, N: int) -> int:
     """Returns the index of the ising spin corresponding to the city and time.
