@@ -3,10 +3,10 @@ import sys
 import numpy as np
 
 from ising.flow import TOP, LOGGER
-from ising.benchmarks.parsers.TSP import get_optim_value
+from ising.utils.parser import get_optim_value
 from ising.postprocessing.energy_plot import (
-    plot_energy_dist_multiple_solvers,
-    plot_relative_error,
+    # plot_energy_dist_multiple_solvers,
+    # plot_relative_error,
     plot_energies_multiple,
 )
 from ising.postprocessing.plot_solutions import plot_state
@@ -64,7 +64,10 @@ if args.benchmark is not None:
     benchmark = str(args.benchmark)
 
     # Get the best found of the benchmark
-    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
+    best_found = get_optim_value(
+        benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp",
+        optim_file=TOP / "ising/benchmarks/TSP/optimal_energy.txt",
+    )
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
@@ -88,7 +91,7 @@ if args.benchmark is not None:
             y_data="energy",
             best_found=best_found,
             save_folder=figtop,
-            percentage=float(args.percentage)
+            percentage=float(args.percentage),
         )
         logfiles += new_logfiles
     if bool(args.use_gurobi):
@@ -102,17 +105,17 @@ if args.benchmark is not None:
     if best_found is not None:
         best_found = np.ones((len(iter_list),)) * best_found
 
-    if best_found is not None:
-        LOGGER.info("Plotting relative error")
-        plot_relative_error(
-            logfiles,
-            best_found,
-            x_label="num_iterations",
-            y_data="solution_TSP_energy",
-            save_folder=figtop,
-            figName=f"{benchmark}_relative_error_{fig_name}",
-        )
-        LOGGER.info("Done plotting relative error")
+    # if best_found is not None:
+    #     LOGGER.info("Plotting relative error")
+    #     plot_relative_error(
+    #         logfiles,
+    #         best_found,
+    #         x_label="num_iterations",
+    #         y_data="solution_energy",
+    #         save_folder=figtop,
+    #         figName=f"{benchmark}_relative_error_{fig_name}",
+    #     )
+    #     LOGGER.info("Done plotting relative error")
 
 elif args.N_list is not None:
     LOGGER.info("Problem size logs are plotted")
@@ -139,24 +142,24 @@ else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
 
-LOGGER.info("Plotting energy distribution")
-plot_energy_dist_multiple_solvers(
-    logfiles,
-    y_data="solution_TSP_energy",
-    best_found=best_found,
-    best_Gurobi=best_found_gurobi,
-    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    figName=f"{args.benchmark}_TSP_{fig_name}" if args.benchmark is not None else f"size_comparison_TSP_{fig_name}",
-)
+# LOGGER.info("Plotting energy distribution")
+# plot_energy_dist_multiple_solvers(
+#     logfiles,
+#     y_data="solution_energy",
+#     best_found=best_found,
+#     best_Gurobi=best_found_gurobi,
+#     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
+#     save_folder=figtop,
+#     figName=f"{args.benchmark}_TSP_{fig_name}" if args.benchmark is not None else f"size_comparison_TSP_{fig_name}",
+# )
 
-plot_energy_dist_multiple_solvers(
-    logfiles,
-    y_data="solution_energy",
-    best_found=best_found,
-    best_Gurobi=best_found_gurobi,
-    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    figName=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
-)
+# plot_energy_dist_multiple_solvers(
+#     logfiles,
+#     y_data="solution_energy",
+#     best_found=best_found,
+#     best_Gurobi=best_found_gurobi,
+#     xlabel="num_iterations" if args.benchmark is not None else "problem_size",
+#     save_folder=figtop,
+#     figName=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
+# )
 LOGGER.info("figures plotted succesfully")

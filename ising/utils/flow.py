@@ -29,7 +29,7 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     hyperparameters["dtMult"] = float(args.dtMult)
     hyperparameters["resistance"] = float(args.resistance)
     hyperparameters["flipping"] = bool(int(args.flipping))
-    hyperparameters["flipping_freq"] = int(args.flipping_freq)
+    hyperparameters["flipping_freq"] = float(args.flipping_freq)
     hyperparameters["flipping_prob"] = float(args.flipping_prob)
     hyperparameters["flipping_time"] = float(args.flipping_time)
     hyperparameters["mu_param"] = float(args.mu_param)

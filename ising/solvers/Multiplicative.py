@@ -165,7 +165,7 @@ class Multiplicative(SolverBase):
         stop_criterion: float = 1e-8,
         mu_param: float = -3.55,
         flipping: bool = False,
-        flipping_freq: int = 10000,
+        flipping_freq: float = 10000,
         flipping_prob: float = 0.001799,
         flipping_time: float = 1e-3,
         file: pathlib.Path | None = None,
@@ -207,7 +207,18 @@ class Multiplicative(SolverBase):
         else:
             new_model = model
             self.bias = False
-        J = triu_to_symm(new_model.J) * 2 / self.resistance
+
+        # Ensure the mean and variance of J are reasonable
+        if np.abs(np.mean(new_model.J))> 1e1:
+            LOGGER.info("The model  will be normalized to have smaller values in J.")
+            alpha = 0.25 / np.var(new_model.J + new_model.J.T)
+            # beta = 0.015 - alpha * np.mean(new_model.J + new_model.J.T)
+        else:
+            alpha = 1.
+            # beta = 0.
+        J = alpha * triu_to_symm(new_model.J) * 1 / self.resistance# + beta
+        LOGGER.info(J)
+
 
         # make sure the correct random seed is used
         if seed == 0:

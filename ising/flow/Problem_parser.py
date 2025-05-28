@@ -103,6 +103,7 @@ use_dummy = False
 use_MIMO = False
 use_knapsack_benchmark = False
 use_knapsack_dummy = False
+dens = None
 if args.benchmark is not None and args.iter_list is not None:
     use_benchmark = True
     benchmark = args.benchmark

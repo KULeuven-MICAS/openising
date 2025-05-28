@@ -4,7 +4,7 @@ import sys
 
 
 from ising.flow import LOGGER, TOP
-from ising.benchmarks.parsers.G import get_optim_value
+from ising.utils.parser import get_optim_value
 from ising.postprocessing.energy_plot import (
     plot_energy_dist_multiple_solvers,
     plot_relative_error,
@@ -59,7 +59,9 @@ if args.benchmark is not None:
     iter_list = compute_list_from_arg(num_iter, 100)
 
     # Get the best found of the benchmark
-    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
+    best_found = get_optim_value(
+        benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt", optim_file=TOP / "ising/benchmarks/G/optimal_energy.txt"
+    )
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
