@@ -4,7 +4,7 @@ import time
 from ising.model.ising import IsingModel
 
 
-def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) -> tuple[IsingModel, np.ndarray]:
+def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) -> tuple[np.ndarray, np.ndarray]:
     """Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
     This is consecutively transformed into an Ising model.
 
@@ -21,18 +21,22 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) ->
         seed = int(time.time())
     np.random.seed(seed)
 
-    r = int(np.ceil(np.log2(np.sqrt(M))))
-    symbols = np.concatenate(
-        ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
-    )
+    if M==2:
+        # BPSK scheme
+        symbols = np.array([-1, 1])
+        r = 1
+    else:
+        r = int(np.ceil(np.log2(np.sqrt(M))))
+        symbols = np.concatenate(
+            ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
+        )
 
     phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
     phi_u.sort()
     # mean_phi  = np.mean(phi_u, axis=0)
     # sigma_phi = np.random.normal(0, 1, (Nt,))
 
-    H = (np.random.uniform(0, absolute_val, (Nr, Nt)) + \
-         1j * np.random.uniform(0, absolute_val, (Nr, Nt))) / np.sqrt(2)
+    H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
     return H, symbols
 
 
@@ -54,7 +58,15 @@ def MIMO_to_Ising(
     Returns:
         tuple[IsingModel, np.ndarray]: the generated Ising model and transformed input signal.
     """
-    r = int(np.ceil(np.log2(np.sqrt(M))))
+    if np.linalg.norm(np.imag(x)) == 0:
+        # BPSK scheme
+        r = 1
+        Nx = np.shape(x)[0]
+        Ny = 2*Nx
+    else:
+        r = int(np.ceil(np.log2(np.sqrt(M))))
+        Nx = np.shape(x)[0]*2
+        Ny = Nx
 
     if seed == 0:
         seed = int(time.time())
@@ -72,12 +84,15 @@ def MIMO_to_Ising(
 
     Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
 
-    N = np.size(ytilde, 0)
-    T = np.block([2**(r-i)*np.eye(N) for i in range(1, r+1)])
+    T = np.block([2**(r-i)*np.eye(Ny, Nx) for i in range(1, r+1)])
+
     xtilde = np.block([np.real(x), np.imag(x)])
 
-    constant = ytilde.T@ytilde - 2*ytilde.T @ Htilde @ (T@np.ones((r*N,)) - (np.sqrt(M)-1)*np.ones((N, )))
-    bias = 2*(ytilde - Htilde@(T@np.ones((r*N,))-(np.sqrt(M)-1)*np.ones((N,))))
+    ones_end = np.eye(Ny, Nx) @ np.ones((Nx,))
+    constant = ytilde.T@ytilde - 2*ytilde.T @ Htilde @ (T@np.ones((r*Nx,)) - \
+                                        (np.sqrt(M)-1)*ones_end)
+
+    bias = 2*(ytilde - Htilde@(T@np.ones((r*Nx,))-(np.sqrt(M)-1)*ones_end))
     bias = bias.T @ Htilde @ T
     coupling = -2*T.T @ Htilde.T @ Htilde @ T
     diagonal = np.diag(coupling)

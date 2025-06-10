@@ -9,7 +9,11 @@
 **.pkl
 =======
 *.pkl
+<<<<<<< HEAD
 >>>>>>> e492455 (chore: added more requirements)
+=======
+*.csv
+>>>>>>> c562a52 (fix: fixed distance calculation TSP)
 
 # environment stuff
 .env

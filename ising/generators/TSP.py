@@ -4,7 +4,6 @@ import time as t
 
 from ising.stages.model.ising import IsingModel
 
-
 __all__ = ["TSP"]
 
 
@@ -221,13 +220,17 @@ def get_TSP_value(graph: nx.DiGraph, sample: np.ndarray):
     """
     N = len(graph.nodes)
     energy = 0.0
-    for city1 in range(N):
-        for city2 in range(N):
-            if city1 != city2:
-                for time in range(N):
-                    index1 = get_index(time, city1, N)
-                    index2 = get_index(time + 1, city2, N)
-                    if sample[index1] == 1 and sample[index2] == 1 and graph.has_edge(city1 + 1, city2 + 1):
-                        energy += graph[city1 + 1][city2 + 1]["weight"]
+    solution_matrix = sample.reshape((N, N))
+    solution_matrix[solution_matrix==-1] = 0
+    if np.linalg.norm(solution_matrix.T@solution_matrix - np.eye(N)) != 0:
+        return np.inf
+    path = {time: city for city, time in enumerate(np.where(solution_matrix == 1)[1])}
+    for time in range(N):
+        city1 = path[time]
+        if time == N-1:
+            city2 = path[0]
+        else:
+            city2 = path[time+1]
+        energy += graph[city1+1][city2+1]['weight']
 
     return energy
