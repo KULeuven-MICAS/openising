@@ -5,7 +5,6 @@ from ising.flow import LOGGER, TOP
 from ising.utils.flow import go_over_benchmark
 from ising.postprocessing.plot_all_benchmarks import plot_energy_distribution, plot_energy_average
 from ising.postprocessing.energy_plot import plot_energies_multiple
-from ising.postprocessing.plot_solutions import plot_state
 from ising.utils.helper_functions import make_directory
 
 parser = argparse.ArgumentParser(
@@ -49,12 +48,11 @@ else:
     figtop = top / "TSP/plots_TSP"
 make_directory(figtop / args.fig_folder)
 
-logfiles = [
+logfiles = {solver:[
     logtop / f"{solver}_{bench}_nbiter{num_iter}_run{run}.log"
-    for solver in solvers
     for bench in benchmark_list
     for run in range(nb_runs)
-]
+]for solver in solvers}
 
 for bench in range(len(benchmark_list)):
     current_logfiles = [
@@ -69,22 +67,24 @@ for bench in range(len(benchmark_list)):
         save_folder=figtop / args.fig_folder,
     )
 
-for solver in solvers:
-    for bench in benchmark_list:
-        logfile = logtop / f"{solver}_{bench}_nbiter{num_iter}_run{nb_runs - 1}.log"
-        plot_state(solver, logfile, f"{solver}_{bench}_state", figtop=figtop / args.fig_folder)
 
 LOGGER.info("plotting data of the logfiles")
 
-plot_energy_distribution(
-    logfiles,
-    benchmark,
-    "distribution_" + args.fig_name,
-    save_dir=figtop / args.fig_folder,
-    percentage=float(args.percentage),
-)
+for solver in solvers:
+    plot_energy_distribution(
+        logfiles[solver],
+        benchmark,
+        f"distribution_{solver}" + args.fig_name,
+        save_dir=figtop / args.fig_folder,
+        percentage=float(args.percentage),
+    )
+
+logfiles_list =  []
+for solver in solvers:
+    logfiles_list += logfiles[solver]
+
 plot_energy_average(
-    logfiles,
+    logfiles_list,
     benchmark,
     "average_energies_" + args.fig_name,
     save_dir=figtop / args.fig_folder,

@@ -7,9 +7,9 @@ from ising.flow import LOGGER, TOP
 from ising.utils.parser import get_optim_value
 from ising.postprocessing.energy_plot import (
     plot_energy_dist_multiple_solvers,
-    plot_relative_error,
     plot_energies_multiple,
 )
+from ising.postprocessing.summarize_energies import summary_energies
 from ising.postprocessing.plot_solutions import plot_state
 from ising.utils.flow import compute_list_from_arg
 from ising.utils.helper_functions import make_directory
@@ -87,19 +87,10 @@ if args.benchmark is not None:
             save_folder=figtop,
         )
         logfiles += new_logfiles
-    if best_found is not None:
-        best_found = np.ones((len(iter_list),)) * best_found
 
-    if best_found is not None:
-        LOGGER.info("Plotting relative error")
-        plot_relative_error(
-            logfiles,
-            best_found,
-            x_label="num_iterations",
-            save_folder=figtop,
-            figName=f"{benchmark}_relative_error_{fig_name}",
-        )
-        LOGGER.info("Done plotting relative error")
+    make_directory(figtop / "summary_energies")
+    summary_energies(logfiles, figtop / "summary_energies")
+
 
 elif args.N_list is not None:
     LOGGER.info("Problem size logs are plotted")
@@ -133,17 +124,17 @@ elif args.N_list is not None:
     else:
         best_found = np.array(get_Gurobi_data(best_found))
 
+    plot_energy_dist_multiple_solvers(
+        logfiles,
+        best_found=best_found,
+        best_Gurobi=None,
+        xlabel="problem_size",
+        save_folder=figtop,
+        figName=f"size_comparison_{fig_name}",
+    )
+
 else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
 
-LOGGER.info("Plotting energy distribution")
-plot_energy_dist_multiple_solvers(
-    logfiles,
-    best_found=best_found,
-    best_Gurobi=None,
-    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    figName=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
-)
 LOGGER.info("figures plotted succesfully")

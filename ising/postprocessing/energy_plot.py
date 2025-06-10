@@ -89,7 +89,7 @@ def plot_energies_multiple(
         num_iterations = len(avg_energies[solver][0])
         iterations = range(int(percentage_plot*num_iterations), num_iterations)
         begin_iter = int(percentage_plot*num_iterations)
-        plt.semilogx(iterations,
+        plt.plot(iterations,
                     avg_energies[solver][0][begin_iter:], label=solver + f": {avg_energies[solver][0][-1]:.2f}")
         plt.fill_between(
             iterations,
@@ -109,7 +109,7 @@ def plot_energies_multiple(
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if best_found is not None:
-        plt.ylim((best_found - 0.2*best_found, max_energy + 0.1*best_found))
+        plt.ylim((best_found - 0.2*np.abs(best_found), max_energy + 0.1*np.abs(best_found)))
     if save:
         plt.savefig(save_folder / f"{figName}.pdf", bbox_inches="tight")
     plt.close()
