@@ -25,10 +25,10 @@ class SB(SolverBase):
     def update_rule(self, x, y, node):
         x[node] = np.sign(x[node])
         y[node] = 0.0
-        # return x, y
 
-    def at(self, t, a0, dt, num_iterations):
-        return a0 / (dt*num_iterations) * t
+
+    def at(self, t, a0, dt, num_iterations) -> float:
+        return 2*a0 / (dt*num_iterations) * t
 
     def cast_to_values(self, casted_values, actual_values):
         return np.array([actual_values[np.argmin(np.abs(actual_values - xi))] for xi in casted_values])
@@ -78,13 +78,13 @@ class ballisticSB(SB):
         N  = model.num_variables
 
         # Set up the model and initial states with the correct data type
-        x_values        = np.linspace(-1, 1, 2**(bit_width_x)-1)
-        y_values        = np.linspace(-1, 1, 2**(bit_width_y)-1)
-        J             = np.array(triu_to_symm(model.J))
+        # x_values        = np.linspace(-1, 1, 2**(bit_width_x)-1)
+        # y_values        = np.linspace(-1, 1, 2**(bit_width_y)-1)
+        J             = np.array(triu_to_symm(model.J), dtype=np.float32)
         h             = np.array(model.h)
         initial_state = np.array(initial_state)
-        x             = np.zeros_like(initial_state)
-        y             = np.ones_like(x)
+        x             = np.zeros_like(initial_state, dtype=np.float32)
+        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ))
 
         schema = {
             "time"      : float,
@@ -112,12 +112,11 @@ class ballisticSB(SB):
             log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
             for _ in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
-                # btk = dtype(self.bt(tk, a0, dtSB, num_iterations))
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 *  h) * dtSB
-                y = self.cast_to_values(y, y_values)
+                # y = self.cast_to_values(y, y_values)
                 x += self.update_x(y, dtSB, a0)
-                x = self.cast_to_values(x, x_values)
+                # x = self.cast_to_values(x, x_values)
 
                 y = np.where(np.abs(x) >= 1, 0, y)
                 x = np.where(np.abs(x) >= 1, np.sign(x), x)
@@ -198,34 +197,21 @@ class discreteSB(SB):
             sample = np.sign(x)
             energy = model.evaluate(sample)
             log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
-            for _ in range(num_iterations):
+            for i in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
-                # btk = self.bt(tk, a0, dtSB, num_iterations)
-                # clocker.add_operations(1)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dtSB
-                # clocker.add_cycles(1 + np.log2(N))
-                # clocker.add_operations(5 * N)
-                # clocker.perform_operations()
-
                 x += self.update_x(y, dtSB, a0)
-                # clocker.add_operations(2 * N)
-                # clocker.perform_operations()
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
                         self.update_rule(x, y, j)
-                        # clocker.add_operations(2)
 
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-
-                # clocker.add_operations(1)
-                # time_clock = clocker.perform_operations()
                 tk += dtSB
                 log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
 
-            # total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
                 solution_state=sample, solution_energy=energy, total_operations=nb_operations

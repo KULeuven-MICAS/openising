@@ -209,15 +209,8 @@ class Multiplicative(SolverBase):
             self.bias = False
 
         # Ensure the mean and variance of J are reasonable
-        if np.abs(np.mean(new_model.J))> 1e1:
-            LOGGER.info("The model  will be normalized to have smaller values in J.")
-            alpha = 0.25 / np.var(new_model.J + new_model.J.T)
-            # beta = 0.015 - alpha * np.mean(new_model.J + new_model.J.T)
-        else:
-            alpha = 1.
-            # beta = 0.
-        J = alpha * triu_to_symm(new_model.J) * 1 / self.resistance# + beta
-        LOGGER.info(J)
+        alpha = 1.
+        J = alpha * triu_to_symm(new_model.J) * 1 / self.resistance
 
 
         # make sure the correct random seed is used
@@ -241,6 +234,7 @@ class Multiplicative(SolverBase):
         flip_iter = np.arange(0, num_iterations, flip_period)
         flip_iter = np.delete(flip_iter, 0)
 
+        energies= []
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
                 logger=log,
@@ -262,7 +256,7 @@ class Multiplicative(SolverBase):
             energy = model.evaluate(np.sign(initial_state))
 
             log.log(time_clock=0.0, energy=energy, state=np.sign(initial_state), voltages=initial_state)
-
+            energies.append(energy)
             while i < num_iterations and max_change > stop_criterion:
                 tk = i * dtMult
                 if flipping and i in flip_iter:
@@ -288,6 +282,7 @@ class Multiplicative(SolverBase):
                             log.log(
                                 time_clock=tk, energy=energy, state=np.sign(new_voltages[:N]), voltages=new_voltages[:N]
                             )
+                            energies.append(energy)
                         previous_voltages = np.copy(new_voltages)
 
                     if t_flip < tk + dtMult:
@@ -316,10 +311,11 @@ class Multiplicative(SolverBase):
                 # Log everything
                 sample = np.sign(new_voltages[:N])
                 energy = model.evaluate(sample)
+                energies.append(energy)
                 log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
-                if i % 1000 == 0:
-                    LOGGER.info(f"Iteration {i} - time {tk:.2e} - energy {energy:.2f} - total flips {self.tot_sfs}")
+                # if i % 1000 == 0:
+                #     LOGGER.info(f"Iteration {i} - time {tk:.2e} - energy {energy:.2f} - total flips {self.tot_sfs}")
 
                 # Update the criterion changes
                 if i > 0 and not just_flipped:
@@ -335,4 +331,4 @@ class Multiplicative(SolverBase):
                     log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=tend)
-        return sample, energy
+        return sample, energy, energies
