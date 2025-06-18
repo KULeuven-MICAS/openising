@@ -112,6 +112,40 @@ def compare_techniques():
     plot_partitioning(GTSP, mod_s, "TSP_partitioning_modularity_cut.png")
     plot_percentage_cut_edges(model, {"normalized cut":spectral_s, "modularity cut":mod_s}, "TSP_cut_Edges.png")
 
+def make_bar_chart_replica_nodes():
+    nb_cores = 2
+    profit, weights, capacity, _ = QKP_parser(TOP / "ising/benchmarks/Knapsack/jeu_100_25_1.txt")
+    model_knapsack = knapsack(profit, capacity, weights, 1.2)
+    s_mod_knapsack = partitioning_modularity(model_knapsack, nb_cores)
+    G_knapsack = nx.Graph(-2*triu_to_symm(model_knapsack.J))
+    replica_nodes_knapsack = plot_partitioning(G_knapsack, s_mod_knapsack, f"modularity_qkp_{nb_cores}.png")
+    orig_nodes_knapsack = np.unique(s_mod_knapsack, return_counts=True)[1]
+    perc_replica_QKP = np.mean([len(replica_nodes_knapsack[part]) / (orig_nodes_knapsack[idx]+len(replica_nodes_knapsack[part])) for idx, part in enumerate(np.unique(s_mod_knapsack))])*100
+
+    G1, _ = G_parser(TOP / "ising/benchmarks/G/G1.txt")
+    model_MC = MaxCut(G1)
+    s_mod_MC = partitioning_modularity(model_MC, nb_cores)
+    G_MC = nx.Graph(-2*triu_to_symm(model_MC.J))
+    replica_nodes_MC = plot_partitioning(G_MC, s_mod_MC, f"modularity_MC_{nb_cores}.png")
+    orig_nodes_MC = np.unique(s_mod_MC, return_counts=True)[1]
+    perc_replica_MC = np.mean([len(replica_nodes_MC[part]) / (orig_nodes_MC[idx]+len(replica_nodes_MC[part])) for idx, part in enumerate(np.unique(s_mod_MC))])*100
+
+    burma14, _ = TSP_parser(TOP / "ising/benchmarks/TSP/burma14.tsp")
+    model_TSP = TSP(burma14, 1.2)
+    s_mod_TSP = partitioning_modularity(model_TSP, nb_cores)
+    G_TSP = nx.Graph(-2*triu_to_symm(model_TSP.J))
+    replica_nodes_TSP = plot_partitioning(G_TSP, s_mod_TSP, f"modularity_TSP_{nb_cores}.png")
+    orig_nodes_TSP = np.unique(s_mod_TSP, return_counts=True)[1]
+    perc_replica_TSP = np.mean([len(replica_nodes_TSP[part]) / (orig_nodes_TSP[idx]+len(replica_nodes_TSP[part])) for idx, part in enumerate(np.unique(s_mod_TSP))])*100
+
+    plt.figure()
+    plt.bar(["Knapsack", "Max Cut", "TSP"], [perc_replica_QKP, perc_replica_MC, perc_replica_TSP])
+    plt.ylabel("Percentage of replica nodes in partition")
+    plt.xlabel("Problem")
+    plt.savefig(figtop / "percentage_replica_nodes_partitioning.png")
+    plt.close()
+
+
 if __name__ == "__main__":
     # make_bar_chart_replica_nodes()
     compare_techniques()
