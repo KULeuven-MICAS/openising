@@ -169,7 +169,6 @@ class discreteSB(SB):
         N = model.num_variables
         tk = 0.0
         J = triu_to_symm(model.J)
-        # clocker = clock(clock_freq, clock_op)
 
         x = 0.01 * initial_state
         y = np.zeros_like(x)
@@ -181,7 +180,6 @@ class discreteSB(SB):
             "positions": (np.float32, (N,)),
             "momenta": (np.float32, (N,)),
             "at": np.float32,
-            # "time_clock": float,
         }
 
         with HDF5Logger(file, schema) as log:
