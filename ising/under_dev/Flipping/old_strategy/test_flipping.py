@@ -6,7 +6,7 @@ from ising.benchmarks.parsers import G_parser
 from ising.benchmarks.parsers.TSP import TSP_parser
 from ising.generators.MaxCut import MaxCut
 from ising.generators.TSP import TSP
-from ising.under_dev.Flipping.normalize_J import normalize_J
+from ising.under_dev.Flipping.old_strategy.normalize_J import normalize_J
 
 def dvdt(t, v, coupling, Rsettle, Rflip, C):
     v[-1] = 1.0
