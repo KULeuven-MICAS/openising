@@ -34,6 +34,7 @@ def QKP_parser(benchmark:pathlib.Path | str) -> tuple[np.ndarray, np.ndarray, fl
             elif weight_part:
                 parts = line.split()
                 weights = np.array(parts, dtype=int)
+                weight_part = False
 
             elif capacity_part:
                 capacity = int(line)
@@ -44,10 +45,10 @@ def QKP_parser(benchmark:pathlib.Path | str) -> tuple[np.ndarray, np.ndarray, fl
                 parts = line.split("_")
                 if len(parts) == 4:
                     N = int(parts[1])
-                elif int(parts[0]) == N:
+                elif parts[0] == str(N) + "\n":
                     profit_part = True
                     first_profit_line = True
-                elif int(parts[0]) == 0:
+                elif parts[0] == str(0) + "\n":
                     capacity_part = True
     best_found = get_optim_value(benchmark, TOP / "ising/benchmarks/Knapsack/optimal_energy.txt")
     return profit, weights, capacity, best_found

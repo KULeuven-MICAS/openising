@@ -52,6 +52,9 @@ def do_modularity(model:IsingModel):
     v = V[:,np.argmax(lam)]
     s = np.sign(v)
 
+    if len(np.unique(s)) == 1:
+        s = np.random.choice([-1, 1], size=s.shape)
+
     return s
 
 def get_partition_of_model(model: IsingModel, s:np.ndarray):
