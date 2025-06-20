@@ -1,7 +1,7 @@
 import pathlib
 import numpy as np
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 
