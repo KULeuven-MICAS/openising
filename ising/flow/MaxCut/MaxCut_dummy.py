@@ -11,6 +11,7 @@ from ising.utils.flow import return_c0, return_rx, return_q, make_directory, par
 from ising.postprocessing.MC_plot import plot_MC_solution
 from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 
+# This file overlaps with the SimulationStage; later it better to merge them
 
 def run_dummy(N_list:list[int], solvers:list[str], args:argparse.Namespace) -> None:
     """Runs some dummy Max-Cut problems with the specified size of the problems.

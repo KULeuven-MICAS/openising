@@ -1,4 +1,4 @@
-# **Ising Project Repository**
+# 🧮**OpenIsing**
 
 This repository aims at exploring different flavors of Ising model solvers with the overarching goal of developing
 on-chip Ising machines. The codebase serves as a platform for testing, benchmarking, and evaluating various algorithms
@@ -26,8 +26,11 @@ source .setup
 ```
 
 ## **How to get results**
-In the folder ising/flow there are different scripts that can be run to get results. Moreover, you can call 
+To simulate, just run:
 ```bash
-python ising/flow/script_you_want_to_run.py --help
+python main.py
 ```
-to get a help page describing all the different arguments you can pass to the script. Some scripts also allow the use of [Gurobi](https://www.gurobi.com/), indicated by the argument `-use_gurobi`. However, these solvers can only be used when you have an active [Gurobi license](https://www.gurobi.com/solutions/licensing/).
+
+The readme for the configuration can be found in the [readme](./ising/inputs/config/README.md) of the folder.
+
+It is allowed to use [Gurobi](https://www.gurobi.com/), indicated by the argument `-use_gurobi`. However, it can only be used when you have an active [Gurobi license](https://www.gurobi.com/solutions/licensing/).

@@ -4,13 +4,7 @@ import scipy.sparse.linalg as spalg
 
 from ising.utils.HDF5Logger import return_metadata
 
-from ising.model.ising import IsingModel
-from ising.solvers.BRIM import BRIM
-from ising.solvers.SB import ballisticSB, discreteSB
-from ising.solvers.SCA import SCA
-from ising.solvers.SA import SASolver
-from ising.solvers.DSA import DSASolver
-from ising.solvers.Multiplicative import Multiplicative
+from ising.stages.model.ising import IsingModel
 
 from ising.utils.numpy import triu_to_symm
 
@@ -103,76 +97,6 @@ def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:
         return benchmarks[part*percentage:]
     else:
         return benchmarks[part*percentage:(part+1)*percentage]
-
-def run_solver(
-    solver: str,
-    num_iter: int,
-    s_init: np.ndarray,
-    model: IsingModel,
-    logfile: pathlib.Path | None = None,
-    **hyperparameters,
-) -> tuple[np.ndarray, float]:
-    """Solves the given problem with the specified solver.
-
-    Args:
-        solver (str): The solver
-        num_iter (int): amount of iterations
-        s_init (np.ndarray): initial state
-        model (IsingModel): model to use
-        logfile (pathlib.Path | None, optional): path to logfile to store data. Defaults to None.
-
-    Returns:
-        optim_state,optim_energy (tuple[np.ndarray, float]): optimal state and energy of the specified solver.
-    """
-    optim_state = np.zeros((model.num_variables,))
-    optim_energy = None
-    solvers = {
-        "BRIM": (
-            BRIM().solve,
-            [
-                "dtBRIM",
-                "capacitance",
-                "stop_criterion",
-                "initial_temp_cont",
-                "end_temp_cont",
-                "seed",
-                "coupling_annealing",
-            ],
-        ),
-        "Multiplicative": (
-            Multiplicative().solve,
-            [
-                "dtMult",
-                "initial_temp_cont",
-                "end_temp_cont",
-                "seed",
-                "coupling_annealing",
-                "capacitance",
-                "resistance",
-                "flipping",
-                "flipping_freq",
-                "flipping_prob",
-                "mu_param",
-            ],
-        ),
-        "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
-        "DSA": (DSASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
-        "SCA": (SCA().solve, ["initial_temp", "cooling_rate", "q", "r_q", "seed"]),
-        "bSB": (ballisticSB().solve, ["c0", "dtSB", "a0"]),
-        "dSB": (discreteSB().solve, ["c0", "dtSB", "a0"]),
-    }
-    if solver in solvers:
-        func, params = solvers[solver]
-        chosen_hyperparameters = {key: hyperparameters[key] for key in params if key in hyperparameters}
-        optim_state, optim_energy = func(
-            model=model,
-            initial_state=s_init,
-            num_iterations=num_iter,
-            file=logfile,
-            **chosen_hyperparameters,
-        )
-    return optim_state, optim_energy
-
 
 def return_rx(num_iter: int, r_init: float, r_final: float) -> float:
     """Returns the change rate of SA/SCA hyperparameters

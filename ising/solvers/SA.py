@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from ising.solvers.base import SolverBase
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.clock import clock
 

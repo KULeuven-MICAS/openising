@@ -2,11 +2,11 @@ import numpy as np
 import pathlib
 import time
 from numpy.random import MT19937, Generator
-from typing import Callable
+from collections.abc import Callable
 
 # from ising.flow import LOGGER
 from ising.solvers.base import SolverBase
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
 

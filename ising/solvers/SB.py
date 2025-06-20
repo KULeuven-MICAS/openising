@@ -2,7 +2,7 @@ import numpy as np
 import pathlib
 from abc import abstractmethod
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm

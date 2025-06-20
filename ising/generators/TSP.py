@@ -1,10 +1,7 @@
 import numpy as np
 import networkx as nx
-import time as t
-import os
-import pathlib
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 
 
 __all__ = ["TSP"]
@@ -90,37 +87,6 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     J = (J + J.T)/2
     J = np.triu(J, 1)
     return IsingModel(J, h, constant, name=graph.name)
-
-
-def generate_random_TSP(
-    N: int, seed: int = 0, weight_constant: float = 1.0, time_constraint: float = 5.0, place_constraints: float = 5.0
-) -> tuple[IsingModel, nx.DiGraph]:
-    if seed == 0:
-        seed = int(t.time())
-    dummy_problem = pathlib.Path(os.getenv("TOP")) / pathlib.Path(f"ising/benchmarks/TSP_dummy/N{N}_dummy.txt")
-    if dummy_problem.exists():
-        W = np.zeros((N, N))
-        first_line = True
-        with dummy_problem.open() as file:
-            for line in file:
-                if not first_line:
-                    line_list = line.split()
-                    W[int(line_list[0]) - 1, int(line_list[1]) - 1] = float(line_list[2])
-                first_line = False
-    else:
-        np.random.seed(seed)
-        W = np.random.choice(10, (N, N))
-        W = (W + W.T) / 2
-    graph = nx.DiGraph()
-    graph.add_nodes_from(range(1, N + 1))
-    for i in range(N):
-        for j in range(N):
-            if i != j:
-                if W[i, j] != 0:
-                    graph.add_edge(i + 1, j + 1, weight=W[i, j])
-    model = TSP(graph, weight_constant=weight_constant)
-    return model, graph
-
 
 def get_index(time: int, city: int, N: int) -> int:
     """Returns the index of the ising spin corresponding to the city and time.
