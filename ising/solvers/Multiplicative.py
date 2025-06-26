@@ -298,7 +298,6 @@ class Multiplicative(SolverBase):
             "voltages": (np.float32, (num_var,)),
         }
 
-        energies= []
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
                 logger=log,
