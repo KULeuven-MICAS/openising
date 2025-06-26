@@ -6,7 +6,6 @@ from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
-# from ising.utils.clock import clock
 
 
 class SB(SolverBase):
@@ -87,12 +86,9 @@ class ballisticSB(SB):
         y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ))
 
         schema = {
-            "time"      : float,
             "energy"    : float,
             "state"     : (np.int8, (N,)),
             "positions" : (np.float32, (N,)),
-            "momenta"   : (np.float32, (N,)),
-            "at"        : float,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -124,7 +120,7 @@ class ballisticSB(SB):
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
                 tk    += dtSB
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
+                log.log(energy=energy, state=sample, positions=x)
 
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
@@ -174,12 +170,9 @@ class discreteSB(SB):
         y = np.zeros_like(x)
 
         schema = {
-            "time": float,
             "energy": np.float32,
             "state": (np.int8, (N,)),
             "positions": (np.float32, (N,)),
-            "momenta": (np.float32, (N,)),
-            "at": np.float32,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -208,7 +201,7 @@ class discreteSB(SB):
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
                 tk += dtSB
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
+                log.log(energy=energy, state=sample, positions=x)
 
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
