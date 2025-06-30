@@ -1,5 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import multiprocessing
+from functools import partial
+import seaborn as sns #type: ignore
+import pandas as pd # type: ignore
 
 from ising.solvers.Multiplicative import Multiplicative
 
@@ -12,7 +16,7 @@ from ising.postprocessing.summarize_energies import summary_energies
 from ising.utils.helper_functions import return_rx
 
 np.random.seed(1)
-figtop = TOP / "ising/under_Dev/Flipping"
+figtop = TOP / "ising/under_dev/Flipping/Figures"
 
 def find_cluster_Wolff(model, sigma, start_node, P_add, max_size):
     stack = [start_node]
@@ -45,43 +49,60 @@ def find_cluster_mean(best_sigmas, sigma, max_size, threshold, option):
         available_nodes = np.where(np.abs(mean_sigma) >= threshold, np.arange(len(sigma)), -1)
     else:
         available_nodes = np.where(np.abs(mean_sigma) <= threshold, np.arange(len(sigma)), -1)
-        if len(available_nodes[available_nodes >= 0]) < max_size:
-            current_size = len(available_nodes[available_nodes >= 0])
-            ind_unavailable_nodes = np.where(available_nodes < 0)[0]
-            chosen_nodes = np.random.choice(ind_unavailable_nodes, (max_size - current_size,))
-            available_nodes[chosen_nodes] = np.arange(len(available_nodes))[chosen_nodes]
-    
+   
+    if len(available_nodes[available_nodes >= 0]) < max_size:
+        current_size = len(available_nodes[available_nodes >= 0])
+        ind_unavailable_nodes = np.where(available_nodes < 0)[0]
+        chosen_nodes = np.random.choice(ind_unavailable_nodes, (max_size - current_size,))
+        available_nodes[chosen_nodes] = np.arange(len(available_nodes))[chosen_nodes]
+
+
     cluster = np.random.choice(available_nodes[available_nodes >= 0], size=(max_size,))
     return cluster
 
-def do_flipping(model, sigma_init:np.ndarray, cluster_size_init:int, cluster_size_end:int, nb_flipping:int, dt:float, num_iterations:int, cluster_threshold:float):
+def find_cluster_gradient(model, sigma, max_size, threshold):
+    coupling = model.J + model.J.T
+    gradient = coupling @ sigma + model.h
+    gradient /= np.max(gradient)
+    available_nodes = np.where(np.abs(gradient) >= threshold, np.arange(len(sigma)), -1)
+    if len(available_nodes[available_nodes >= 0]) < max_size:
+        current_size = len(available_nodes[available_nodes >= 0])
+        ind_unavailable_nodes = np.where(available_nodes < 0)[0]
+        chosen_nodes = np.random.choice(ind_unavailable_nodes, (max_size - current_size,))
+        available_nodes[chosen_nodes] = np.arange(len(available_nodes))[chosen_nodes]
+    cluster = np.random.choice(available_nodes[available_nodes >= 0], size=(max_size,))
+    return cluster
+
+
+def do_flipping(cluster_size_init:int, cluster_size_end:int, file, cluster_threshold:float, sigma_init:np.ndarray, model, nb_flipping:int, dt:float, num_iterations:int):
     sigma = sigma_init.copy()
     energies = []
 
-    best_sigmas = []
-    size_func = lambda x: int((return_rx(nb_flipping, cluster_size_init, cluster_size_end)**x) * cluster_size_init )
+    # best_sigmas = []
+    size_func = lambda x: int((return_rx(nb_flipping, cluster_size_init, cluster_size_end)**(x*3)) * (cluster_size_init-cluster_size_end) + cluster_size_end)
 
     prev_energy = np.inf
     prev_sigma = sigma.copy()
     for i in range(nb_flipping):
-        sigma, energy, new_energies =  Multiplicative().solve(model, sigma, dt, num_iterations,
+        sigma, energy =  Multiplicative().solve(model, sigma, dt, num_iterations,
                                             initial_temp_cont=0.0)
-        energies += new_energies
+        energies.append(energy)
         if energy < prev_energy:
-            LOGGER.info("Flip accepted")
             prev_energy = energy
             prev_sigma = sigma.copy()
-            best_sigmas.append(sigma.copy())
-            if len(best_sigmas) > 10:
-                best_sigmas.pop(0)
+            # best_sigmas.append(sigma.copy())
+            # if len(best_sigmas) > 10:
+            #     best_sigmas.pop(0)
         
-        LOGGER.info(f"Energy: {energy:.2f} and best found energy: {prev_energy:.2f}")
         cluster_size = size_func(i)
-        cluster = find_cluster_mean(best_sigmas, sigma, cluster_size, cluster_threshold, 1)
-
-        LOGGER.info(f"Cluster size: {len(cluster)}")
+        LOGGER.info(f"Cluster size: {cluster_size}")
+        cluster = find_cluster_gradient(model, prev_sigma, cluster_size, cluster_threshold, 1)
+        with open(file, "a") as f:
+            f.write(f"iteration {i}: energy {energy:.2f}")
         sigma = prev_sigma.copy()
         sigma[cluster] = -1*sigma[cluster]
+    with open(file, "a") as f:
+        f.write(f"initial size {cluster_size_init}, final size {cluster_size_end}, final energy {energy:.2f}")
     return energies, prev_energy, prev_sigma
 
 def plot_data(data, figname, xlabel:str, xticks:list[str], ylabel:str, yticks:list[str], best_found:float, colorbar_label:str= "Energy"):
@@ -92,10 +113,29 @@ def plot_data(data, figname, xlabel:str, xticks:list[str], ylabel:str, yticks:li
     ax.set_xticks(range(len(xticks)), xticks, rotation=45, ha="right", rotation_mode="anchor")
     ax.set_ylabel(ylabel)
     ax.set_yticks(range(len(yticks)), yticks)
-    plt.colorbar(label=colorbar_label, ticks=np.arange(best_found, np.max(data)+1, 200, dtype=int))
+    plt.colorbar(label=colorbar_label, ticks=np.arange(best_found, np.max(data)+1, 100, dtype=int)) # 
     plt.savefig(figname, bbox_inches="tight")
     plt.close()
 
+def make_bar_plot(dataframes:dict[str:pd.DataFrame], xaxis_name, yaxis_name, figname, best_found:float):
+    # concat the dataframes
+    plt.figure()
+    if len(dataframes.keys()) > 1:
+        data = dict()
+        for df_name in dataframes.keys():
+            data[df_name] = dataframes[df_name].melt()
+        df = pd.concat(data, names=["source", "old_index"])
+        df = df.reset_index(level=0).reset_index(drop=True)
+        sns.boxplot(data=df, x='variable', y='value', hue="source")
+    else:
+        df = dataframes[list(dataframes.keys())[0]]
+        sns.boxplot(data=df, x=xaxis_name, y=yaxis_name)
+    plt.axhline(y=best_found, color='k', linestyle='--', label='Best found')
+    plt.legend()
+    plt.xlabel(xaxis_name)
+    plt.ylabel(yaxis_name)
+    plt.savefig(figtop / figname, bbox_inches="tight")
+    plt.close()
 
 def TSP_flipping():
     burma14_graph, best_found = TSP_parser(TOP / "ising/benchmarks/TSP/burma14.tsp")
@@ -104,31 +144,43 @@ def TSP_flipping():
 
     dt = 1e-6
     num_iterations = 50000
+    nb_runs = 20
 
-    sigma = np.random.uniform(-1, 1, (model_burma14.num_variables,))
-    cluster_sizes_end = [1/18, 1/16, 1/14, 1/12, 1/10, 1/8, 1/6, 1/4]
-    str_init_sizes = ["1/18", "1/16", "1/14", "1/12", "1/10", "1/8", "1/6", "1/4"]
-    cluster_sizes_init = [1/2, 2/3, 3/4, 4/5, 5/6, 7/8, 9/10, 1]
-    str_end_sizes = ["1/2", "2/3", "3/4", "4/5", "5/6", "7/8", "9/10", "1"]
+    sigma = np.random.uniform(-1, 1, (model_burma14.num_variables,nb_runs))
+    final_cluster_size = int(model_burma14.num_variables*1/18)
+    init_cluster_size = int(model_burma14.num_variables*2/3)
     flipping_length = 100 # 130
-    mean_cluster_th = 0.7
+    mean_cluster_th = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    best_energies = np.zeros((len(cluster_sizes_init), len(cluster_sizes_end)))
-    distance_energy = np.zeros((len(cluster_sizes_init), len(cluster_sizes_end)))
+    tasks = [(mean_cluster_th[i], sigma[:,j]) for i in range(len(mean_cluster_th)) for j in range(nb_runs)]
+    with multiprocessing.Pool(processes=int(multiprocessing.cpu_count()/4)) as pool:
+        flipping_partial = partial(do_flipping, model=model_burma14, 
+                                                cluster_size_init=init_cluster_size, 
+                                                cluster_size_end=final_cluster_size, 
+                                                nb_flipping=flipping_length, 
+                                                dt=dt, 
+                                                num_iterations=num_iterations)
+        results = pool.starmap(flipping_partial, tasks)
 
-    for i,size_in in enumerate(cluster_sizes_init):
-        init_size = int(model_burma14.num_variables * size_in)
-        
-        for j, size_en in enumerate(cluster_sizes_end):
-            end_size = int(model_burma14.num_variables * size_en)
-            energies, prev_energy, prev_sigma = do_flipping(model_burma14, sigma, cluster_size_init=init_size, cluster_size_end=end_size, nb_flipping=flipping_length, 
-                                                            dt=dt, num_iterations=num_iterations, cluster_threshold=mean_cluster_th)
-            best_energies[i,j] = prev_energy
-            distance_energy[i,j] = get_TSP_value(burma14_graph, prev_sigma)
-            LOGGER.info(f"Initial cluster size: {init_size}, final cluster size: {end_size}, energy: {prev_energy:.2f}, distance: {distance_energy[i,j]}, sigma: {prev_sigma}")
+    all_energies = np.array([result[0] for result in results]).reshape((len(mean_cluster_th), nb_runs, flipping_length))
 
-    plot_data(best_energies, figtop / "burma14_linear_change.png", "Final cluster size", str_end_sizes, "Initial cluster size", str_init_sizes, best_found)
-    plot_data(distance_energy, figtop / "burma14_linear_change_distance.png", "Final cluster size", str_end_sizes, "Initial cluster size", str_init_sizes, best_found, "TSP distance")
+    for i in range(len(mean_cluster_th)):
+        mean_energies = np.mean(all_energies[i, :, :], axis=0)
+        max_energies = np.max(all_energies[i, :, :], axis=0)
+        min_energies = np.min(all_energies[i, :, :], axis=0)
+        std_energies = np.std(all_energies[i, :, :], axis=0)
+        file = TOP / f"ising/under_dev/Flipping/threshold_{mean_cluster_th[i]}_burma14.csv"
+        header = "mean min max std"
+        np.savetxt(file, np.array([mean_energies, min_energies, max_energies, std_energies]), fmt="%.2f", header=header)
+
+    best_energies = np.array([result[1] for result in results]).reshape((len(mean_cluster_th), nb_runs))
+    best_energies = np.mean(best_energies, axis=1)
+    plot_data(best_energies, figtop / "burma14_cluster_threshold.png", "Threshold", np.array(mean_cluster_th, dtype=str), "Final cluster size", ["1/18"], best_found)
+
+    dfs = {f"threshold {mean_cluster_th[i]}": None for i in range(len(mean_cluster_th))}
+    for i, threshold in enumerate(mean_cluster_th):
+        dfs[f"threshold {threshold}"] = pd.DataFrame({iteration: all_energies[i, :, iteration] for iteration in range(flipping_length)})
+    make_bar_plot(dfs, "Iteration", "Energy", "burma14_threshold_barplot.png", best_found)
 
 def MaxCut_flipping():
     g1, best_found = G_parser(TOP / "ising/benchmarks/G/G1.txt")
