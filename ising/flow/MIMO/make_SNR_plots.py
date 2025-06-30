@@ -4,7 +4,8 @@ from ising.flow import LOGGER, TOP
 from ising.postprocessing.plot_solutions import plot_state
 from ising.postprocessing.energy_plot import plot_energies_multiple
 from ising.postprocessing.MIMO_plot import plot_error_SNR
-from ising.utils.flow import make_directory, compute_list_from_arg
+from ising.utils.flow import compute_list_from_arg
+from ising.utils.helper_functions import make_directory
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--SNR", help="Range of Signal to Noise ratios", default=None, nargs="+")

@@ -3,7 +3,8 @@ import pathlib
 
 from ising.flow import TOP, LOGGER
 from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
-from ising.utils.flow import return_c0, return_q, return_rx, make_directory, parse_hyperparameters, run_solver
+from ising.utils.flow import parse_hyperparameters, run_solver
+from ising.utils.helper_functions import return_q, return_rx, return_c0, make_directory
 from ising.utils.HDF5Logger import HDF5Logger, return_metadata
 from ising.generators.MIMO import compute_difference
 from ising.solvers.Gurobi import Gurobi

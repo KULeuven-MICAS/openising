@@ -5,6 +5,7 @@
 **/tmp
 *.out
 **/no_backup
+**.pkl
 
 # environment stuff
 .env
@@ -16,6 +17,8 @@ ENV/
 __pycache__/
 *.py[cod]
 
-# Figures
+# Figures and output files
 *.png
 *.jpg
+*.pdf
+*.csv

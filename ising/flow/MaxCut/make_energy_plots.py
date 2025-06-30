@@ -11,7 +11,8 @@ from ising.postprocessing.energy_plot import (
     plot_energies_multiple,
 )
 from ising.postprocessing.plot_solutions import plot_state
-from ising.utils.flow import make_directory, compute_list_from_arg
+from ising.utils.flow import compute_list_from_arg
+from ising.utils.helper_functions import make_directory
 from ising.utils.HDF5Logger import get_Gurobi_data
 
 # Defining all arguments

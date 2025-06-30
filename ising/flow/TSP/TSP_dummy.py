@@ -5,7 +5,8 @@ import numpy as np
 from ising.flow import TOP, LOGGER
 from ising.generators.TSP import generate_random_TSP
 from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
-from ising.utils.flow import make_directory, parse_hyperparameters, return_q, return_c0, return_rx, run_solver
+from ising.utils.flow import parse_hyperparameters, run_solver
+from ising.utils.helper_functions import make_directory, return_c0, return_q, return_rx
 from ising.postprocessing.TSP_plot import plot_graph_solution
 from ising.utils.HDF5Logger import return_metadata
 from ising.solvers.Gurobi import Gurobi
