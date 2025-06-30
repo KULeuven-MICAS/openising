@@ -52,8 +52,8 @@ class SCA(SolverBase):
         hs = np.zeros((N,))
         J = triu_to_symm(model.J)
         flipped_states = []
-        initial_state = np.sign(initial_state)
-
+        state = np.copy(np.sign(initial_state))
+        tau = np.copy(state)
         if seed is None:
             seed = int(time.time() * 1000)
         random.seed(seed)
@@ -63,7 +63,7 @@ class SCA(SolverBase):
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
                 logger=log,
-                initial_state=initial_state,
+                initial_state=state,
                 model=model,
                 num_iterations=num_iterations,
                 initial_temp=initial_temp,
@@ -74,17 +74,18 @@ class SCA(SolverBase):
             )
             T = initial_temp
             for _ in range(num_iterations):
-                hs = np.matmul(J, initial_state) + model.h
+                hs = np.matmul(J, state) + model.h
 
-                Prob = self.get_prob(hs, initial_state, q, T)
+                Prob = self.get_prob(hs, state, q, T)
                 rand = np.random.rand(N)
 
                 flipped_states = [y for y in range(N) if Prob[y] < rand[y]]
 
-                initial_state[flipped_states] = -initial_state[flipped_states]
-                energy = model.evaluate(initial_state)
+                tau[flipped_states] = -state[flipped_states]
+                state = np.copy(tau)
+                energy = model.evaluate(state)
 
-                log.log(energy=energy, state=initial_state)
+                log.log(energy=energy, state=state)
 
                 T = self.change_hyperparam(T, cooling_rate)
                 q = self.change_hyperparam(q, r_q)
@@ -92,7 +93,7 @@ class SCA(SolverBase):
 
             nb_operations = num_iterations * (2 * N**2 + 8 * N + N / 2 + 2)
             log.write_metadata(
-                solution_state=initial_state,
+                solution_state=state,
                 solution_energy=energy,
                 total_operations=nb_operations,
             )
@@ -112,5 +113,13 @@ class SCA(SolverBase):
         Returns:
             probability (np.ndarray): probability of accepting the change of all nodes.
         """
-        val = 1 / T * (np.multiply(hs, sample) + q) / 2
-        return 1 / (1 + np.exp(-val))
+        values = np.multiply(hs, sample) + q
+        probs = np.zeros_like(values)
+        for i,val in enumerate(values):
+            if val > 2*T:
+                probs[i] = 1
+            elif val < -2*T:
+                probs[i] = 0
+            else:
+                probs[i] = val/(4*T) + 0.5
+        return probs

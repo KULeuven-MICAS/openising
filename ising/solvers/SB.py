@@ -105,7 +105,7 @@ class ballisticSB(SB):
             sample = np.sign(x)
             energy = model.evaluate(sample)
             tk   = 0.0
-            log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
+            log.log(energy=energy, state=sample, positions=x)
             for _ in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
@@ -187,7 +187,7 @@ class discreteSB(SB):
             )
             sample = np.sign(x)
             energy = model.evaluate(sample)
-            log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
+            log.log(energy=energy, state=sample, positions=x)
             for i in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
