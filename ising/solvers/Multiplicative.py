@@ -183,18 +183,18 @@ class Multiplicative(SolverBase):
             vt[-1] = 1.0
 
         # Buffering
-        c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
+        # c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
 
         # ZIV diode
         z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
 
         # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(coupling, c * vt) - z)
+        dv = 1 / self.capacitance * (np.dot(coupling,  np.sign(vt)) - z)
 
         # Ensure the voltages stay in the range [-1, 1]
-        cond1 = (dv > 0) & (vt > 1)
-        cond2 = (dv < 0) & (vt < -1)
-        dv *= np.where(cond1 | cond2, 0.0, 1.0)
+        cond1 = (dv > 0) & (vt > 0)
+        cond2 = (dv < 0) & (vt < 0)
+        dv *= np.where(cond1 | cond2, (1-vt**2), 1.0)
 
         # Ensure the bias node does not change
         if self.bias:
