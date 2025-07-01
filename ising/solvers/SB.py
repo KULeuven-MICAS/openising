@@ -27,7 +27,7 @@ class SB(SolverBase):
 
 
     def at(self, t, a0, dt, num_iterations) -> float:
-        return 2*a0 / (dt*num_iterations) * t
+        return a0 / (dt*num_iterations) * t
 
     def cast_to_values(self, casted_values, actual_values):
         return np.array([actual_values[np.argmin(np.abs(actual_values - xi))] for xi in casted_values])

@@ -1,6 +1,6 @@
 import numpy as np
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 
 
 def knapsack(profit: np.ndarray, capacity: int, weights: np.ndarray, penalty_value: float) -> IsingModel:

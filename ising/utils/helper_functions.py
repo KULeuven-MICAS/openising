@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse.linalg as spalg
 
 from ising.utils.numpy import triu_to_symm
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 
 def make_directory(path: pathlib.Path) -> None:
     """Makes the given directory if it does not exist.

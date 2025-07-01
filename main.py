@@ -25,4 +25,4 @@ ising_energy_min = np.min(ising_energies)
 ising_energy_avg = np.mean(ising_energies)
 
 logging.info(
-    f"bemchmark: {benchmark}, energy max: {ising_energy_max}, min: {ising_energy_min}, avg: {ising_energy_avg}")
+    f"benchmark: {benchmark}, energy max: {ising_energy_max}, min: {ising_energy_min}, avg: {ising_energy_avg}")
