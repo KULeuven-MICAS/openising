@@ -46,7 +46,7 @@ class Multiplicative(SolverBase):
         self.capacitance = capacitance
         self.mu_param = mu_param
         self.flip_resistance = resistance / (1e2 * 128)
-        self.flipping = flipping
+        # self.flipping = flipping
 
     def set_spinflip(self, N: int, num_iterations: int, initial_prob: float, seed: int, flipping_freq: int):
         self.flip_value = np.zeros((N + int(self.bias),))
@@ -123,18 +123,18 @@ class Multiplicative(SolverBase):
             vt[-1] = 1.0
 
         # Buffering
-        c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
+        # c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
 
         # ZIV diode
         z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
 
         # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(coupling, c * vt) - z)
+        dv = 1 / self.capacitance * (np.dot(coupling,  np.sign(vt)) - z)
 
         # Ensure the voltages stay in the range [-1, 1]
-        cond1 = (dv > 0) & (vt > 1)
-        cond2 = (dv < 0) & (vt < -1)
-        dv *= np.where(cond1 | cond2, 0.0, 1.0)
+        cond1 = (dv > 0) & (vt > 0)
+        cond2 = (dv < 0) & (vt < 0)
+        dv *= np.where(cond1 | cond2, (1-vt**2), 1.0)
 
         # Ensure the bias node does not change
         if self.bias:
@@ -229,10 +229,10 @@ class Multiplicative(SolverBase):
         schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
 
         # Set up the spin flipping
-        self.set_spinflip(N, num_iterations, flipping_prob, seed, flipping_freq)
-        flip_period = 1/(flipping_freq*dtMult)
-        flip_iter = np.arange(0, num_iterations, flip_period)
-        flip_iter = np.delete(flip_iter, 0)
+        # self.set_spinflip(N, num_iterations, flipping_prob, seed, flipping_freq)
+        # flip_period = 1/(flipping_freq*dtMult)
+        # flip_iter = np.arange(0, num_iterations, flip_period)
+        # flip_iter = np.delete(flip_iter, 0)
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
@@ -257,53 +257,54 @@ class Multiplicative(SolverBase):
             log.log(time_clock=0.0, energy=energy, state=np.sign(initial_state), voltages=initial_state)
             while i < num_iterations and max_change > stop_criterion:
                 tk = i * dtMult
-                if flipping and i in flip_iter:
-                    self.do_spinflip(previous_voltages)
-                    dt_flip = dtMult * flipping_time
-                    t_flip = tk
-                    just_flipped = True
-                    for j in range(int(flipping_time / dt_flip)):
-                        k1 = self.dvdt_flip(tk, previous_voltages, J)
-                        k2 = self.dvdt_flip(tk + dt_flip, previous_voltages + dt_flip * k1, J)
-                        k3 = self.dvdt_flip(tk + 1 / 2 * dt_flip, previous_voltages + dt_flip / 4 * (k1 + k2), J)
+                # if flipping and i in flip_iter:
+                #     self.do_spinflip(previous_voltages)
+                #     dt_flip = dtMult * flipping_time
+                #     t_flip = tk
+                #     just_flipped = True
+                #     for j in range(int(flipping_time / dt_flip)):
+                #         k1 = self.dvdt_flip(tk, previous_voltages, J)
+                #         k2 = self.dvdt_flip(tk + dt_flip, previous_voltages + dt_flip * k1, J)
+                #         k3 = self.dvdt_flip(tk + 1 / 2 * dt_flip, previous_voltages + dt_flip / 4 * (k1 + k2), J)
 
-                        # Add noise and update the voltages
-                        noise = self.noise(Temp, previous_voltages)
-                        new_voltages = previous_voltages + dt_flip / 6.0 * (k1 + k2 + 4.0 * k3) + noise
-                        t_flip += dt_flip
-                        if t_flip >= tk + dtMult:
-                            tk += dtMult
-                            i += 1
-                            Temp *= cooling_rate
+                #         # Add noise and update the voltages
+                #         noise = self.noise(Temp, previous_voltages)
+                #         new_voltages = previous_voltages + dt_flip / 6.0 * (k1 + k2 + 4.0 * k3) + noise
+                #         t_flip += dt_flip
+                #         if t_flip >= tk + dtMult:
+                #             tk += dtMult
+                #             i += 1
+                #             Temp *= cooling_rate
 
-                            energy = model.evaluate(np.sign(new_voltages[:N]))
-                            log.log(
-                                time_clock=tk, energy=energy, state=np.sign(new_voltages[:N]), voltages=new_voltages[:N]
-                            )
-                        previous_voltages = np.copy(new_voltages)
+                #             energy = model.evaluate(np.sign(new_voltages[:N]))
+                #             log.log(
+                #                 time_clock=tk, energy=energy, state=np.sign(new_voltages[:N]),
+                #                 voltages=new_voltages[:N]
+                #             )
+                #         previous_voltages = np.copy(new_voltages)
 
-                    if t_flip < tk + dtMult:
-                        dt = tk + dtMult - t_flip
-                        i += 1
-                        k1 = dt * self.dvdt(tk, previous_voltages, J)
-                        k2 = dt * self.dvdt(tk + dtMult, previous_voltages + k1, J)
-                        k3 = dt * self.dvdt(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J)
+                #     if t_flip < tk + dtMult:
+                #         dt = tk + dtMult - t_flip
+                #         i += 1
+                #         k1 = dt * self.dvdt(tk, previous_voltages, J)
+                #         k2 = dt * self.dvdt(tk + dtMult, previous_voltages + k1, J)
+                #         k3 = dt * self.dvdt(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J)
 
-                        noise = self.noise(Temp, previous_voltages)
-                        new_voltages = previous_voltages + 1.0 / 6.0 * (k1 + k2 + 4.0 * k3) + noise
-                        Temp *= cooling_rate
-                        tk += dtMult
-                else:
-                    just_flipped = False
-                    k1 = dtMult * self.dvdt(tk, previous_voltages, J)
-                    k2 = dtMult * self.dvdt(tk + dtMult, previous_voltages + k1, J)
-                    k3 = dtMult * self.dvdt(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J)
+                #         noise = self.noise(Temp, previous_voltages)
+                #         new_voltages = previous_voltages + 1.0 / 6.0 * (k1 + k2 + 4.0 * k3) + noise
+                #         Temp *= cooling_rate
+                #         tk += dtMult
+                # else:
+                just_flipped = False
+                k1 = dtMult * self.dvdt(tk, previous_voltages, J)
+                k2 = dtMult * self.dvdt(tk + dtMult, previous_voltages + k1, J)
+                k3 = dtMult * self.dvdt(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J)
 
-                    noise = self.noise(Temp, previous_voltages)
-                    new_voltages = previous_voltages + 1.0 / 6.0 * (k1 + k2 + 4.0 * k3) + noise
-                    Temp *= cooling_rate
-                    tk += dtMult
-                    i += 1
+                noise = self.noise(Temp, previous_voltages)
+                new_voltages = previous_voltages + 1.0 / 6.0 * (k1 + k2 + 4.0 * k3) + noise
+                Temp *= cooling_rate
+                tk += dtMult
+                i += 1
 
                 # Log everything
                 sample = np.sign(new_voltages[:N])
