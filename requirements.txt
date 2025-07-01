@@ -29,4 +29,5 @@ typing_extensions==4.12.2
 urllib3==2.2.3
 gurobipy==12.0.0
 tsplib95==0.7.1
-tqdm==2.2.3
+tqdm==4.67.1
+pyyaml==6.0.2
