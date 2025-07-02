@@ -40,7 +40,7 @@ nb_runs = int(args.nb_runs)
 
 # Defining the top paths and list for the logfiles
 logfiles = []
-logtop = TOP / "ising/flow/MaxCut/logs"
+logtop = TOP / "ising/outputs/Maxcut/logs"
 figtop = TOP / "ising/flow/MaxCut/plots" / args.fig_folder
 make_directory(figtop)
 fig_name = str(args.fig_name)

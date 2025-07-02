@@ -137,7 +137,6 @@ class SimulationStage(Stage):
                     "initial_temp_cont",
                     "end_temp_cont",
                     "seed",
-                    "coupling_annealing",
                     "capacitance",
                     "resistance",
                     "flipping",

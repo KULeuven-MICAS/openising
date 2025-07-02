@@ -51,7 +51,7 @@ nb_runs = int(args.nb_runs)
 
 # Defining the top paths and list for the logfiles
 logfiles = []
-logtop = TOP / "ising/flow/TSP/logs_TSP"
+logtop = TOP / "ising/outputs/TSP/logs"
 figtop = TOP / "ising/flow/TSP/plots_TSP" / args.fig_folder
 make_directory(figtop)
 LOGGER.debug(f"Saving figures in {figtop}")
