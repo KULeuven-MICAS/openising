@@ -28,7 +28,6 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
 
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
-    hyperparameters["coupling_annealing"] = bool(int(args.coupling_annealing))
     hyperparameters["resistance"] = float(args.resistance)
     hyperparameters["nb_flipping"] = int(args.nb_flipping)
     hyperparameters["cluster_threshold"] = float(args.cluster_threshold)
