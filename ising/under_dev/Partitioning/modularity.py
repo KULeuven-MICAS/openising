@@ -1,6 +1,7 @@
 import numpy as np
+from scipy.linalg import eigh
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.utils.numpy import triu_to_symm
 
 
@@ -15,55 +16,33 @@ def partitioning_modularity(model:IsingModel, nb_cores:int=2):
     Returns:
         s (np.ndarray): the partitioning of the model 
     """
-    s = do_modularity(model)
-    if nb_cores == 2:
-        return s
-
-    elif nb_cores == 3:
-        _, model_n = get_partition_of_model(model, s)
-        s_n = partitioning_modularity(model_n, nb_cores=2)
-        s[s==-1] = 2*s_n
-
-        return s
-    elif nb_cores % 2 != 0:
-        model_p, model_n = get_partition_of_model(model, s)
-        s_p = partitioning_modularity(model_p, nb_cores = nb_cores/2-0.5)
-        s_n = partitioning_modularity(model_n, nb_cores = nb_cores/2+0.5)
-        s[s==-1] = 2*s_n
-        s[s==1] = s_p
-        return s
-    else:
-        model_p, model_n = get_partition_of_model(model, s)
-        s_p = partitioning_modularity(model_p, nb_cores = nb_cores/2)
-        s_n = partitioning_modularity(model_n, nb_cores = nb_cores/2)
-        s[s==-1] = 2*s_n
-        s[s==1] = s_p
-        return s
-
-
-def do_modularity(model:IsingModel):
-    J = triu_to_symm(model.J)
-    A = np.where(J != 0, 1., 0.)
-    k = np.sum(A, axis=0)
+    if nb_cores % 2 != 0:
+        raise ValueError("Only even amount of cores are allowed")
+    n = model.num_variables
+    A = triu_to_symm(model.J)
+    k = np.count_nonzero(A, axis=0)
     m = np.sum(k) / 2
     B = A - np.outer(k, k) / (2*m)
+    D = np.diag(k)
 
-    lam, V = np.linalg.eig(B)
-    v = V[:,np.argmax(lam)]
-    s = np.sign(v)
+    _, V = eigh(B, D, subset_by_index=[n-2, n-1])
+    v = V[:, -1]
+    mean = np.mean(v)
+    s = np.where(v >= mean, 1, -1)
 
     if len(np.unique(s)) == 1:
-        s = np.random.choice([-1, 1], size=s.shape)
+        v = V[:, -2]
+        s = np.sign(v)
 
-    return s
+    if nb_cores == 2:
+        return s, v, mean
 
-def get_partition_of_model(model: IsingModel, s:np.ndarray):
-    Jp = np.zeros((len(s[s==1]), len(s[s==1])))
-    Jn = np.zeros((len(s[s==1]), len(s[s==1])))
+    else:
+        model1 = IsingModel(model.J[s==1, s==1], model.h[s==1])
+        model2 = IsingModel(model.J[s==-1, s==-1], model.h[s==-1])
 
-    Jp = model.J[s==1, :]
-    Jp = Jp[:, s==1]
-    Jn = model.J[s==-1, :]
-    Jn = Jn[:, s==-1]
-
-    return IsingModel(Jp, np.zeros(len(s[s==1]))), IsingModel(Jn, np.zeros(len(s[s==-1])))
+        s1, v1 = partitioning_modularity(model1, nb_cores / 2)
+        s2, v2 = partitioning_modularity(model2, nb_cores / 2)
+        s[s==1] = s1
+        s[s==-1] = 2*s2
+        return s, None
