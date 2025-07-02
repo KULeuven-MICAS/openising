@@ -28,6 +28,38 @@ initialization_seed: 42
 #################################
 ## Solvers hyperparameters
 #################################
+# Folder to save the results
+fig_folder: no_backup/figs/
+
+# Name of the file to save the results
+fig_name: .png
+
+#################################
+## Low-level hyperparameters
+#################################
+# Parameters for TSP
+weight_constant: 1.0
+
+# Parameters for MIMO
+SNR: None
+Nt: 2
+Nr: 2
+M: 4
+
+# Parameters for Multiplicative
+dtMult: 0.01
+T_cont: 0.05
+T_final_cont: 0.0005
+resistance: 1
+flipping: 1
+flipping_freq: 1
+flipping_prob: 1
+mu_param: -3.55
+capacitance: 1
+
+# Parameters for BRIM
+dtBRIM: 1e-6  # 10us
+stop_criterion: 1e-6  # 1uV
 
 # Parameters for MIMO
 SNR: 60
