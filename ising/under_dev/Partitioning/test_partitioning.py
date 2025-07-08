@@ -1,18 +1,12 @@
 import networkx as nx
 import time
-from argparse import Namespace
 
 from ising.flow import TOP, LOGGER
 from ising.under_dev import MaxCutParser
 from ising.benchmarks.parsers.TSP import TSP_parser
 from ising.benchmarks.parsers.Knapsack import QKP_parser
-from ising.stages.maxcut_parser_stage import MaxcutParserStage
-from ising.stages.main_stage import MainStage
 from ising.generators.TSP import TSP
 from ising.generators.Knapsack import knapsack
-from ising.stages.model.ising import IsingModel
-
-from ising.solvers.exhaustive import ExhaustiveSolver
 
 from ising.under_dev.Partitioning.modularity import partitioning_modularity
 from ising.under_dev.Partitioning.spectral_partitioning import spectral_partitioning
@@ -152,7 +146,7 @@ def make_bar_chart_replica_nodes():
 
 def compare_techniques():
     LOGGER.info("========== Max Cut ==========")
-    G16, _ = G_parser(TOP / "ising/benchmarks/G/G16.txt")
+    G16, _ = MaxCutParser.G_parser(TOP / "ising/benchmarks/G/G16.txt")
     model = MaxCutParser.generate_maxcut(G16)
     nb_cores = 2
 
@@ -164,7 +158,7 @@ def compare_techniques():
     plot_partitioning(G16, spectral_s, "MCP_partitioning_normalized_cut.png")
 
     s_time = time.time()
-    mod_s, mod_v, mean = partitioning_modularity(model, 2)
+    mod_s, (mod_v, mean) = partitioning_modularity(model, 2)
     e_time = time.time()
     LOGGER.info("total time needed for modularity cut: %s", e_time-s_time)
     plot_eigenvector(mod_v, mean, "MCP_eigenvector_modularity_cut.png")
@@ -185,7 +179,7 @@ def compare_techniques():
     plot_partitioning(G_QKP, spectral_s, "QKP_partitioning_normalized_cut.png")
 
     s_time = time.time()
-    mod_s, mod_v, mean = partitioning_modularity(model, 2)
+    mod_s, (mod_v, mean) = partitioning_modularity(model, 2)
     e_time = time.time()
     LOGGER.info("total time needed for modularity cut: %s", e_time-s_time)
     plot_eigenvector(mod_v, mean, "QKP_eigenvector_modularity_cut.png")
@@ -206,7 +200,7 @@ def compare_techniques():
     plot_partitioning(GTSP, spectral_s, "TSP_partitioning_normalized_cut.png")
 
     s_time = time.time()
-    mod_s, mod_v, mean = partitioning_modularity(model, 2)
+    mod_s, (mod_v, mean) = partitioning_modularity(model, 2)
     e_time = time.time()
     LOGGER.info("total time needed for modularity cut: %s", e_time-s_time)
     plot_eigenvector(mod_v, mean, "TSP_eigenvector_modularity_cut.png")
