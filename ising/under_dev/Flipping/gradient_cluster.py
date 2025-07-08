@@ -1,6 +1,5 @@
 import numpy as np
 
-from ising.flow import LOGGER
 from ising.stages.model.ising import IsingModel
 
 def find_cluster_gradient(model:IsingModel, sigma:np.ndarray, max_size:int, threshold:float)->np.ndarray:
