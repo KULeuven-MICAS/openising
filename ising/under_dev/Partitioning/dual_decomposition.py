@@ -1,6 +1,6 @@
 import numpy as np
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.utils.flow import run_solver
 from ising.utils.numpy import triu_to_symm
 
