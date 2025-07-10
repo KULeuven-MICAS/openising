@@ -8,7 +8,7 @@ export PYTHONPATH="$TOP"
 
 # If a python virtual env is present, activate it
 [[ -e $TOP/.venv/bin/python ]]
-#VIRTUAL_ENV_DISABLE_PROMPT=1; 
+VIRTUAL_ENV_DISABLE_PROMPT=1; 
 source $TOP/.venv/bin/activate
 export PYTHON=$TOP/.venv/bin/python3.12
 
