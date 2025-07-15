@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 
 
 def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) -> tuple[np.ndarray, np.ndarray]:
@@ -15,7 +15,7 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) ->
         seed (int, optional): The seed for the random number generator. Defaults to 1.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: The generated transfer function matrix and the symbols.
+        H,symbols (tuple[np.ndarray, np.ndarray]): The generated transfer function matrix and the symbols.
     """
     if seed == 0:
         seed = int(time.time())
@@ -33,11 +33,29 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) ->
 
     phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
     phi_u.sort()
-    # mean_phi  = np.mean(phi_u, axis=0)
-    # sigma_phi = np.random.normal(0, 1, (Nt,))
+    mean_phi  = np.mean(phi_u, axis=0)
+    sigma_phi = np.random.normal(0, 1, (Nt,))
 
-    H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
+    # H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
+    H = np.zeros((Nr, Nt), dtype='complex_')
+    for i in range(Nt):
+        C     = np.zeros((Nr, Nr), dtype="complex_")
+        phi   = mean_phi[i]
+        sigma = sigma_phi[i]
+        for m in range(Nr):
+            for n in range(Nr):
+                d = spacing_BS_antennas(m, n)
+                C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
+                    -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
+                )
+        D, V = np.linalg.eig(C)
+        hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
+        H[:, i] = hu
+
     return H, symbols
+
+def spacing_BS_antennas(m, n):
+    return np.abs(m - n)
 
 
 def MIMO_to_Ising(
@@ -56,7 +74,8 @@ def MIMO_to_Ising(
         seed (int, optional): The seed for the random number generator. Defaults to 0.
 
     Returns:
-        tuple[IsingModel, np.ndarray]: the generated Ising model and transformed input signal.
+        model,xtilde,ytilde (tuple[IsingModel, np.ndarray]): the generated Ising model and transformed input
+                                                             and output signals.
     """
     if np.linalg.norm(np.imag(x)) == 0:
         # BPSK scheme
@@ -115,9 +134,10 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
     r = int(np.ceil(np.log2(np.sqrt(M))))
 
     N = np.shape(x)[0]
+    nb_runs = np.shape(x)[1]
 
     # Compute the calculated symbols
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
-    x_optim = T @ (sigma_optim + np.ones((r * N,))) - (np.sqrt(M) - 1) * np.ones((N,))
-    BER = np.sum(np.abs(x - x_optim)/2)/(np.sqrt(M)*N)
+    x_optim = T @ (sigma_optim + np.ones((r * N,nb_runs))) - (np.sqrt(M) - 1) * np.ones((N,nb_runs))
+    BER = np.sum(np.abs(x - x_optim)/2, axis=0)/(np.sqrt(M)*N)
     return BER
