@@ -123,49 +123,15 @@ class Multiplicative(SolverBase):
             previous_voltages = new_voltages.copy()
         return np.sign(new_voltages[:model.num_variables]), energy
 
-    def dvdt_flip(self, t: float, vt: np.ndarray, coupling: np.ndarray):
-        """Differential equations for the multiplicative BRIM model.
-
-        Args:
-            t (float): time
-            vt (np.ndarray): current voltages
-            coupling (np.ndarray): coupling matrix J
-
-        Returns:
-            dv (np.ndarray): the change of the voltages
-        """
-
-        # set bias node to 1.
-        if self.bias:
-            vt[-1] = 1.0
-
-        # Buffering
-        c = 1 / np.abs(vt)
-
-        # ZIV diode
-        z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
-
-        # Flipping changes
-        flip = np.where(self.chosen_nodes, (self.flip_value - vt), 0.0)
-
-        # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(coupling, c * vt) - z + flip / self.flip_resistance)
-
-        # Ensure the voltages stay in the range [-1, 1]
-        cond1 = (dv > 0) & (vt > 1)
-        cond2 = (dv < 0) & (vt < -1)
-        dv *= np.where(cond1 | cond2, 0.0, 1.0)
-
-        # Ensure the bias node does not change
-        if self.bias:
-            dv[-1] = 0.0
-        return dv
+    def mosfet(self, voltage:np.ndarray ):
+        pass
 
     def dvdt(
         self,
         t: float,
         vt: np.ndarray,
         coupling: np.ndarray,
+        frozen_nodes: np.ndarray | None = None,
     ):
         """Differential equations for the multiplicative BRIM model when flipping is involved.
 
@@ -182,19 +148,16 @@ class Multiplicative(SolverBase):
         if self.bias:
             vt[-1] = 1.0
 
-        # Buffering
-        # c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
-
-        # ZIV diode
-        z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
-
         # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(coupling,  np.sign(vt)) - z)
+        dv = 1 / self.capacitance * (np.dot(coupling,  np.sign(vt)))
 
         # Ensure the voltages stay in the range [-1, 1]
-        cond1 = (dv > 0) & (vt > 0)
-        cond2 = (dv < 0) & (vt < 0)
-        dv *= np.where(cond1 | cond2, (1-vt**2), 1.0)
+        cond1 = (dv > 0) & (vt >= 1)
+        cond2 = (dv < 0) & (vt <= -1)
+        dv *= np.where(cond1 | cond2, 0.0, 1.0)
+
+        if frozen_nodes is not None:
+            dv[frozen_nodes] = 0.0
 
         # Ensure the bias node does not change
         if self.bias:
