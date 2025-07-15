@@ -54,6 +54,10 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) ->
 
     return H, symbols
 
+def spacing_BS_antennas(m, n):
+    return np.abs(m - n)
+
+
 def MIMO_to_Ising(
     H: np.ndarray, x: np.ndarray, SNR: float, Nr: int, Nt: int, M: int, seed:int=0
 ) -> tuple[IsingModel, np.ndarray]:
