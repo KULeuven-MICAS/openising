@@ -1,10 +1,11 @@
 import numpy as np
 
+from ising.flow import LOGGER
 from ising.stages.model.ising import IsingModel
-from ising.under_dev import sim_stage
+# from ising.under_dev import sim_stage
+from ising.under_dev.Flipping.new_strategy import do_flipping
 
-
-def SPLIT(model: IsingModel, partitions:list[int], num_iterations:int, sigma_init:np.ndarray, solver:str, **hyperparameters):
+def SPLIT(partitions:list[int], sigma_init:np.ndarray, model: IsingModel,  num_iterations:int, **hyperparameters):
     partitioned_models, nodes_per_partition = partition_model(model, partitions)
 
     sigma = sigma_init.copy()
@@ -13,7 +14,15 @@ def SPLIT(model: IsingModel, partitions:list[int], num_iterations:int, sigma_ini
         local_fields = compute_local_fields(model, sigma, nodes_per_partition)
         for part_id, part_model in partitioned_models.items():
             part_model.h += local_fields[part_id]
-            sigma[nodes_per_partition[part_id]], energy = sim_stage.run_solver(solver=solver, s_init=sigma[nodes_per_partition[part_id]], model=part_model, **hyperparameters)
+            _,  energy, sigma[nodes_per_partition[part_id]] = do_flipping(cluster_size_init=int(hyperparameters["cluster_size_init"]*part_model.num_variables),
+                                                                      cluster_size_end=int(hyperparameters["cluster_size_end"]*part_model.num_variables),
+                                                                      sigma_init=sigma[nodes_per_partition[part_id]],
+                                                                      model=part_model,
+                                                                      cluster_threshold=hyperparameters["threshold"],
+                                                                      nb_flipping=hyperparameters["nb_flipping"],
+                                                                      dt=hyperparameters["dt"],
+                                                                      num_iterations=hyperparameters["num_iter"],
+                                                                      )
             part_model.h -= local_fields[part_id]
         
         energy_old = energy
@@ -21,6 +30,7 @@ def SPLIT(model: IsingModel, partitions:list[int], num_iterations:int, sigma_ini
         if energy == energy_old:
             return sigma, energy
         sigma = sweep_update(sigma, model)
+    LOGGER.info(f"amount of cores: {len(np.unique(partitions))} - final energy: {energy}")
     return sigma, energy
 
 def partition_model(model: IsingModel, partitions:list[int])->tuple[dict[int:IsingModel], dict[int:np.ndarray]]:

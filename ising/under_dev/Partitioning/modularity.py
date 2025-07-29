@@ -20,7 +20,7 @@ def partitioning_modularity(model:IsingModel, nb_cores:int=2):
         raise ValueError("Only even amount of cores are allowed")
     n = model.num_variables
     A = -triu_to_symm(model.J)
-    k = np.sum(A, axis=0)
+    k = np.count_nonzero(A, axis=0)
     m = np.sum(A) / 2
     D = np.diag(k)
 

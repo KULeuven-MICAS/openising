@@ -6,8 +6,8 @@ from ising.flow import TOP
 from ising.stages.model.ising import IsingModel
 from ising.utils.helper_functions import make_directory
 
-figtop = TOP / "ising/under_dev/Partitioning/plots"
-make_directory(figtop)
+FIGTOP = TOP / "ising/under_dev/Partitioning"
+make_directory(FIGTOP)
 
 def plot_partitioning(G:nx.Graph, s: list, fig_name: str):
     partitions = np.unique(s)
@@ -18,7 +18,7 @@ def plot_partitioning(G:nx.Graph, s: list, fig_name: str):
         communities[part_ind[0]].append(ind)
     pos = nx.spring_layout(G, seed=42)  # positions for all nodes
 
-    plt.figure(figsize=(50, 50))
+    plt.figure(figsize=(25, 25))
     colors = plt.cm.tab10(np.arange(len(communities)))
     for i, community in enumerate(communities):
         nx.draw_networkx_nodes(G, pos=pos, nodelist=community, node_color=colors[i])
@@ -26,7 +26,7 @@ def plot_partitioning(G:nx.Graph, s: list, fig_name: str):
     nx.draw_networkx_edges(G, pos=pos, edgelist=G.edges)
     nx.draw_networkx_labels(G, pos=pos)
     plt.title("Partitioned graph")
-    plt.savefig(figtop / fig_name)
+    plt.savefig(FIGTOP / fig_name)
     plt.close()
 
 def plot_eigenvector(eigenvector:np.ndarray, mean:float, figname:str):
@@ -38,7 +38,7 @@ def plot_eigenvector(eigenvector:np.ndarray, mean:float, figname:str):
     plt.axhline(mean, linestyle="--", color="k")
     plt.ylabel("Eigenvector value")
     plt.title(f"Size of partition 1: {np.count_nonzero(cut)} out of {n} nodes")
-    plt.savefig(figtop / figname, bbox_inches='tight')
+    plt.savefig(FIGTOP / figname, bbox_inches='tight')
     plt.close()
 
 def plot_percentage_cut_edges(model:IsingModel, partitions_list:dict[str:np.ndarray], figname:str):
@@ -59,7 +59,7 @@ def plot_percentage_cut_edges(model:IsingModel, partitions_list:dict[str:np.ndar
     plt.bar(cut_edges_per_partition.keys(), cut_edges_per_partition.values())
     plt.ylabel("Percentage of cut edges")
     plt.xlabel("Partitioning technique")
-    plt.savefig(figtop / figname, bbox_inches='tight')
+    plt.savefig(FIGTOP / figname, bbox_inches='tight')
     plt.close()
 
 def plot_energies_cores(cores:list[int], energies:list[float], best_energy:float,  figname:str):
@@ -70,5 +70,26 @@ def plot_energies_cores(cores:list[int], energies:list[float], best_energy:float
     plt.xlabel("Number of cores")
     plt.ylabel("Optimal Energy")
     plt.legend()
-    plt.savefig(figtop / figname, bbox_inches='tight')
+    plt.savefig(FIGTOP / figname, bbox_inches='tight')
     plt.close()
+
+def plot_edges_per_partition(model, partitions: dict[str:list], figname):
+    edges_per_partition = {}
+
+    for technique, partition in partitions.items():
+        unique_partitions = np.unique(partition)
+        edges_per_partition[technique] = 0
+        mean = 0
+        for part in unique_partitions:
+            indices = np.where(partition == part)[0]
+            subgraph = model.J[np.ix_(indices, indices)]
+            mean += (np.count_nonzero(subgraph) / 2) / np.count_nonzero(partition == part) * 100
+        edges_per_partition[technique] = mean / len(unique_partitions)
+    
+    plt.figure()
+    plt.bar(edges_per_partition.keys(), edges_per_partition.values())  
+    plt.ylabel("Average percentage of edges per nodes in partition")
+    plt.xlabel("Partitioning technique")
+    plt.savefig(FIGTOP / figname, bbox_inches='tight')
+    plt.close() 
+
