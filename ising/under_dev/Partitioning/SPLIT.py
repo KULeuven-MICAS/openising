@@ -30,6 +30,7 @@ def SPLIT(partitions:list[int], sigma_init:np.ndarray, model: IsingModel,  num_i
         if energy == energy_old:
             return sigma, energy
         sigma = sweep_update(sigma, model)
+    energy = model.evaluate(sigma)
     LOGGER.info(f"amount of cores: {len(np.unique(partitions))} - final energy: {energy}")
     return sigma, energy
 
