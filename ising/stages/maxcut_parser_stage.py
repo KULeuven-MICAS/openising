@@ -78,7 +78,7 @@ class MaxcutParserStage(Stage):
                     line = line.split()
                     u = int(line[0]) - 1
                     v = int(line[1]) - 1
-                    weight = int(line[2])
+                    weight = float(line[2])
                     G.add_edge(u, v, weight=weight)
 
         best_found = MaxcutParserStage.get_optim_value(benchmark)

@@ -2,15 +2,18 @@ import logging
 import sys
 import numpy as np
 from ising import api
+import os
 
 # Initialize the logger
 logging_level = logging.INFO
 logging_format = "%(asctime)s - %(filename)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdout)
 
+os.system("rm -rf ising/outputs/TSP/logs/*")  # Clear previous logs
+
 # Input file directory
-problem_type = "Maxcut"  # Specify the problem type
-config_path = "ising/inputs/config/config_maxcut.yaml"
+problem_type = "TSP"  # Specify the problem type
+config_path = "ising/inputs/config/config_tsp.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
@@ -20,9 +23,16 @@ ans, debug_info = api.get_hamiltonian_energy(
 )
 benchmark = ans.benchmark
 ising_energies = ans.energies
+best_found = ans.best_found
 ising_energy_max = np.max(ising_energies)
 ising_energy_min = np.min(ising_energies)
 ising_energy_avg = np.mean(ising_energies)
 
 logging.info(
-    f"bemchmark: {benchmark}, energy max: {ising_energy_max}, min: {ising_energy_min}, avg: {ising_energy_avg}")
+    "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %s",
+    benchmark,
+    best_found,
+    ising_energy_max,
+    ising_energy_min,
+    ising_energy_avg
+)
