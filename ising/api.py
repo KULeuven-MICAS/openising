@@ -12,6 +12,8 @@ from ising.stages.atsp_parser_stage import ATSPParserStage
 from ising.stages.tsp_energy_calc_stage import TSPEnergyCalcStage
 from ising.stages.simulation_stage import SimulationStage
 from ising.stages.initialization_stage import InitializationStage
+from ising.stages.quantization_stage import QuantizationStage
+from ising.stages.npmos_stage import NpmosStage
 
 def get_hamiltonian_energy(
     create_dummy_problem: bool = False,
@@ -53,6 +55,8 @@ def get_hamiltonian_energy(
     stages = [
         ConfigParserStage,  # Parses the configuration file
         parser_stage,  # Parses the specific problem into an Ising graph model
+        NpmosStage,  # Injects NMOS/PMOS imbalance if needed
+        QuantizationStage,  # Quantizes the Ising model if needed
         energy_calc_stage,  # Calculates the energy for the problems
         SimulationStage,  # Runs the simulation on the Ising model
         InitializationStage,  # Initializes the Ising spins and model

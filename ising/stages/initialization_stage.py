@@ -22,7 +22,11 @@ class InitializationStage(Stage):
     def run(self) -> Any:
         """! Initialize the Ising spins and models."""
 
-        LOGGER.info(f"Initialization stage for trail {self.trail_id}.")
+        LOGGER.debug(f"Initialization stage for trail {self.trail_id}.")
+        initialization_seed = self.config.initialization_seed
+        if initialization_seed is not None:
+            np.random.seed(initialization_seed + self.trail_id)
+            LOGGER.debug(f"Setting random seed to {initialization_seed + self.trail_id}.")
         self.initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
         self.ising_model = self.ising_model.copy()  # Placeholder for any model-specific initialization
-        yield self.initial_state, self.ising_model
+        return self.initial_state, self.ising_model
