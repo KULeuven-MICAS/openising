@@ -123,57 +123,6 @@ class Multiplicative(SolverBase):
             previous_voltages = new_voltages.copy()
         return np.sign(new_voltages[:model.num_variables]), energy
 
-    def mosfet(self, voltage:np.ndarray ):
-        pass
-
-    def dvdt(
-        self,
-        t: float,
-        vt: np.ndarray,
-        coupling: np.ndarray,
-        frozen_nodes: np.ndarray | None = None,
-    ):
-        """Differential equations for the multiplicative BRIM model when flipping is involved.
-
-        Args:
-            t (float): time
-            vt (np.ndarray): current voltages
-            coupling (np.ndarray): coupling matrix J
-
-        Returns:
-            dv (np.ndarray): the change of the voltages
-        """
-
-        # set bias node to 1.
-        if self.bias:
-            vt[-1] = 1.0
-
-        # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(coupling,  np.sign(vt)))
-
-        # Ensure the voltages stay in the range [-1, 1]
-        cond1 = (dv > 0) & (vt >= 1)
-        cond2 = (dv < 0) & (vt <= -1)
-        dv *= np.where(cond1 | cond2, 0.0, 1.0)
-
-        if frozen_nodes is not None:
-            dv[frozen_nodes] = 0.0
-
-        # Ensure the bias node does not change
-        if self.bias:
-            dv[-1] = 0.0
-        return dv
-
-    def noise(self, Temp: float, voltages: np.ndarray):
-        if Temp != 0.0:
-            noise = Temp * (np.random.normal(scale=1 / 1.96, size=voltages.shape))
-            cond1 = (voltages >= 1) & (noise > 0)
-            cond2 = (voltages <= -1) & (noise < 0)
-            noise *= np.where(cond1 | cond2, 0.0, 1.0)
-        else:
-            noise = np.zeros_like(voltages)
-        return noise
-
     def solve(
         self,
         model: IsingModel,
