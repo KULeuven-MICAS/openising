@@ -12,6 +12,7 @@ from ising.solvers.SA import SASolver
 from ising.solvers.DSA import DSASolver
 from ising.solvers.Multiplicative import Multiplicative
 from ising.utils.helper_functions import return_rx
+from ising.utils.numpy import triu_to_symm
 
 
 def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
@@ -92,20 +93,6 @@ def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:
         return benchmarks[part*percentage:]
     else:
         return benchmarks[part*percentage:(part+1)*percentage]
-
-def return_rx(num_iter: int, r_init: float, r_final: float) -> float:
-    """Returns the change rate of SA/SCA hyperparameters
-
-    Args:
-        num_iter (int): amount of iterations.
-        r_init (float): the initial value of the hyperparameter.
-        r_final (float): the end value of the hyperparameter.
-
-    Returns:
-        float: the change rate of the hyperarameter.
-    """
-    return (r_final / r_init) ** (1 / (num_iter + 1))
-
 
 def return_c0(model: IsingModel) -> float:
     """Returns the optimal c0 value for simulated bifurcation.
