@@ -1,10 +1,8 @@
 import numpy as np
 import pathlib
 import time
-from numpy.random import MT19937, Generator
-from collections.abc import Callable
 
-# from ising.flow import LOGGER
+from ising.flow import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -16,50 +14,33 @@ class Multiplicative(SolverBase):
     def __init__(self):
         self.name = "Multiplicative"
 
-    def do_spinflip(self, state: np.ndarray):
-        # Generate random numbers
-        rnd_v = self.rng_(state.shape)
-
-        # Select nodes for spin flip
-        self.chosen_nodes = rnd_v < self.p
-
-        if self.bias:
-            self.chosen_nodes[-1] = False
-
-        # Apply spin flip
-        absv = np.where(state > 0, -1, np.where(state < 0, 1, 0))
-        self.flip_value = np.where(self.chosen_nodes, absv, 0.0)
-
-        # Update statistics
-        self.tot_sfs += np.sum(self.chosen_nodes)
-        self.p += self.scale * self.sf_freq
-
-    def set_params(self, resistance: float, capacitance: float, mu_param: float):
+    def set_params(self,
+                   dt: float,
+                   num_iterations: int,
+                   resistance: float,
+                   capacitance: float,
+                   frozen_nodes: np.ndarray | None,
+                   stop_criterion: float,
+                   initial_temp_cont: float,
+                   end_temp_cont: float,
+                   coupling:np.ndarray):
         """Set the parameters for the solver.
 
         Args:
             resistance (float): the resistance of the system.
             capacitance (float): the capacitance of the system.
-            mu_param (float): the mu parameter for the ZIV diode.
+            frozen_nodes (np.ndarray | None): the nodes that are frozen.
+            stop_criterion (float): the stopping criterion to stop the solver when the voltages stagnate.
         """
+        self.dt = dt
+        self.num_iterations = num_iterations
         self.resistance = resistance
         self.capacitance = capacitance
-        self.mu_param = mu_param
-
-    def set_spinflip(self, N: int, num_iterations: int, initial_prob: float, seed: int, flipping_freq: int):
-        self.flip_value = np.zeros((N + int(self.bias),))
-        self.chosen_nodes = np.full((N + int(self.bias),), False)
-        self.tot_sfs = 0
-        self.count = 0
-        self.sh_iters = 10
-        self.p0 = initial_prob
-        self.p1 = 2e-7
-        self.p = self.p0
-        self.scale = ((self.p1 - self.p0) / float(num_iterations - 1)) if num_iterations > 1 else 0
-        self.sf_freq = int(1 / flipping_freq)
-
-        self.generator = Generator(MT19937(seed=seed))
-        self.rng_: Callable = lambda size: self.generator.uniform(0, 1, size)
+        self.frozen_nodes = frozen_nodes
+        self.stop_criterion = stop_criterion
+        self.initial_temp_cont = initial_temp_cont
+        self.end_temp_cont = end_temp_cont
+        self.coupling = coupling
 
     def mosfet(self, voltage:np.ndarray ):
         pass
@@ -68,8 +49,6 @@ class Multiplicative(SolverBase):
         self,
         t: float,
         vt: np.ndarray,
-        coupling: np.ndarray,
-        frozen_nodes: np.ndarray | None = None,
     ):
         """Differential equations for the multiplicative BRIM model when flipping is involved.
 
@@ -81,21 +60,19 @@ class Multiplicative(SolverBase):
         Returns:
             dv (np.ndarray): the change of the voltages
         """
-
         # set bias node to 1.
         if self.bias:
             vt[-1] = 1.0
 
         # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(coupling,  np.sign(vt)))
+        dv = 1 / self.capacitance * (np.dot(self.coupling,  np.sign(vt)))
 
-        # Ensure the voltages stay in the range [-1, 1]
-        cond1 = (dv > 0) & (vt >= 1)
-        cond2 = (dv < 0) & (vt <= -1)
-        dv *= np.where(cond1 | cond2, 0.0, 1.0)
+        # Clip voltages efficiently
+        mask = ((dv > 0) & (vt >= 1)) | ((dv < 0) & (vt <= -1))
+        dv[mask] = 0.0
 
-        if frozen_nodes is not None:
-            dv[frozen_nodes] = 0.0
+        if self.frozen_nodes is not None:
+            dv[self.frozen_nodes] = 0.0
 
         # Ensure the bias node does not change
         if self.bias:
@@ -111,6 +88,51 @@ class Multiplicative(SolverBase):
         else:
             noise = np.zeros_like(voltages)
         return noise
+
+    def inner_loop(self,
+                   model:IsingModel,
+                   state: np.ndarray,
+                   log: HDF5Logger):
+        # Set up the simulation
+        i = 0
+        tk = 0
+        max_change = np.inf
+        Temp = self.initial_temp_cont if self.initial_temp_cont < 1.0 else 0.5
+        cooling_rate = (
+            return_rx(self.num_iterations, self.initial_temp_cont, self.end_temp_cont) if self.initial_temp_cont != 0.0
+                                                                                    else 1.0
+        )
+        previous_voltages = state.copy()
+        energy = model.evaluate(np.sign(state[:model.num_variables]))
+
+        log.log(time_clock=0.0, energy=energy, state=np.sign(state), voltages=state)
+
+        norm_prev = np.linalg.norm(previous_voltages, ord=np.inf)
+        while i < self.num_iterations and max_change > self.stop_criterion:
+            k1 = self.dt * self.dvdt(tk, previous_voltages)
+            k2 = self.dt * self.dvdt(tk + self.dt, previous_voltages + k1)
+            k3 = self.dt * self.dvdt(tk + 0.5 * self.dt, previous_voltages + 0.25 * (k1 + k2))
+
+            noise = self.noise(Temp, previous_voltages)
+            new_voltages = previous_voltages + (k1 + k2 + 4.0 * k3) / 6.0 + noise
+            Temp *= cooling_rate
+            tk += self.dt
+            i += 1
+
+            # Log everything
+            sample = np.sign(new_voltages[:model.num_variables])
+            energy = model.evaluate(sample)
+            # if i % 10000 == 0:
+            #     LOGGER.info(energy)
+            log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:model.num_variables])
+
+            # Only compute norm if needed
+            if i > 0:
+                diff = np.abs(new_voltages - previous_voltages)
+                max_change = np.max(diff) / (norm_prev if norm_prev != 0 else 1)
+                norm_prev = np.linalg.norm(new_voltages, ord=np.inf)
+            previous_voltages = new_voltages.copy()
+        return np.sign(new_voltages[:model.num_variables]), energy
 
     def solve(
         self,
@@ -150,10 +172,6 @@ class Multiplicative(SolverBase):
         Returns:
             tuple[np.ndarray, float]: the best energy and the best sample.
         """
-        # Set up the time evaluations
-        tend = dtMult * num_iterations
-
-        self.set_params(resistance, capacitance, mu_param)
 
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
@@ -165,8 +183,16 @@ class Multiplicative(SolverBase):
 
         # Ensure the mean and variance of J are reasonable
         alpha = 1.
-        J = alpha * triu_to_symm(new_model.J) * 1 / self.resistance
+        coupling = alpha * triu_to_symm(new_model.J) * 1 / resistance
 
+        # Set the parameters for easy calling
+        self.set_params(dtMult,
+                        num_iterations,
+                        resistance, capacitance,
+                        frozen_nodes,
+                        stop_criterion,
+                        initial_temp_cont, end_temp_cont,
+                        coupling)
 
         # make sure the correct random seed is used
         if seed == 0:
@@ -174,14 +200,18 @@ class Multiplicative(SolverBase):
         np.random.seed(seed)
 
         # Set up the bias node and add noise to the initial voltages
-        N = model.num_variables
+        num_var = model.num_variables
         if self.bias:
-            v = np.block([initial_state, 1.0])
+            v = np.empty(num_var + 1, dtype=np.float32)
+            v[:-1] = initial_state
+            v[-1] = 1.0
         else:
-            v = initial_state
+            v = initial_state.astype(np.float32, copy=True)
 
         # Schema for logging
-        schema = {"time_clock": float, "energy": np.float32, "state": (np.int8, (N,)), "voltages": (np.float32, (N,))}
+        schema = {"time_clock": float, "energy": np.float32,
+                  "state": (np.int8, (num_var,)),
+                  "voltages": (np.float32, (num_var,))}
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
@@ -192,50 +222,7 @@ class Multiplicative(SolverBase):
                 time_step=dtMult,
                 temperature=initial_temp_cont,
             )
-
-            # Set up the simulation
-            i = 0
-            max_change = np.inf
-            Temp = initial_temp_cont if initial_temp_cont < 1.0 else 0.5
-            cooling_rate = (
-                return_rx(num_iterations, initial_temp_cont, end_temp_cont) if initial_temp_cont != 0.0 else 1.0
-            )
-            previous_voltages = np.copy(v)
-            energy = model.evaluate(np.sign(initial_state))
-
-            log.log(time_clock=0.0, energy=energy, state=np.sign(initial_state), voltages=initial_state)
-            while i < num_iterations or max_change <= stop_criterion:
-                tk = i * dtMult
-                k1 = dtMult * self.dvdt(tk, previous_voltages, J, frozen_nodes)
-                k2 = dtMult * self.dvdt(tk + dtMult, previous_voltages + k1, J, frozen_nodes)
-                k3 = dtMult * self.dvdt(tk + 1 / 2 * dtMult, previous_voltages + 1 / 4 * (k1 + k2), J, frozen_nodes)
-
-                noise = self.noise(Temp, previous_voltages)
-                new_voltages = previous_voltages + 1.0 / 6.0 * (k1 + k2 + 4.0 * k3) + noise
-                Temp *= cooling_rate
-                tk += dtMult
-                i += 1
-
-                # Log everything
-                sample = np.sign(new_voltages[:N])
-                energy = model.evaluate(sample)
-                log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
-
-                # if i % 1000 == 0:
-                #     LOGGER.info(f"Iteration {i} - time {tk:.2e} - energy {energy:.2f} - total flips {self.tot_sfs}")
-
-                # Update the criterion changes
-                if i > 0:
-                    max_change = np.linalg.norm(new_voltages - previous_voltages, ord=np.inf) / np.linalg.norm(
-                        previous_voltages, ord=np.inf
-                    )
-                previous_voltages = np.copy(new_voltages)
-            # LOGGER.info(f"Done at iteration {i} with energy {energy:.2f}")
-            # Make sure to log to the last iteration if the stop criterion is reached
-            # if max_change < stop_criterion:
-            #     for j in range(i, num_iterations):
-            #         tk += dtMult
-            #         log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
-
-            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=tend)
+            sample, energy = self.inner_loop(model, v, log)
+            # LOGGER.info(f"Finished with energy: {energy}")
+            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=dtMult*num_iterations)
         return sample, energy
