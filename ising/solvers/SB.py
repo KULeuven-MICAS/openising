@@ -30,9 +30,6 @@ class SB(SolverBase):
     def at(self, t, a0, dt, num_iterations) -> float:
         return a0 / (dt*num_iterations) * t
 
-    def cast_to_values(self, casted_values, actual_values):
-        return np.array([actual_values[np.argmin(np.abs(actual_values - xi))] for xi in casted_values])
-
     @abstractmethod
     def solve(self, model: IsingModel):
         pass
@@ -52,8 +49,6 @@ class ballisticSB(SB):
         dtSB:           float,
         a0:             float = 1.0,
         file:           pathlib.Path | None = None,
-        bit_width_x:      int = 8,
-        bit_width_y:      int = 8,
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -78,8 +73,6 @@ class ballisticSB(SB):
         N  = model.num_variables
 
         # Set up the model and initial states with the correct data type
-        # x_values        = np.linspace(-1, 1, 2**(bit_width_x)-1)
-        # y_values        = np.linspace(-1, 1, 2**(bit_width_y)-1)
         J             = np.array(triu_to_symm(model.J), dtype=np.float32)
         h             = np.array(model.h)
         initial_state = np.array(initial_state)
@@ -111,9 +104,7 @@ class ballisticSB(SB):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 *  h) * dtSB
-                # y = self.cast_to_values(y, y_values)
                 x += self.update_x(y, dtSB, a0)
-                # x = self.cast_to_values(x, x_values)
 
                 y = np.where(np.abs(x) >= 1, 0, y)
                 x = np.where(np.abs(x) >= 1, np.sign(x), x)
