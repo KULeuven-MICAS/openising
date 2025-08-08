@@ -70,9 +70,11 @@ The config file is written in YAML. It must has the following parameters:
 
 ## Extra note
 
+## Extra note
+
 Once NpmosStage is used, the following parameters are required:
 
-**offset_type:** [str] whether to scale up the negative or positive J and h. Options: negative or positive or others.
+**offset_type:** [str] whether to scale up the negative or positive J and h. No scaling if the type is neither. Options: negative or positive or others.
 
 **offset_ratio:** [positive float] the scaling ratio once offset_type is negative or positive. Not used if offset_type is others.
 
@@ -89,3 +91,15 @@ Once NoiseStage is used, the following parameters are required:
 Besides, the following parameters will be added within returned ans:
 
 **noisy_model:** [IsingModel] the Ising model with injected noise.
+
+Once QuantizationStage is used, the following parameters are required:
+
+**quantization:** [bool] if turn on the QuantizationStage. OPtions: True or False.
+
+**quantization_precision:** [positive int] the targeted quantization precision.
+
+Besides, the following parameters will be added within returned ans:
+
+**quantized_model:** [IsingModel] the Ising model after quantization.
+
+**original_required_int_precision:** [int] the J precision required in the Ising model without quantization (h is not quantized).

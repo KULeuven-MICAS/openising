@@ -1,6 +1,7 @@
 import numpy as np
 import pathlib
 from abc import abstractmethod
+import copy
 
 from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
@@ -52,7 +53,7 @@ class ballisticSB(SB):
         dtSB:           float,
         a0:             float = 1.0,
         file:           pathlib.Path | None = None,
-        bit_width:      int = 16
+        bit_width:      int = 64
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -82,8 +83,8 @@ class ballisticSB(SB):
         J             = np.array(triu_to_symm(model.J), dtype=dtype)
         h             = np.array(model.h, dtype=dtype)
         initial_state = np.array(initial_state, dtype=dtype)
-        x             = 1.0 * np.ones_like(initial_state)
-        y             = 1.*np.ones_like(x, dtype=dtype)
+        x             = copy.deepcopy(initial_state)
+        y             = 0.1 * initial_state
 
         # Cast all the variables to the correct data type
         dtSB = dtype(dtSB)
