@@ -2,14 +2,13 @@ import numpy as np
 import pathlib
 import time
 
-from ising.flow import LOGGER
+from ising.stages import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
 from ising.utils.helper_functions import return_rx
 from ising.utils.numba_functions import dvdt_solver
-
 
 class Multiplicative(SolverBase):
     def __init__(self):
@@ -76,7 +75,10 @@ class Multiplicative(SolverBase):
             noise = np.zeros_like(voltages)
         return noise
 
-    def inner_loop(self, model: IsingModel, state: np.ndarray, log: HDF5Logger):
+    def inner_loop(self,
+                   model:IsingModel,
+                   state: np.ndarray,
+                   log: HDF5Logger):
         # Set up the simulation
         i = 0
         tk = 0
@@ -119,7 +121,7 @@ class Multiplicative(SolverBase):
                 max_change = np.max(diff) / (norm_prev if norm_prev != 0 else 1)
                 norm_prev = np.linalg.norm(new_voltages, ord=np.inf)
             previous_voltages = new_voltages.copy()
-        return np.sign(new_voltages[: model.num_variables]), energy, count
+        return np.sign(new_voltages[:model.num_variables]), energy
 
     def solve(
         self,

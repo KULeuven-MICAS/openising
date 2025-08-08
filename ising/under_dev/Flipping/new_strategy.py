@@ -23,7 +23,6 @@ from ising.under_dev.Flipping.plotting import plot_data, make_bar_plot
 np.random.seed(1)
 NICENESS = 0
 
-
 def do_flipping(cluster_size_init:int, cluster_size_end:int, sigma_init:np.ndarray,cluster_threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str=""):
     sigma = sigma_init.copy()
     energies = []
