@@ -72,7 +72,7 @@ def QKP_parser(benchmark:pathlib.Path | str) -> tuple[np.ndarray, np.ndarray, fl
                 elif parts[0] == str(0) + "\n":
                     # After the profit matrix there is an empty line. Use this to set the capacity part to True.
                     capacity_part = True
-    best_found = get_optim_value(benchmark, TOP / "ising/benchmarks/Knapsack/optimal_energy.txt")
+    best_found = -get_optim_value(benchmark, TOP / "ising/benchmarks/Knapsack/optimal_energy.txt")
     return profit, weights, capacity, best_found
 
 
