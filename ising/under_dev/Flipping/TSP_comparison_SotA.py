@@ -14,7 +14,7 @@ from ising.under_dev import TSPParser
 from ising.generators.TSP import TSP
 from ising.generators.MIMO import MIMO_to_Ising, MU_MIMO
 
-save_path = TOP / "ising/under_dev/Flipping/9M_results"
+save_path = TOP / "ising/under_dev/Flipping"
 
 def run_benchmark_TSP(benchmark_name:str)->None:
     graph, _ = TSPParser.TSP_parser(TOP / f"ising/benchmarks/TSP/{benchmark_name}.tsp")
