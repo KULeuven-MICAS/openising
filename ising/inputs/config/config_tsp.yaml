@@ -41,11 +41,6 @@ fig_name: .png
 # Parameters for TSP
 weight_constant: 1.0
 
-# Parameters for MIMO
-SNR: None
-Nt: 2
-Nr: 2
-M: 4
 
 # Parameters for Multiplicative
 dtMult: 0.01

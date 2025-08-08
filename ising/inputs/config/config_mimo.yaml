@@ -35,6 +35,12 @@ fig_name: .png
 ## Low-level hyperparameters
 #################################
 
+# Parameters for MIMO
+SNR: None
+Nt: 2
+Nr: 2
+M: 4
+
 # Parameters for Multiplicative
 dtMult: 0.01
 T_cont: 0.05
