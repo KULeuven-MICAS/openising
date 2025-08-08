@@ -33,11 +33,6 @@ def dvdt_solver(
     mask = ((dv > 0) & (vt >= 1)) | ((dv < 0) & (vt <= -1))
     dv[mask] = 0.0
 
-    # if frozen_nodes is not None:
-    #     for frozen_node in frozen_nodes:
-    #         dv[frozen_node] = 0.0
-    #     # dv[frozen_nodes] = 0.0
-
     # Ensure the bias node does not change
     if bias == 1:
         dv[-1] = 0.0

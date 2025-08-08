@@ -1,9 +1,7 @@
 import numpy as np
 import pathlib
 import time
-from numba import guvectorize, float32
 
-from ising.flow import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -61,24 +59,6 @@ class Multiplicative(SolverBase):
         Returns:
             dv (np.ndarray): the change of the voltages
         """
-        # # set bias node to 1.
-        # if self.bias:
-        #     vt[-1] = 1.0
-
-        # # Compute the voltage change dv
-        # dv = 1 / self.capacitance * (np.dot(self.coupling,  np.sign(vt)))
-
-        # # Clip voltages efficiently
-        # mask = ((dv > 0) & (vt >= 1)) | ((dv < 0) & (vt <= -1))
-        # dv[mask] = 0.0
-
-        # if self.frozen_nodes is not None:
-        #     dv[self.frozen_nodes] = 0.0
-
-        # # Ensure the bias node does not change
-        # if self.bias:
-        #     dv[-1] = 0.0
-        # # return dv
         t = np.float32(t)
         vt = vt.astype(np.float32)
         coupling = self.coupling.astype(np.float32)
