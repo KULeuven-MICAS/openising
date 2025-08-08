@@ -3,7 +3,8 @@ import pathlib
 
 from ising.flow import TOP, LOGGER
 from ising.generators.MIMO import MU_MIMO, MIMO_to_Ising
-from ising.utils.flow import return_c0, return_q, return_rx, make_directory, parse_hyperparameters, run_solver
+from ising.utils.flow import parse_hyperparameters, run_solver
+from ising.utils.helper_functions import return_q, return_rx, return_c0, make_directory
 from ising.utils.HDF5Logger import HDF5Logger, return_metadata
 from ising.generators.MIMO import compute_difference
 from ising.solvers.Gurobi import Gurobi
@@ -28,7 +29,7 @@ def test_MIMO(SNR_list, solvers, args):
         change_c = True
     else:
         change_c = False
-
+    orig_seed = hyperparameters["seed"]
     logtop = TOP / "ising/flow/MIMO/logs"
     LOGGER.debug(f"Logtop: {logtop}")
     make_directory(logtop)
@@ -36,8 +37,10 @@ def test_MIMO(SNR_list, solvers, args):
     for SNR in SNR_list:
         LOGGER.info(f"running for SNR {SNR}")
         for run in range(nb_runs):
+            hyperparameters["seed"] = orig_seed + run
+            np.random.seed(hyperparameters["seed"])
             x = np.random.choice(symbols, (Nt,)) + 1j*np.random.choice(symbols, (Nt,))
-            model, xtilde = MIMO_to_Ising(H, x, SNR, Nr, Nt, M, hyperparameters["seed"])
+            model, xtilde, transfo = MIMO_to_Ising(H, x, SNR, Nr, Nt, M, hyperparameters["seed"])
 
             if use_gurobi:
                 gurobi_file = logtop / f"Gurobi_SNR{SNR}_run{run}.log"
@@ -51,7 +54,7 @@ def test_MIMO(SNR_list, solvers, args):
             current_logfiles = [logtop / f"{solver}_SNR{SNR}_run{run}.log" for solver in solvers]
 
             for solver in solvers:
-                s_init = np.random.choice([-1, 1], (model.num_variables,))
+                s_init = np.random.uniform(-1, 1, (model.num_variables,))
                 logfile = logtop / f"{solver}_SNR{SNR}_run{run}.log"
                 run_solver(
                     solver,

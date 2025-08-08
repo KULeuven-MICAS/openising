@@ -34,32 +34,21 @@ fig_name: .png
 #################################
 ## Low-level hyperparameters
 #################################
-# Parameters for TSP
-weight_constant: 1.0
-
-# Parameters for MIMO
-SNR: None
-Nt: 2
-Nr: 2
-M: 4
 
 # Parameters for Multiplicative
 dtMult: 0.01
 T_cont: 0.05
 T_final_cont: 0.0005
-coupling_annealing: False
 resistance: 1
 flipping: 1
 flipping_freq: 1
 flipping_prob: 1
-mu_param: 1
+mu_param: -3.55
 capacitance: 1
 
 # Parameters for BRIM
 dtBRIM: 1e-6  # 10us
-C: 1
 stop_criterion: 1e-6  # 1uV
-noise: 0.05
 
 # Parameters for SA
 T: 50.0

@@ -4,14 +4,15 @@ import sys
 
 
 from ising.flow import LOGGER, TOP
-from ising.benchmarks.parsers.G import get_optim_value
+from ising.utils.parser import get_optim_value
 from ising.postprocessing.energy_plot import (
     plot_energy_dist_multiple_solvers,
-    plot_relative_error,
     plot_energies_multiple,
 )
+from ising.postprocessing.summarize_energies import summary_energies
 from ising.postprocessing.plot_solutions import plot_state
-from ising.utils.flow import make_directory, compute_list_from_arg
+from ising.utils.flow import compute_list_from_arg
+from ising.utils.helper_functions import make_directory
 from ising.utils.HDF5Logger import get_Gurobi_data
 
 # Defining all arguments
@@ -23,7 +24,7 @@ parser.add_argument("--iter_list", help="Number of iterations", default=None, na
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-use_gurobi", help="whether Gurobi was used", default=False)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
-parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy.png")
+parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy")
 
 # Parsing the arguments
 args = parser.parse_args()
@@ -39,7 +40,7 @@ nb_runs = int(args.nb_runs)
 
 # Defining the top paths and list for the logfiles
 logfiles = []
-logtop = TOP / "ising/flow/MaxCut/logs"
+logtop = TOP / "ising/outputs/Maxcut/logs"
 figtop = TOP / "ising/flow/MaxCut/plots" / args.fig_folder
 make_directory(figtop)
 fig_name = str(args.fig_name)
@@ -58,7 +59,9 @@ if args.benchmark is not None:
     iter_list = compute_list_from_arg(num_iter, 100)
 
     # Get the best found of the benchmark
-    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt")
+    best_found = get_optim_value(
+        benchmark=TOP / f"ising/benchmarks/G/{benchmark}.txt", optim_file=TOP / "ising/benchmarks/G/optimal_energy.txt"
+    )
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
@@ -73,7 +76,7 @@ if args.benchmark is not None:
                     plot_state(
                         solver,
                         logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log",
-                        f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png",
+                        f"{solver}_benchmark{benchmark}_state_iter{num_iter}",
                         figtop=figtop,
                     )
 
@@ -84,19 +87,10 @@ if args.benchmark is not None:
             save_folder=figtop,
         )
         logfiles += new_logfiles
-    if best_found is not None:
-        best_found = np.ones((len(iter_list),)) * best_found
 
-    if best_found is not None:
-        LOGGER.info("Plotting relative error")
-        plot_relative_error(
-            logfiles,
-            best_found,
-            x_label="num_iterations",
-            save_folder=figtop,
-            fig_name=f"{benchmark}_relative_error_{fig_name}",
-        )
-        LOGGER.info("Done plotting relative error")
+    make_directory(figtop / "summary_energies")
+    summary_energies(logfiles, figtop / "summary_energies")
+
 
 elif args.N_list is not None:
     LOGGER.info("Problem size logs are plotted")
@@ -113,7 +107,7 @@ elif args.N_list is not None:
                 logfile = logtop / f"{solver}_N{N}_run{run}.log"
                 new_logfiles.append(logfile)
             if run == nb_runs - 1:
-                plot_state(solver, logfile, f"{solver}_N{N}.png", figtop)
+                plot_state(solver, logfile, f"{solver}_N{N}", figtop)
         if use_gurobi:
             best_found.append(logtop / f"Gurobi_N{N}.log")
         plot_energies_multiple(
@@ -130,17 +124,17 @@ elif args.N_list is not None:
     else:
         best_found = np.array(get_Gurobi_data(best_found))
 
+    plot_energy_dist_multiple_solvers(
+        logfiles,
+        best_found=best_found,
+        best_Gurobi=None,
+        xlabel="problem_size",
+        save_folder=figtop,
+        figName=f"size_comparison_{fig_name}",
+    )
+
 else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
 
-LOGGER.info("Plotting energy distribution")
-plot_energy_dist_multiple_solvers(
-    logfiles,
-    best_found=best_found,
-    best_Gurobi=None,
-    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
-)
 LOGGER.info("figures plotted succesfully")

@@ -5,8 +5,9 @@ import numpy as np
 
 from ising.postprocessing.helper_functions import return_metadata
 
+
 def plot_graph_solution(
-    fileName: pathlib.Path, G_orig: nx.DiGraph, fig_name: str, save: bool = True, save_folder: pathlib.Path = "."
+    fileName: pathlib.Path, G_orig: nx.DiGraph, figName: str, save: bool = True, save_folder: pathlib.Path = "."
 ):
     """Plots the solution state of a TSP problem.
 
@@ -23,13 +24,13 @@ def plot_graph_solution(
 
     red_edges = []
     nodes_in_path = []
-    path = [None]*N
+    path = [None] * N
     sub_state = solution_state.reshape((N, N))
     for city in range(N):
         city_state = sub_state[:, city]
-        if np.any(city_state==1):
-            nodes_in_path.append(city+1)
-        ind = np.where(city_state==1)[0]
+        if np.any(city_state == 1):
+            nodes_in_path.append(city + 1)
+        ind = np.where(city_state == 1)[0]
         if ind.size != 0:
             path[ind[0]] = city + 1
 
@@ -38,22 +39,22 @@ def plot_graph_solution(
         city1 = path[i]
         if i == 0:
             first_city = city1
-        city2 = path[(i+1) if i+1 < N else 0]
+        city2 = path[(i + 1) if i + 1 < N else 0]
         if G_orig.has_edge(city1, city2):
             red_edges.append((city1, city2))
             red_edges.append((city2, city1))
-    black_edges = [(i, j) for (i, j) in G_orig.edges() if (i, j) not in red_edges and i!= j]
-    pos = nx.spring_layout(G_orig, k=5/np.sqrt(G_orig.order()), seed=1)
+    black_edges = [(i, j) for (i, j) in G_orig.edges() if (i, j) not in red_edges and i != j]
+    pos = nx.spring_layout(G_orig, k=5 / np.sqrt(G_orig.order()), seed=1)
 
     plt.figure()
-    nx.draw_networkx_nodes(G_orig, pos, nodelist=list(range(1, N+1)), node_color="b")
+    nx.draw_networkx_nodes(G_orig, pos, nodelist=list(range(1, N + 1)), node_color="b")
     nx.draw_networkx_nodes(G_orig, pos, nodelist=nodes_in_path, node_color="r")
     if first_city != -1:
         nx.draw_networkx_nodes(G_orig, pos, nodelist=[first_city], node_color="g")
     nx.draw_networkx_edges(G_orig, pos, edgelist=red_edges, edge_color="r", connectionstyle="arc3,rad=0.1")
     nx.draw_networkx_edges(G_orig, pos, edgelist=black_edges, edge_color="k", connectionstyle="arc3,rad=0.1")
-    nx.draw_networkx_labels(G_orig, pos, labels={i: i for i in range(1, N+1)})
+    nx.draw_networkx_labels(G_orig, pos, labels={i: i for i in range(1, N + 1)})
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
-        plt.savefig(f"{save_folder}/{fig_name}")
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()

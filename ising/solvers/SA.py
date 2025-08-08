@@ -6,7 +6,6 @@ import numpy as np
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
-from ising.utils.clock import clock
 
 
 class SASolver(SolverBase):
@@ -24,8 +23,6 @@ class SASolver(SolverBase):
         cooling_rate: float,
         seed: int | None = None,
         file: pathlib.Path | None = None,
-        clock_freq: float = 1e6,
-        clock_op: int = 1000,
     ) -> tuple[np.ndarray, float]:
         """
         Perform optimization using the classical simulated annealing algorithm.
@@ -52,14 +49,12 @@ class SASolver(SolverBase):
         if seed is None:
             seed = int(time.time() * 1000)
         random.seed(seed)
-        clocker = clock(frequency=clock_freq, nb_operations=clock_op)
 
         # Set up schema and metadata for logging
         schema = {
             "energy": np.float32,  # Scalar float
             "state": (np.int8, (model.num_variables,)),  # Vector of int8 (to hold -1 and 1)
             "change_state": np.bool_,  # Scalar boolean
-            "time_clock": float,
         }
 
         # Initialize logger
@@ -78,8 +73,6 @@ class SASolver(SolverBase):
             T = initial_temp
             state = np.sign(initial_state)
             energy = model.evaluate(state)
-            clocker.add_operations(2 * model.num_variables**2)
-            clocker.perform_operations()
             for _ in range(num_iterations):
                 # Select a random node to flip
                 node = random.randrange(0, model.num_variables)
@@ -89,18 +82,14 @@ class SASolver(SolverBase):
 
                 # Evaluate the new energy
                 energy_new = model.evaluate(state)
-                clocker.add_cycles(1 + np.log2(model.num_variables))
 
                 delta = energy_new - energy
-                clocker.add_operations(1)
 
                 # Determine whether to accept the new state (Metropolis)
                 change_state = delta < 0 or random.random() < np.exp(-delta / T)
-                clocker.add_operations(5)
 
                 # Log current iteration data
-                current_time = clocker.perform_operations()
-                logger.log(energy=energy_new, state=state, change_state=change_state, time_clock=current_time)
+                logger.log(energy=energy_new, state=state, change_state=change_state)
 
                 # Update the state and energy if the new state is accepted
                 if change_state:
@@ -110,20 +99,16 @@ class SASolver(SolverBase):
 
                 # Decrease the temperature
                 T = cooling_rate * T
-                clocker.add_operations(1)
-                clocker.perform_operations()
 
             # Log the final result
-            current_time = clocker.perform_operations()
             # logger.log(energy=energy_new, state=state, change_state=change_state, time_clock=current_time)
-            final_time = clocker.get_time()
             nb_operations = (
                 num_iterations * (3 * model.num_variables**2 + 2 * model.num_variables + 8)
                 + 3 * model.num_variables**2
                 + 2 * model.num_variables
             )
             logger.write_metadata(
-                solution_state=state, solution_energy=energy, total_time=final_time, total_operations=nb_operations
+                solution_state=state, solution_energy=energy, total_operations=nb_operations
             )
 
         return state, energy

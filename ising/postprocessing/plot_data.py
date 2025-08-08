@@ -3,7 +3,7 @@ import pathlib
 
 from ising.postprocessing.helper_functions import return_data, return_metadata
 
-def plot_data(logfile:pathlib.Path, data_name:str, fig_name:str, save:bool=True, save_folder:pathlib.Path='.'):
+def plot_data(logfile:pathlib.Path, data_name:str, figName:str, save:bool=True, save_folder:pathlib.Path='.'):
     """PLots a certain logged data over the iterations.
 
     Args:
@@ -23,5 +23,5 @@ def plot_data(logfile:pathlib.Path, data_name:str, fig_name:str, save:bool=True,
     plt.ylabel(data_name)
     plt.title(f"{data_name} over iterations")
     if save:
-        plt.savefig(save_folder / fig_name)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()

@@ -6,7 +6,6 @@ import numpy as np
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
-from ising.utils.clock import clock
 
 
 class DSASolver(SolverBase):
@@ -24,8 +23,6 @@ class DSASolver(SolverBase):
         cooling_rate: float,
         seed: int | None = None,
         file: pathlib.Path | None = None,
-        clock_freq: float = 1e6,
-        clock_op: int = 1000,
     ) -> tuple[np.ndarray, float]:
         """
         Perform optimization using a variation of the simulated annealing algorithm.
@@ -54,14 +51,12 @@ class DSASolver(SolverBase):
             seed = int(time.time() * 1000)
         random.seed(seed)
 
-        clocker = clock(clock_freq, clock_op)
         # Set up schema and metadata for logging
         schema = {
             "energy": np.float32,  # Scalar float
             "state": (np.int8, (model.num_variables,)),  # Vector of int8 (to hold -1 and 1)
             "change_state": np.bool_,  # Scalar boolean
             "cycle_started": np.bool_,  # Scalar boolean
-            "time_clock": float,
         }
 
         # Initialize logger
@@ -92,13 +87,10 @@ class DSASolver(SolverBase):
 
                     # Evaluate the new energy
                     energy_new = model.evaluate(state)
-                    clocker.add_cycles(1 + np.log2(model.num_variables))
 
                     # Determine whether to accept the new state
                     delta = energy_new - energy
-                    clocker.add_operations(1)
                     change_state = delta < 0 or random.random() < np.exp(-delta / T)
-                    clocker.add_operations(5)
                     # Log current iteration data
 
                     cycle_started = False
@@ -108,12 +100,9 @@ class DSASolver(SolverBase):
                         energy = energy_new
                     else:
                         state[node] = -state[node]  # Revert the flip if the new state is rejected
-                    clocker.perform_operations()
 
                 # Decrease the temperature
                 T = cooling_rate * T
-                clocker.add_operations(1)
-                clock_time = clocker.perform_operations()
 
                 # log information
                 logger.log(
@@ -121,7 +110,6 @@ class DSASolver(SolverBase):
                     state=state,
                     change_state=change_state,
                     cycle_started=cycle_started,
-                    time_clock=clock_time,
                 )
 
             # Log the final result
@@ -130,13 +118,11 @@ class DSASolver(SolverBase):
                 state=state,
                 change_state=change_state,
                 cycle_started=cycle_started,
-                time_clock=clock_time,
             )
-            total_time = clocker.get_time()
             N = model.num_variables
             nb_operations = num_iterations * (3 * N**3 + 2 * N**2 + 8 * N + 1) + 3 * N ** 2 + 2 * N
             logger.write_metadata(
-                solution_state=state, solution_energy=energy, total_time=total_time, total_operations=nb_operations
+                solution_state=state, solution_energy=energy, total_operations=nb_operations
             )
 
         return state, energy

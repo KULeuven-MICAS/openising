@@ -4,8 +4,8 @@ import numpy as np
 
 from ising.flow import TOP, LOGGER
 from ising.generators.TSP import generate_random_TSP
-from ising.flow.TSP.Calculate_TSP_energy import calculate_TSP_energy
-from ising.utils.flow import make_directory, parse_hyperparameters, return_q, return_c0, return_rx, run_solver
+from ising.utils.flow import parse_hyperparameters, run_solver
+from ising.utils.helper_functions import make_directory, return_c0, return_q, return_rx
 from ising.postprocessing.TSP_plot import plot_graph_solution
 from ising.utils.HDF5Logger import return_metadata
 from ising.solvers.Gurobi import Gurobi
@@ -60,7 +60,6 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
         for N in N_list:
             state, energy = Gurobi().solve(model=problems[N], file=logfiles[N])
             LOGGER.info(f"Optimal {state=} with {energy=}")
-            calculate_TSP_energy([logfiles[N]], graphs[N], gurobi=True)
             plot_graph_solution(fileName=logfiles[N], G_orig=graphs[N], save_folder=figtop,
                                 fig_name=f"Gurobi_N{N}_graph_{args.fig_name}")
 
@@ -76,7 +75,6 @@ def run_TSP_dummy(N_list: list[int], solvers: list[str], args: argparse.Namespac
                 logfile = logpath / f"{solver}_N{N}_run{run}.log"
                 s_init = np.random.choice([-1, 1], size=(N**2))
                 run_solver(solver, num_iter, s_init, problems[N], logfile=logfile, **hyperparameters)
-                calculate_TSP_energy(logfiles=[logfile], graph=graphs[N])
                 if run == nb_runs-1:
                     plot_graph_solution(fileName=logfile, G_orig=graphs[N], save_folder=figtop,
                                 fig_name=f"{solver}_N{N}_graph_{args.fig_name}")

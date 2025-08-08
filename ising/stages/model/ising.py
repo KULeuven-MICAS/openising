@@ -5,6 +5,7 @@ import numpy as np
 import h5py
 
 import ising.utils.numpy as npu
+from ising.utils.numba_functions import evaluate_ising
 
 
 class IsingModel:
@@ -178,7 +179,6 @@ class IsingModel:
         new_J = np.block([[self.J, new_h],[np.zeros_like(new_h.T), 0]])
         return IsingModel(new_J, np.zeros(self.num_variables + 1), c=self.c)
 
-
     def evaluate(self, sample: np.ndarray) -> float:
         """
         Compute the Hamiltonian given a sample of spin values.
@@ -189,7 +189,9 @@ class IsingModel:
         Returns:
             float: The calculated Hamiltonian value for the given sample.
         """
-        return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
+        sample = sample.astype(np.float32)
+        return evaluate_ising(sample, self.J.astype(np.float32), self.h.astype(np.float32), np.float32(self.c))
+        # return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
 
     @classmethod
     def from_qubo(cls, Q: np.ndarray) -> IsingModel:
