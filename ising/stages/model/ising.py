@@ -190,8 +190,7 @@ class IsingModel:
             float: The calculated Hamiltonian value for the given sample.
         """
         sample = sample.astype(np.float32)
-
-        return evaluate_ising(sample, self.J.astype(np.float32), self.h.astype(np.float32), self.c.astype(np.float32))
+        return evaluate_ising(sample, self.J.astype(np.float32), self.h.astype(np.float32), np.float32(self.c))
         # return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
 
     @classmethod
