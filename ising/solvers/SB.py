@@ -1,6 +1,7 @@
 import numpy as np
 import pathlib
 from abc import abstractmethod
+import copy
 
 from ising.flow import LOGGER
 from ising.stages.model.ising import IsingModel

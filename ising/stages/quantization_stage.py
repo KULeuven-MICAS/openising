@@ -52,6 +52,7 @@ class QuantizationStage(Stage):
 
     def run(self) -> Any:
         """! Quantize the J of the Ising model."""
+        original_required_int_precision = self.calc_original_precision(self.ising_model.J)
         if self.config.quantization:
             quantization_precision = self.config.quantization_precision
             original_J = self.ising_model.J
@@ -73,6 +74,7 @@ class QuantizationStage(Stage):
         for ans, debug_info in sub_stage.run():
             ans.ising_model = self.ising_model
             ans.quantized_model = quantized_model
+            ans.original_required_int_precision = original_required_int_precision
             for energy_id in range(len(ans.energies)):
                 ans.energies[energy_id] = self.ising_model.evaluate(ans.states[energy_id])
                 if hasattr(ans, "tsp_energies"):
@@ -81,6 +83,33 @@ class QuantizationStage(Stage):
                     else:
                         ans.tsp_energies[energy_id] = ans.energies[energy_id]
             yield ans, debug_info
+
+    def calc_original_precision(self, J: np.ndarray) -> int:
+        """! Calculate the original precision of the J matrix.
+
+        @param J: the input J matrix
+
+        @return: the original required int precision
+        """
+        J_min = int(np.min(J))
+        J_max = int(np.max(J))
+        if (J_min >= 0 and J_max >= 0) or (J_min <= 0 and J_max <= 0):
+            same_sign = True
+        else:
+            same_sign = False
+        if same_sign:
+            # If J has only positive or only negative values, we can calculate the precision
+            # based on the range from 0 to the maximum value.
+            maximum_value = max(abs(J_min), abs(J_max))
+            # The range is (0 to J_max), and we add 1 to ensure we cover the full range.
+            original_required_int_precision = math.ceil(math.log2(maximum_value + 1))
+        else:
+            # If J has both positive and negative values, we need to consider the range
+            # from the minimum to the maximum value.
+            # The range is (J_max - J_min), and we add 1 to ensure we cover the full range.
+            # This is because we need to represent both positive and negative values.
+            original_required_int_precision = math.ceil(math.log2(abs(J_max - J_min) + 1))
+        return original_required_int_precision
 
     def quantize_J_matrix(self, J: np.ndarray, quantization_precision: int | float = 2) -> np.ndarray:
         """! Quantizes the J matrix to a given precision.
@@ -92,7 +121,11 @@ class QuantizationStage(Stage):
         """
         J_min = int(np.min(J))
         J_max = int(np.max(J))
-        original_required_int_precision = math.ceil(math.log2(J_max - J_min))
+        if (J_min >= 0 and J_max >= 0) or (J_min <= 0 and J_max <= 0):
+            same_sign = True
+        else:
+            same_sign = False
+        original_required_int_precision = self.calc_original_precision(J)
         LOGGER.info(
             "Original required int precision: %s, current quant: %s",
             original_required_int_precision,
@@ -102,16 +135,41 @@ class QuantizationStage(Stage):
             f"Quantization precision {quantization_precision} is larger " \
             f"than the original precision {original_required_int_precision}."
         assert quantization_precision == 1.5 or isinstance(quantization_precision, int)
+
         if quantization_precision == 1.5:
-            step_size = (J_max - J_min) / 2
-            nonzero_mask = J != 0
-            quantized_J = copy.deepcopy(J)
-            quantized_J[nonzero_mask] = np.round((J[nonzero_mask] - J_min) / step_size) * step_size + J_min
+            ternary_quantization = True
         else:
-            step_size = (J_max - J_min) / (2 ** quantization_precision - 1)
-            nonzero_mask = J != 0
-            quantized_J = copy.deepcopy(J)
-            quantized_J[nonzero_mask] = np.round((J[nonzero_mask] - J_min) / step_size) * step_size + J_min
+            ternary_quantization = False
+
+        if same_sign:
+            # If J has only positive or only negative values, we can calculate the precision
+            # based on the range from 0 to the maximum value.
+            J_is_positive = J_min >= 0
+            if J_is_positive:
+                quantization_lower_bound = 0
+            else:
+                quantization_lower_bound = - (2 ** original_required_int_precision - 1)
+        else:
+            # If J has both positive and negative values, we need to consider the range
+            # from the minimum to the maximum value.
+            assert quantization_precision > 1, \
+            f"Quantization precision {quantization_precision} must be greater than 1-bit for signed data."
+            quantization_lower_bound = - (2 ** (original_required_int_precision - 1))
+
+        if ternary_quantization:
+            # Ternary quantization is treated the same as 2-bit quantization
+            step_size = 2 ** (original_required_int_precision - 2)
+        else:
+            step_size = 2 ** (original_required_int_precision - quantization_precision)
+        nonzero_mask = J != 0
+        quantized_J = copy.deepcopy(J)
+        quantized_J[nonzero_mask] = np.round((J[nonzero_mask] - quantization_lower_bound) / step_size) \
+            * step_size + quantization_lower_bound
+        if ternary_quantization and not same_sign:
+            # Convert all the most negative values to the second most negative values
+            # This is to ensure that we have only one unique negative value
+            quantized_J[quantized_J == quantization_lower_bound] = quantization_lower_bound + step_size
+
         self.plot_ndarray_in_matrix(quantized_J)
         return quantized_J
 
