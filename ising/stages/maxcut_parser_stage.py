@@ -92,14 +92,23 @@ class MaxcutParserStage(Stage):
         @return: best_found: the best found energy of the benchmark
         """
         best_found = None
-        optim_file = TOP / "ising/benchmarks/G/optimal_energy.txt"
-        benchmark = str(benchmark).split("/")[-1][:-4]
-
-        with optim_file.open() as f:
-            for line in f:
-                line = line.split()
-                if line[0] == benchmark:
-                    best_found = -float(line[1])
-                    break
+        benchmark_name = str(benchmark).split("/")[-1]
+        if benchmark_name.endswith(".txt"):
+            benchmark_name = benchmark_name[:-4]
+        elif benchmark_name.endswith(".sparse"):
+            benchmark_name = benchmark_name[:-7]
+        else:
+            pass
+        benchmark_parent_folder = pathlib.Path(benchmark).parent
+        optim_file = benchmark_parent_folder / "optimal_energy.txt"
+        if not optim_file.exists():
+            LOGGER.warning(f"Optimal energy file {optim_file} does not exist. Returning None.")
+        else:
+            with optim_file.open() as f:
+                for line in f:
+                    line = line.split()
+                    if line[0] == benchmark_name:
+                        best_found = -float(line[1])
+                        break
 
         return best_found
