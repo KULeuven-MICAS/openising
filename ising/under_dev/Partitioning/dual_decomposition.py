@@ -1,6 +1,6 @@
 import numpy as np
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.utils.flow import run_solver
 from ising.utils.numpy import triu_to_symm
 
@@ -9,6 +9,7 @@ def dual_decomposition(models: dict[int: IsingModel], constraints: dict[int: np.
     
     partitions = list(models.keys())
     lambda_k = np.zeros((constraints[partitions[0]].shape[0],))
+    all_lambdas = [lambda_k.copy()]
 
     k = 0
     max_change = np.inf
@@ -21,12 +22,14 @@ def dual_decomposition(models: dict[int: IsingModel], constraints: dict[int: np.
             initial_states[partition], _ = run_solver(solver, num_iterations*10, initial_states[partition], models[partition], **hyperparameters)
             models[partition].h -= lam
             lambda_new += step * constraints[partition] @ initial_states[partition] 
+            # print(lam)
 
         # Update the dual variable
         lambda_new += lambda_k 
+        all_lambdas.append(lambda_new.copy())
 
         k += 1
         max_change = np.linalg.norm(lambda_new - lambda_k, ord=np.inf) / (np.linalg.norm(lambda_k, ord=np.inf) if np.linalg.norm(lambda_k, ord=np.inf) > 0 else 1)
         lambda_k = lambda_new
     
-    return initial_states, lambda_k
+    return initial_states, lambda_k, all_lambdas

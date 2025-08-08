@@ -1,15 +1,20 @@
-from SCA import SCA
-from SA import SA
-from SB import ballisticSB, discreteSB
+from ising.under_dev.Optimisation_algorithms.SCA import SCA
+from ising.under_dev.Optimisation_algorithms.SA import SA
+from ising.under_dev.Optimisation_algorithms.SB import ballisticSB, discreteSB
+from ising.under_dev.Optimisation_algorithms.GD_nesterov import GD_nesterov
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import openjij as oj
-import helper_functions as hf
+import ising.under_dev.Optimisation_algorithms.helper_functions as hf
 import math
-from BLIM import BLIM
+from ising.under_dev.Optimisation_algorithms.BLIM import BLIM
 from scipy.integrate import solve_ivp
+from ising.benchmarks.parsers.G import G_parser
+from ising.generators.MaxCut import MaxCut
+
+from ising.flow import TOP
 # from  ising.model import BinaryQuadraticModel
 
 VERBOSE = False
@@ -117,7 +122,7 @@ def run_solver(
         print(f"The optimal state of {solver}: {sigma_optim}")
         hf.plot_solution(sigma_optim, G, solver)
     if plt:
-        hf.plot_energies({solver: energies}, S, f"{dir}\Energy_{solver}.png")
+        hf.plot_energies({solver: energies}, S, f"{dir}/Energy_{solver}.png")
     return sigma_optim, energies
 
 
@@ -148,7 +153,7 @@ def problem1():
         i, j = row[0], row[1]
         G.add_edge(i, j)
     nx.draw_networkx(G)
-    folder = "..\output"
+    folder = "../output"
 
     print("Setting hyperparameters")
     J, h = hf.get_coeffs_from_array_MC(N, data)
@@ -175,7 +180,7 @@ def problem1():
     sampler = oj.SASampler()
     response = sampler.sample(bqm, num_reads=nb_runs)
     hf.plot_energy_dist(
-        response.energies, "SA OpenJij", folder + "\histogram_sa_openjij.png"
+        response.energies, "SA OpenJij", folder + "/histogram_sa_openjij.png"
     )
 
     print(f"Solution of OpenJij: {response.first.sample}")
@@ -246,10 +251,10 @@ def problem1():
         )
         energy_dsb.append(energies_dsb[-1])
 
-    hf.plot_energy_dist(energy_sca, "SCA", folder + "\histogram_sca.png")
-    hf.plot_energy_dist(energy_sa, "SA", folder + "\histogram_sa.png")
-    hf.plot_energy_dist(energy_bsb, "bSB", folder + "\histogram_bSB.png")
-    hf.plot_energy_dist(energies_dsb, "dSB", folder + "\histogram_dSB.png")
+    hf.plot_energy_dist(energy_sca, "SCA", folder + "/histogram_sca.png")
+    hf.plot_energy_dist(energy_sa, "SA", folder + "/histogram_sa.png")
+    hf.plot_energy_dist(energy_bsb, "bSB", folder + "/histogram_bSB.png")
+    hf.plot_energy_dist(energies_dsb, "dSB", folder + "/histogram_dSB.png")
 
     energies = {
         "SCA": energies_sca,
@@ -257,7 +262,7 @@ def problem1():
         "bSB": energies_bsb,
         "dSB": energies_dsb,
     }
-    hf.plot_energies(energies, S, folder + "\energies_all.png")
+    hf.plot_energies(energies, S, folder + "/energies_all.png")
 
 
 def G1():
@@ -341,7 +346,7 @@ def G1():
     hf.plot_energies(
         {"SCA": energies_sca, "bSB": energies_bSB, "dSB": energies_dSB},
         S=S,
-        filename=folder + "\energies_all.png",
+        filename=folder + "/energies_all.png",
     )
 
 
@@ -384,7 +389,7 @@ def k2000():
         h=h,
         S=S,
         N=N,
-        dir=parent_dir + "\output\K2000_test",
+        dir=parent_dir + "/output/K2000_test",
         T=T,
         r_t=r_t,
         q=q,
@@ -398,7 +403,7 @@ def k2000():
         h=h,
         S=S,
         N=N,
-        dir=parent_dir + "\output\K2000_test",
+        dir=parent_dir + "/output/K2000_test",
         a0=a0,
         c0=c0,
         dt=dt,
@@ -412,7 +417,7 @@ def k2000():
         h=h,
         S=S,
         N=N,
-        dir=parent_dir + "\output\K2000_test",
+        dir=parent_dir + "/output/K2000_test",
         a0=a0,
         c0=c0,
         dt=dt,
@@ -435,7 +440,7 @@ def k2000():
         },
         x=list(range(S)),
         xname='iteration',
-        filename=parent_dir + "\output\K2000_test\energies_all.png",
+        filename=parent_dir + "/output/K2000_test/energies_all.png",
     )
 
 def test_SB():
@@ -461,7 +466,7 @@ def test_SB():
     c0 = 0.5 / (math.sqrt(N) * math.sqrt(np.sum(np.power(J, 2)) / (N * (N - 1))))
     def at(t):
         return a0 / (dt * Nstep) * t
-    folder = parent_dir + '\output\SB_test'
+    folder = parent_dir + '/output/SB_test'
 
     nb_runs = 20
     energies_bSB = {500: [], 1000: [], 5000: []}
@@ -496,7 +501,7 @@ def test_SB():
     plt.xlabel('Nstep')
     plt.ylabel('Energy')
     plt.legend()
-    plt.savefig(folder + '\SB_nstep_Test.png')
+    plt.savefig(folder + '/SB_nstep_Test.png')
     plt.show()
 
 
@@ -505,7 +510,7 @@ def test_BLIM():
     print("Test BLIM")
     print("--------------------------------------")
     parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    folder = parent_dir + '\output\BLIM_test'
+    folder = parent_dir + '/output/BLIM_test'
     file = os.path.join(parent_dir, "WK2000_1.txt")
     info = np.genfromtxt(file, delimiter=" ")
     N = int(info[0, 0])
@@ -541,7 +546,7 @@ def test_BLIM():
         optim_energy = hf.compute_energy(J, h, np.sign(v_optim))
         print(f'Optimal energy constant k: {optim_energy}')
 
-    hf.plot_energies({'changing k' : energies_ch, 'k = 5.': energies[0], 'k=10':energies[1], 'k=15':energies[2], 'k=20':energies[3], 'k=25':energies[4], 'k=30':energies[5]}, times, 'time',  filename=folder + '\energies_all.png')
+    hf.plot_energies({'changing k' : energies_ch, 'k = 5.': energies[0], 'k=10':energies[1], 'k=15':energies[2], 'k=20':energies[3], 'k=25':energies[4], 'k=30':energies[5]}, times, 'time',  filename=folder + '/energies_all.png')
     plt.figure()
     plt.imshow(np.sign(v_list_ch), interpolation='nearest')
     plt.title('Changing k')
@@ -667,7 +672,21 @@ def accuracy_check():
     plt.savefig(parent_dir + '/test_graph_size.png')
     plt.show()
 
+def test_Nesterov():
+    K2000, best_found = G_parser(TOP / f"ising/benchmarks/G/K2000.txt")
+    print(f"best found energy: {best_found}")
+    model = MaxCut(K2000)
 
+    coupling = model.J + model.J.T
+    energy, state = GD_nesterov(
+        num_iterations=20000,
+        initial_state=np.random.uniform(-1, 1, (model.num_variables,)),
+        J=coupling,
+        h=model.h,
+        learning_rate=0.01,
+        momentum=0.9
+    )
+    print(f"Final energy: {energy}")
 
 if __name__ == "__main__":
     if VERBOSE_PLOT:
@@ -677,5 +696,6 @@ if __name__ == "__main__":
     # k2000()
     #test_SB()
     # test_BLIM()
-    accuracy_check()
+    # accuracy_check()
+    test_Nesterov()
 

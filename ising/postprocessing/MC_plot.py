@@ -5,7 +5,7 @@ import numpy as np
 
 from ising.postprocessing.helper_functions import return_metadata
 
-def plot_MC_solution(fileName:pathlib.Path, G_orig:nx.Graph, fig_name:str="MC_solution_state.png", save:bool = True,
+def plot_MC_solution(fileName:pathlib.Path, G_orig:nx.Graph, figName:str="MC_solution_state", save:bool = True,
                      save_folder:pathlib.Path = '.') -> None:
     """
     Plots the solution state of a Max-Cut problem.
@@ -54,5 +54,5 @@ def plot_MC_solution(fileName:pathlib.Path, G_orig:nx.Graph, fig_name:str="MC_so
     nx.draw_networkx_labels(G, pos, labels)
     plt.title(f"Solution state with optimal energy {best_energy}")
     if save:
-        plt.savefig(f"{save_folder}/{fig_name}")
+        plt.savefig(save_folder/f"{figName}.pdf")
     plt.close()

@@ -1,8 +1,8 @@
 import numpy as np
 import networkx as nx
+import time as t
 
 from ising.stages.model.ising import IsingModel
-
 
 __all__ = ["TSP"]
 
@@ -87,6 +87,42 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     J = (J + J.T)/2
     J = np.triu(J, 1)
     return IsingModel(J, h, constant, name=graph.name)
+
+
+def generate_random_TSP(
+    N: int, seed: int = 0, weight_constant: float = 1.0, bit_width: int = 16
+) -> tuple[IsingModel, nx.DiGraph]:
+    if seed == 0:
+        seed = int(t.time())
+
+    np.random.seed(seed)
+    coords_x = np.random.randint(0, int(2**bit_width - 1), N)
+    coords_y = np.random.randint(0, int(2**bit_width - 1), N)
+
+    graph = nx.DiGraph()
+    node = 1
+    for coordx, coordy in zip(coords_x, coords_y):
+        graph.add_node(node, pos=(coordx, coordy))
+        node += 1
+
+    for i in range(N):
+        for j in range(N):
+            if i!= j:
+                weight = compute_distance((coords_x[i], coords_y[i]), (coords_x[j], coords_y[j]))
+                graph.add_edge(i+1, j+1, weight=weight)
+    model = TSP(graph, weight_constant=weight_constant)
+    return model, graph
+
+def compute_distance(coords1: tuple[float, float], coords2: tuple[float, float])-> float:
+    """Computes the Euclidean distance between two coordinates.
+
+    Args:
+        coords1 (tuple[float, float]): the first coordinate (x, y).
+        coords2 (tuple[float, float]): the second coordinate (x, y).
+    Returns:
+        float: the Euclidean distance between the two coordinates.
+    """
+    return np.sqrt((coords1[0]-coords2[0])**2 + (coords1[1] - coords2[1])**2)
 
 def get_index(time: int, city: int, N: int) -> int:
     """Returns the index of the ising spin corresponding to the city and time.
@@ -184,13 +220,17 @@ def get_TSP_value(graph: nx.DiGraph, sample: np.ndarray):
     """
     N = len(graph.nodes)
     energy = 0.0
-    for city1 in range(N):
-        for city2 in range(N):
-            if city1 != city2:
-                for time in range(N):
-                    index1 = get_index(time, city1, N)
-                    index2 = get_index(time + 1, city2, N)
-                    if sample[index1] == 1 and sample[index2] == 1 and graph.has_edge(city1 + 1, city2 + 1):
-                        energy += graph[city1 + 1][city2 + 1]["weight"]
+    solution_matrix = sample.reshape((N, N))
+    solution_matrix[solution_matrix==-1] = 0
+    if np.linalg.norm(solution_matrix.T@solution_matrix - np.eye(N)) != 0:
+        return np.inf
+    path = {time: city for city, time in enumerate(np.where(solution_matrix == 1)[1])}
+    for time in range(N):
+        city1 = path[time]
+        if time == N-1:
+            city2 = path[0]
+        else:
+            city2 = path[time+1]
+        energy += graph[city1+1][city2+1]['weight']
 
     return energy

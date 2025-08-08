@@ -3,14 +3,14 @@ import sys
 import numpy as np
 
 from ising.flow import TOP, LOGGER
-from ising.benchmarks.parsers.TSP import get_optim_value
+from ising.utils.parser import get_optim_value
 from ising.postprocessing.energy_plot import (
-    plot_energy_dist_multiple_solvers,
-    plot_relative_error,
     plot_energies_multiple,
 )
+from ising.postprocessing.summarize_energies import summary_energies
 from ising.postprocessing.plot_solutions import plot_state
-from ising.utils.flow import make_directory, compute_list_from_arg
+from ising.utils.flow import compute_list_from_arg
+from ising.utils.helper_functions import make_directory
 from ising.utils.HDF5Logger import get_Gurobi_data
 
 # Defining all arguments
@@ -22,7 +22,8 @@ parser.add_argument("--iter_list", help="Number of iterations", default=None, na
 parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-use_gurobi", help="whether Gurobi was used", default=False)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
-parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy.png")
+parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy")
+parser.add_argument("-percentage", help="Amount of percentage to plot of energies", default=1.0)
 
 # Parsing the arguments
 args = parser.parse_args()
@@ -50,8 +51,8 @@ nb_runs = int(args.nb_runs)
 
 # Defining the top paths and list for the logfiles
 logfiles = []
-logtop = TOP / "ising/flow/TSP/logs"
-figtop = TOP / "ising/flow/TSP/plots" / args.fig_folder
+logtop = TOP / "ising/outputs/TSP/logs"
+figtop = TOP / "ising/flow/TSP/plots_TSP" / args.fig_folder
 make_directory(figtop)
 LOGGER.debug(f"Saving figures in {figtop}")
 fig_name = str(args.fig_name)
@@ -62,7 +63,10 @@ if args.benchmark is not None:
     benchmark = str(args.benchmark)
 
     # Get the best found of the benchmark
-    best_found = get_optim_value(benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp")
+    best_found = get_optim_value(
+        benchmark=TOP / f"ising/benchmarks/TSP/{benchmark}.tsp",
+        optim_file=TOP / "ising/benchmarks/TSP/optimal_energy.txt",
+    )
 
     # Go over all solvers and generate the logfiles
     for num_iter in iter_list:
@@ -76,7 +80,7 @@ if args.benchmark is not None:
             plot_state(
                 solver,
                 logtop / f"{solver}_{benchmark}_nbiter{num_iter}_run{run}.log",
-                f"{solver}_benchmark{benchmark}_state_iter{num_iter}.png",
+                f"{solver}_benchmark{benchmark}_state_iter{num_iter}",
                 figtop=figtop,
             )
 
@@ -86,6 +90,7 @@ if args.benchmark is not None:
             y_data="energy",
             best_found=best_found,
             save_folder=figtop,
+            percentage=float(args.percentage),
         )
         logfiles += new_logfiles
     if bool(args.use_gurobi):
@@ -99,17 +104,8 @@ if args.benchmark is not None:
     if best_found is not None:
         best_found = np.ones((len(iter_list),)) * best_found
 
-    if best_found is not None:
-        LOGGER.info("Plotting relative error")
-        plot_relative_error(
-            logfiles,
-            best_found,
-            x_label="num_iterations",
-            y_data="solution_TSP_energy",
-            save_folder=figtop,
-            fig_name=f"{benchmark}_relative_error_{fig_name}",
-        )
-        LOGGER.info("Done plotting relative error")
+    make_directory(figtop / "energy_summary")
+    summary_energies(logfiles, figtop / "energy_summary")
 
 elif args.N_list is not None:
     LOGGER.info("Problem size logs are plotted")
@@ -136,24 +132,4 @@ else:
     # No benchmark or problem size range is given => exit
     sys.exit("No benchmark or problem size range is specified")
 
-LOGGER.info("Plotting energy distribution")
-plot_energy_dist_multiple_solvers(
-    logfiles,
-    y_data="solution_TSP_energy",
-    best_found=best_found,
-    best_Gurobi=best_found_gurobi,
-    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    fig_name=f"{args.benchmark}_TSP_{fig_name}" if args.benchmark is not None else f"size_comparison_TSP_{fig_name}",
-)
-
-plot_energy_dist_multiple_solvers(
-    logfiles,
-    y_data="solution_energy",
-    best_found=best_found,
-    best_Gurobi=best_found_gurobi,
-    xlabel="num_iterations" if args.benchmark is not None else "problem_size",
-    save_folder=figtop,
-    fig_name=f"{args.benchmark}_{fig_name}" if args.benchmark is not None else f"size_comparison_{fig_name}",
-)
 LOGGER.info("figures plotted succesfully")

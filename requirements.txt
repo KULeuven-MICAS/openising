@@ -14,6 +14,7 @@ networkx<=3.4.2
 numpy==1.26.4
 openjij==0.9.2
 packaging==24.1
+pandas==2.3.0
 pillow==11.0.0
 pluggy==1.5.0
 pyparsing==3.2.0
@@ -22,8 +23,12 @@ pytest-randomly==3.16.0
 python-dateutil==2.9.0.post0
 requests==2.31.0
 scipy==1.11.4
+seaborn==0.13.2
 six==1.16.0
 typing_extensions==4.12.2
 urllib3==2.2.3
 gurobipy==12.0.0
 tsplib95==0.7.1
+tqdm==4.67.1
+pyyaml==6.0.2
+numba==0.61.2

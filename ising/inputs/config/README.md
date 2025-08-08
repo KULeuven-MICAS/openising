@@ -30,8 +30,6 @@ The config file is written in YAML. It must has the following parameters:
 
 **T_final_cont:** will remove in branch
 
-**coupling_annealing:** whether to anneal the coupling in the Multiplicative solver.
-
 **resistance:** the resistance used in Multiplicative solver. Default value is 1.
 
 **flipping:** whether to turn on flipping or not. 
@@ -46,11 +44,7 @@ The config file is written in YAML. It must has the following parameters:
 
 **dtBRIM:** time step used for the BRIM solver.
 
-**C:** NA (removed in my branch)
-
 **stop_criterion:** smallest possible change of the voltages to mark convergence in the Multiplicatve solver.
-
-**noise:** NA (removed in my branch)
 
 **T:** initial temperature for the annealing solvers (SA and SCA).
 

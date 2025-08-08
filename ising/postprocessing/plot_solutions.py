@@ -3,7 +3,7 @@ import pathlib
 
 from ising.utils.HDF5Logger import return_data, return_metadata
 
-def plot_state(solver:str, logfile:pathlib.Path, figname:str, figtop:pathlib.Path="."):
+def plot_state(solver:str, logfile:pathlib.Path, figName:str, figtop:pathlib.Path="."):
     """Delegates the plotting of the state to the correct function.
 
     Args:
@@ -13,12 +13,12 @@ def plot_state(solver:str, logfile:pathlib.Path, figname:str, figtop:pathlib.Pat
         figtop (pathlib.Path, optional): the absolute path to where the figure should be stored. Defaults to ".".
     """
     if solver in ["BRIM", "bSB", "dSB", "Multiplicative"]:
-        plot_state_continuous(logfile=logfile, figname=figname, save_folder=figtop)
+        plot_state_continuous(logfile=logfile, figName=figName, save_folder=figtop)
     else:
-        plot_state_discrete(logfile=logfile, figname=figname, save_folder=figtop)
+        plot_state_discrete(logfile=logfile, figName=figName, save_folder=figtop)
 
 
-def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
+def plot_state_discrete(logfile:pathlib.Path, figName:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the discrete state of the current run of a solver.
     The state at each iteration is plotted as a heatmap.
 
@@ -35,10 +35,10 @@ def plot_state_discrete(logfile:pathlib.Path, figname:str, save:bool=True, save_
     plt.xlabel("iteration")
     plt.ylabel("sample")
     if save:
-        plt.savefig(save_folder / figname)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()
 
-def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, save_folder:pathlib.Path='.'):
+def plot_state_continuous(logfile:pathlib.Path, figName:str, save:bool=True, save_folder:pathlib.Path='.'):
     """Plots the continuous state of the current run of a solver.
     It only accepts the following continuous state solvers :
         - BRIM
@@ -63,5 +63,5 @@ def plot_state_continuous(logfile:pathlib.Path, figname:str, save:bool=True, sav
     plt.xlabel('Iteration')
     plt.ylabel('continuous state')
     if save:
-        plt.savefig(save_folder / figname)
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()

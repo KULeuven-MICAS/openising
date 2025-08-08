@@ -7,7 +7,8 @@ from ising.flow import LOGGER, TOP
 
 from ising.generators.MaxCut import random_MaxCut
 
-from ising.utils.flow import return_c0, return_rx, return_q, make_directory, parse_hyperparameters
+from ising.utils.flow import parse_hyperparameters
+from ising.utils.helper_functions import make_directory, return_rx, return_c0, return_q
 from ising.postprocessing.MC_plot import plot_MC_solution
 from ising.utils.threading import make_solvers_thread, make_Gurobi_thread
 

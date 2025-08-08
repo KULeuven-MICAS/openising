@@ -1,10 +1,10 @@
 import numpy as np
 import time
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 
 
-def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.ndarray]:
+def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) -> tuple[np.ndarray, np.ndarray]:
     """Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
     This is consecutively transformed into an Ising model.
 
@@ -15,22 +15,28 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.nda
         seed (int, optional): The seed for the random number generator. Defaults to 1.
 
     Returns:
-        tuple[IsingModel, np.ndarray]: the generated Ising model and the solution.
+        H,symbols (tuple[np.ndarray, np.ndarray]): The generated transfer function matrix and the symbols.
     """
     if seed == 0:
         seed = int(time.time())
     np.random.seed(seed)
 
-    r = int(np.ceil(np.log2(np.sqrt(M))))
-    symbols = np.concatenate(
-        ([-np.sqrt(M) + i for i in range(1, 1 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 1 + 2 * r, 2)])
-    )
+    if M==2:
+        # BPSK scheme
+        symbols = np.array([-1, 1])
+        r = 1
+    else:
+        r = int(np.ceil(np.log2(np.sqrt(M))))
+        symbols = np.concatenate(
+            ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
+        )
 
     phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
     phi_u.sort()
     mean_phi  = np.mean(phi_u, axis=0)
     sigma_phi = np.random.normal(0, 1, (Nt,))
 
+    # H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
     H = np.zeros((Nr, Nt), dtype='complex_')
     for i in range(Nt):
         C     = np.zeros((Nr, Nr), dtype="complex_")
@@ -45,8 +51,8 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[IsingModel, np.nda
         D, V = np.linalg.eig(C)
         hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
         H[:, i] = hu
-    return H, symbols
 
+    return H, symbols
 
 def spacing_BS_antennas(m, n):
     return np.abs(m - n)
@@ -68,11 +74,18 @@ def MIMO_to_Ising(
         seed (int, optional): The seed for the random number generator. Defaults to 0.
 
     Returns:
-        tuple[IsingModel, np.ndarray]: the generated Ising model and transformed input signal.
+        model,xtilde,ytilde (tuple[IsingModel, np.ndarray]): the generated Ising model and transformed input
+                                                             and output signals.
     """
-    r = int(np.ceil(np.log2(np.sqrt(M))))
-
-    Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
+    if np.linalg.norm(np.imag(x)) == 0:
+        # BPSK scheme
+        r = 1
+        Nx = np.shape(x)[0]
+        Ny = 2*Nx
+    else:
+        r = int(np.ceil(np.log2(np.sqrt(M))))
+        Nx = np.shape(x)[0]*2
+        Ny = Nx
 
     if seed == 0:
         seed = int(time.time())
@@ -88,18 +101,24 @@ def MIMO_to_Ising(
     y = H @ x + n
     ytilde = np.block([np.real(y), np.imag(y)])
 
-    N = 2 * Nt
-    T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
+    Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
+
+    T = np.block([2**(r-i)*np.eye(Ny, Nx) for i in range(1, r+1)])
+
     xtilde = np.block([np.real(x), np.imag(x)])
-    z = ytilde - (Htilde @ (T @ np.ones(r * N))) + ((np.sqrt(M) - 1) * Htilde @ np.ones(N))
 
-    # Set up the Ising model
-    J = -2*T.T @ Htilde.T @ Htilde @ T
-    J = np.triu(J, k=1)
-    h = np.transpose(2 * z.T @ Htilde @ T)
-    c = np.inner(z, z)
+    ones_end = np.eye(Ny, Nx) @ np.ones((Nx,))
+    constant = ytilde.T@ytilde - 2*ytilde.T @ Htilde @ (T@np.ones((r*Nx,)) - \
+                                        (np.sqrt(M)-1)*ones_end)
 
-    return IsingModel(J, h, c), xtilde
+    bias = 2*(ytilde - Htilde@(T@np.ones((r*Nx,))-(np.sqrt(M)-1)*ones_end))
+    bias = bias.T @ Htilde @ T
+    coupling = -2*T.T @ Htilde.T @ Htilde @ T
+    diagonal = np.diag(coupling)
+    constant -= np.sum(diagonal)/2
+
+    coupling = np.triu(coupling, k=1)
+    return IsingModel(coupling, bias, constant, name=f"MIMO_{SNR}"), xtilde, ytilde
 
 
 def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
@@ -115,9 +134,10 @@ def compute_difference(sigma_optim: np.ndarray, x: np.ndarray, M:int) -> float:
     r = int(np.ceil(np.log2(np.sqrt(M))))
 
     N = np.shape(x)[0]
+    nb_runs = np.shape(x)[1]
 
     # Compute the calculated symbols
     T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
-    x_optim = T @ (sigma_optim + np.ones((r * N,))) - (np.sqrt(M) - 1) * np.ones((N,))
-    BER = np.sum(np.abs(x - x_optim)/2)/(np.sqrt(M)*N)
+    x_optim = T @ (sigma_optim + np.ones((r * N,nb_runs))) - (np.sqrt(M) - 1) * np.ones((N,nb_runs))
+    BER = np.sum(np.abs(x - x_optim)/2, axis=0)/(np.sqrt(M)*N)
     return BER

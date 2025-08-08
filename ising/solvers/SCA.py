@@ -7,7 +7,6 @@ from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
-from ising.utils.clock import clock
 
 
 class SCA(SolverBase):
@@ -29,8 +28,6 @@ class SCA(SolverBase):
         r_q: float,
         seed: int | None = None,
         file: pathlib.Path | None = None,
-        clock_freq: float = 1e6,
-        clock_op: int = 1000,
     ):
         """Implementation of the Stochastic Cellular Automata (SCA) annealing algorithm of the
         [STATICA](https://ieeexplore.ieee.org/document/9222223/?arnumber=9222223) paper
@@ -55,19 +52,18 @@ class SCA(SolverBase):
         hs = np.zeros((N,))
         J = triu_to_symm(model.J)
         flipped_states = []
-        clocker = clock(clock_freq, clock_op)
-        initial_state = np.sign(initial_state)
-
+        state = np.copy(np.sign(initial_state))
+        tau = np.copy(state)
         if seed is None:
             seed = int(time.time() * 1000)
         random.seed(seed)
 
-        schema = {"energy": np.float32, "state": (np.int8, (N,)), "time_clock": float}
+        schema = {"energy": np.float32, "state": (np.int8, (N,))}
 
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
                 logger=log,
-                initial_state=initial_state,
+                initial_state=state,
                 model=model,
                 num_iterations=num_iterations,
                 initial_temp=initial_temp,
@@ -78,35 +74,27 @@ class SCA(SolverBase):
             )
             T = initial_temp
             for _ in range(num_iterations):
-                hs = np.matmul(J, initial_state) + model.h
-                clocker.add_cycles(1 + np.log2(N))
+                hs = np.matmul(J, state) + model.h
 
-                Prob = self.get_prob(hs, initial_state, q, T)
-                clocker.add_operations(5 * N)
+                Prob = self.get_prob(hs, state, q, T)
                 rand = np.random.rand(N)
-                clocker.add_operations(N)
-                clocker.perform_operations()
 
                 flipped_states = [y for y in range(N) if Prob[y] < rand[y]]
-                clocker.add_operations(N)
 
-                initial_state[flipped_states] = -initial_state[flipped_states]
-                energy = model.evaluate(initial_state)
-                clocker.add_operations(4)
-                time_clock = clocker.perform_operations()
+                tau[flipped_states] = -state[flipped_states]
+                state = np.copy(tau)
+                energy = model.evaluate(state)
 
-                log.log(energy=energy, state=initial_state, time_clock=time_clock)
+                log.log(energy=energy, state=state)
 
                 T = self.change_hyperparam(T, cooling_rate)
                 q = self.change_hyperparam(q, r_q)
                 flipped_states = []
 
-            total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 8 * N + N / 2 + 2)
             log.write_metadata(
-                solution_state=initial_state,
+                solution_state=state,
                 solution_energy=energy,
-                total_time=total_time,
                 total_operations=nb_operations,
             )
 
@@ -125,5 +113,13 @@ class SCA(SolverBase):
         Returns:
             probability (np.ndarray): probability of accepting the change of all nodes.
         """
-        val = 1 / T * (np.multiply(hs, sample) + q) / 2
-        return 1 / (1 + np.exp(-val))
+        values = np.multiply(hs, sample) + q
+        probs = np.zeros_like(values)
+        for i,val in enumerate(values):
+            if val > 2*T:
+                probs[i] = 1
+            elif val < -2*T:
+                probs[i] = 0
+            else:
+                probs[i] = val/(4*T) + 0.5
+        return probs

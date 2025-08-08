@@ -1,6 +1,6 @@
 import numpy as np
 
-from ising.model import IsingModel
+from ising.stages.model import IsingModel
 from ising.utils.numpy import triu_to_symm
 
 def apply_partitioning(model: IsingModel, partitioning: np.ndarray) -> tuple[dict[int, IsingModel], dict[int, np.ndarray], dict[int, set]]:

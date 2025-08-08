@@ -1,13 +1,12 @@
 import numpy as np
 import pathlib
 from abc import abstractmethod
-import copy
 
+from ising.flow import LOGGER
 from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
-# from ising.utils.clock import clock
 
 
 class SB(SolverBase):
@@ -26,13 +25,10 @@ class SB(SolverBase):
     def update_rule(self, x, y, node):
         x[node] = np.sign(x[node])
         y[node] = 0.0
-        # return x, y
 
-    def at(self, t, a0, dt, num_iterations):
+
+    def at(self, t, a0, dt, num_iterations) -> float:
         return a0 / (dt*num_iterations) * t
-
-    def bt(self, t, a0, dt, num_iterations):
-        return self.at(t, a0, dt, num_iterations) / 2
 
     @abstractmethod
     def solve(self, model: IsingModel):
@@ -53,7 +49,6 @@ class ballisticSB(SB):
         dtSB:           float,
         a0:             float = 1.0,
         file:           pathlib.Path | None = None,
-        bit_width:      int = 64
     ) -> tuple[np.ndarray, float]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -78,27 +73,16 @@ class ballisticSB(SB):
         N  = model.num_variables
 
         # Set up the model and initial states with the correct data type
-        floatmap      = {16:np.float16, 32:np.float32, 64:np.float64}
-        dtype         = floatmap.get(bit_width, np.float16)
-        J             = np.array(triu_to_symm(model.J), dtype=dtype)
-        h             = np.array(model.h, dtype=dtype)
-        initial_state = np.array(initial_state, dtype=dtype)
-        x             = copy.deepcopy(initial_state)
-        y             = 0.1 * initial_state
-
-        # Cast all the variables to the correct data type
-        dtSB = dtype(dtSB)
-        a0   = dtype(a0)
-        c0   = dtype(c0)
-        tk   = dtype(0.0)
+        J             = np.array(triu_to_symm(model.J), dtype=np.float32)
+        h             = np.array(model.h)
+        initial_state = np.array(initial_state)
+        x             = np.zeros_like(initial_state, dtype=np.float32)
+        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ))
 
         schema = {
-            "time"      : dtype,
-            "energy"    : dtype,
+            "energy"    : float,
             "state"     : (np.int8, (N,)),
-            "positions" : (dtype, (N,)),
-            "momenta"   : (dtype, (N,)),
-            "at"        : dtype,
+            "positions" : (np.float32, (N,)),
         }
 
         with HDF5Logger(file, schema) as log:
@@ -114,27 +98,27 @@ class ballisticSB(SB):
 
             sample = np.sign(x)
             energy = model.evaluate(sample)
-            log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
+            tk   = 0.0
+            log.log(energy=energy, state=sample, positions=x)
             for _ in range(num_iterations):
-                atk = dtype(self.at(tk, a0, dtSB, num_iterations))
-                # btk = dtype(self.bt(tk, a0, dtSB, num_iterations))
+                atk = self.at(tk, a0, dtSB, num_iterations)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, x) + c0 *  h) * dtSB
                 x += self.update_x(y, dtSB, a0)
 
-                for j in range(N):
-                    if np.abs(x[j]) > 1:
-                        self.update_rule(x, y, j)
+                y = np.where(np.abs(x) >= 1, 0, y)
+                x = np.where(np.abs(x) >= 1, np.sign(x), x)
 
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
                 tk    += dtSB
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
+                log.log(energy=energy, state=sample, positions=x)
 
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
                 solution_state=sample, solution_energy=energy, total_operations=nb_operations
             )
+        LOGGER.info(f"Finished with energy: {energy}")
         return sample, energy
 
 
@@ -174,19 +158,14 @@ class discreteSB(SB):
         N = model.num_variables
         tk = 0.0
         J = triu_to_symm(model.J)
-        # clocker = clock(clock_freq, clock_op)
 
         x = 0.01 * initial_state
         y = np.zeros_like(x)
 
         schema = {
-            "time": float,
             "energy": np.float32,
             "state": (np.int8, (N,)),
             "positions": (np.float32, (N,)),
-            "momenta": (np.float32, (N,)),
-            "at": np.float32,
-            # "time_clock": float,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -201,35 +180,22 @@ class discreteSB(SB):
             )
             sample = np.sign(x)
             energy = model.evaluate(sample)
-            log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=0.)
-            for _ in range(num_iterations):
+            log.log(energy=energy, state=sample, positions=x)
+            for i in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
-                # btk = self.bt(tk, a0, dtSB, num_iterations)
-                # clocker.add_operations(1)
 
                 y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dtSB
-                # clocker.add_cycles(1 + np.log2(N))
-                # clocker.add_operations(5 * N)
-                # clocker.perform_operations()
-
                 x += self.update_x(y, dtSB, a0)
-                # clocker.add_operations(2 * N)
-                # clocker.perform_operations()
 
                 for j in range(N):
                     if np.abs(x[j]) > 1:
                         self.update_rule(x, y, j)
-                        # clocker.add_operations(2)
 
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-
-                # clocker.add_operations(1)
-                # time_clock = clocker.perform_operations()
                 tk += dtSB
-                log.log(time=tk, energy=energy, state=sample, positions=x, momenta=y, at=atk)
+                log.log(energy=energy, state=sample, positions=x)
 
-            # total_time = clocker.get_time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
             log.write_metadata(
                 solution_state=sample, solution_energy=energy, total_operations=nb_operations
