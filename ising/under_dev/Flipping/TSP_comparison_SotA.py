@@ -13,7 +13,7 @@ from ising.generators.Knapsack import knapsack
 from ising.benchmarks.parsers.TSP import TSP_parser
 from ising.generators.TSP import TSP
 
-save_path = TOP / "ising/under_dev/Flipping/9M_results"
+save_path = TOP / "ising/under_dev/Flipping"
 
 def run_benchmark_TSP(benchmark_name:str)->None:
     graph, _ = TSP_parser(TOP / f"ising/benchmarks/TSP/{benchmark_name}.tsp")
@@ -24,7 +24,7 @@ def run_benchmark_TSP(benchmark_name:str)->None:
 def run_benchmark_MCP(benchmark_name:str)->None:
     g, _ = MaxCutParser.G_parser(TOP / f"ising/benchmarks/G/{benchmark_name}.txt")
     model = MaxCutParser.generate_maxcut(g)
-    hyperparameters = {"dt": 1e-4, "num_iterations": 100000, "init_size":1, "end_size":1/50, "threshold":0.7, "cluster_choice":"random"}
+    hyperparameters = {"dt": 1e-4, "num_iterations": 100000, "init_size":1, "end_size":1/50, "threshold":0.7, "cluster_choice":"gradient"}
     run_benchmark(model, benchmark_name, **hyperparameters)
 
 def run_benchmark_QKP(benchmark_name:str)->None:
@@ -42,6 +42,7 @@ def run_benchmark(model: IsingModel, benchmark_name:str, **hyperparameters) -> N
     nb_flipping = 130
     sigma = np.random.choice([-1, 1], size=(model.num_variables, nb_runs))
 
+    # do_flipping(init_size, end_size, sigma[:, 0], threshold, model, nb_flipping,hyperparameters["dt"],  hyperparameters["num_iterations"])
     tasks = [(init_size, end_size, sigma[:, i], threshold) for i in range(nb_runs)]
     with mp.Pool(initializer=os.nice, initargs=(1,)) as pool:
         flipping_partial = partial(do_flipping, model=model, 
@@ -67,7 +68,7 @@ def parse_out_file(filename: str, save_file_name:str):
     np.savetxt(save_path / f"{save_file_name}.pkl", results)
 
 if __name__ == "__main__":
-    # run_benchmark_TSP("burma14")
-    run_benchmark_MCP("K2000")
+    run_benchmark_TSP("burma14")
+    # run_benchmark_MCP("G11")
     # run_benchmark_QKP("jeu_100_25_1")
     # parse_out_file(TOP / "ising/under_dev/Flipping/burma14_comparison_random.out", "TSP_random_flipping")
