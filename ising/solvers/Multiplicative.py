@@ -1,6 +1,7 @@
 import numpy as np
 import pathlib
 import time
+from numba import guvectorize, float32
 
 from ising.flow import LOGGER
 from ising.solvers.base import SolverBase
@@ -8,7 +9,7 @@ from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
 from ising.utils.helper_functions import return_rx
-
+from ising.utils.numba_functions import dvdt_solver
 
 class Multiplicative(SolverBase):
     def __init__(self):
@@ -60,24 +61,28 @@ class Multiplicative(SolverBase):
         Returns:
             dv (np.ndarray): the change of the voltages
         """
-        # set bias node to 1.
-        if self.bias:
-            vt[-1] = 1.0
+        # # set bias node to 1.
+        # if self.bias:
+        #     vt[-1] = 1.0
 
-        # Compute the voltage change dv
-        dv = 1 / self.capacitance * (np.dot(self.coupling,  np.sign(vt)))
+        # # Compute the voltage change dv
+        # dv = 1 / self.capacitance * (np.dot(self.coupling,  np.sign(vt)))
 
-        # Clip voltages efficiently
-        mask = ((dv > 0) & (vt >= 1)) | ((dv < 0) & (vt <= -1))
-        dv[mask] = 0.0
+        # # Clip voltages efficiently
+        # mask = ((dv > 0) & (vt >= 1)) | ((dv < 0) & (vt <= -1))
+        # dv[mask] = 0.0
 
-        if self.frozen_nodes is not None:
-            dv[self.frozen_nodes] = 0.0
+        # if self.frozen_nodes is not None:
+        #     dv[self.frozen_nodes] = 0.0
 
-        # Ensure the bias node does not change
-        if self.bias:
-            dv[-1] = 0.0
-        return dv
+        # # Ensure the bias node does not change
+        # if self.bias:
+        #     dv[-1] = 0.0
+        # # return dv
+        t = np.float32(t)
+        vt = vt.astype(np.float32)
+        coupling = self.coupling.astype(np.float32)
+        return dvdt_solver(t, vt, coupling, np.int8(self.bias), np.float32(self.capacitance))
 
     def noise(self, Temp: float, voltages: np.ndarray):
         if Temp != 0.0:
@@ -104,7 +109,6 @@ class Multiplicative(SolverBase):
         )
         previous_voltages = state.copy()
         energy = model.evaluate(np.sign(state[:model.num_variables]))
-
         log.log(time_clock=0.0, energy=energy, state=np.sign(state), voltages=state)
 
         norm_prev = np.linalg.norm(previous_voltages, ord=np.inf)
