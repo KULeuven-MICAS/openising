@@ -24,10 +24,12 @@ class SimulationStage(Stage):
                  *,
                  config: Any,
                  ising_model: IsingModel,
+                 best_found: float | None = None,
                  **kwargs: Any):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.ising_model = ising_model
+        self.best_found = best_found if best_found is not None else float("inf")
         self.benchmark_abbreviation = self.config.benchmark.split("/")[-1].split(".")[0]
 
     def run(self) -> Any:
@@ -69,9 +71,9 @@ class SimulationStage(Stage):
                 self.kwargs["config"] = self.config
                 self.kwargs["ising_model"] = self.ising_model
                 self.kwargs["trail_id"] = trail_id
-                if len(self.list_of_callables) > 1:
+                if len(self.list_of_callables) >= 1:
                     sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
-                    initial_state, self.ising_model = sub_stage.run()
+                    initial_state, _ = sub_stage.run()
                 else:
                     initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
 
@@ -88,6 +90,9 @@ class SimulationStage(Stage):
         LOGGER.info(f"Total simulation time: {end_time - start_time}")
         ans = Ans(
             benchmark=self.benchmark_abbreviation,
+            ising_model=self.ising_model,
+            config=self.config,
+            best_found=self.best_found,
             states=optim_state_collect,
             energies=optim_energy_collect,
             logfiles=logfile_collect,

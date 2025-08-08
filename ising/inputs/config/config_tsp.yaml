@@ -4,9 +4,14 @@
 # Benchmark file name
 benchmark: ./ising/benchmarks/TSP/burma14.tsp
 
+quantization: False
+quantization_precision: 4
+
+initialization_seed: 42
+
 # Number of iteration to check in each trial (trail length)
 iter_list:
-  - 2000
+  - 20000
 
 # Solver to use: [BRIM, SA, bSB, dSB, SCA, Multiplicative, all]
 solvers:

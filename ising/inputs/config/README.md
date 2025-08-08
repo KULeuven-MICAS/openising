@@ -4,11 +4,11 @@ The config file is written in YAML. It must has the following parameters:
 
 **benchmark:** the workload file name, corresponding to the problem type set in API.
 
-**iter_list:** also called as trail length, the number (integer) of iterations to run in the solver. Multiple values can be defined so that solvers will run with different trail length.
+**iter_list:** [positive int] also called as trail length, the number (integer) of iterations to run in the solver. Multiple values can be defined so that solvers will run with different trail length.
 
-**solvers:** solvers to run. Options include: BRIM, SA, bSB, dSB, SCA, Multiplicative, all
+**solvers:** [str] solvers to run. Options include: BRIM, SA, bSB, dSB, SCA, Multiplicative, all
 
-**nb_runs:** number (integer) of trials to run.
+**nb_runs:** [positive int] number (integer) of trials to run.
 
 **use_gurobi:** use local gurobi to simulate if True, otherwise use local solver if False. This will override **solvers**.
 
@@ -61,3 +61,25 @@ The config file is written in YAML. It must has the following parameters:
 **a0:** the bifurcation parameter to which a(t) will converge to. Defaults to 1.
 
 **c0:** the parameter that defines the strength of the Ising part in the solver. When it is set to 0 will the optimal parameter be used.
+
+## Extra note
+
+Once NpmosStage is used, the following parameters are required:
+
+**offset_type:** [str] whether to scale up the negative or positive J and h. Options: negative or positive or others.
+
+**offset_ratio:** [positive float] the scaling ratio once offset_type is negative or positive. Not used if offset_type is others.
+
+Besides, the following parameters will be added within returned ans:
+
+**offset_model:** [IsingModel] the Ising model with offset.
+
+Once NoiseStage is used, the following parameters are required:
+
+**device_noise:** [bool] if turn on the NoiseStage. Options: True or False.
+
+**noise_level:** [positive float] the standard deviation of the Guassian noise (mean is always at 1).
+
+Besides, the following parameters will be added within returned ans:
+
+**noisy_model:** [IsingModel] the Ising model with injected noise.
