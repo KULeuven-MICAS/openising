@@ -8,7 +8,7 @@ T_cont: 0.05
 T_final: 0.05
 T_final_cont: 0.0005
 a0: 1.0
-benchmark: ising/benchmarks/TSP/tsp225.tsp
+benchmark: ising/benchmarks/dummy/D1600_J9b.txt
 c0: 0.0
 capacitance: 1
 coupling_annealing: false
@@ -30,8 +30,8 @@ offset_ratio: 0.0
 offset_type: others
 q: 0.0
 q_final: 10.0
-quantization: false
-quantization_precision: 0.0
+quantization: true
+quantization_precision: 1.5
 resistance: 1
 seed: 100
 solvers:
