@@ -165,10 +165,17 @@ class QuantizationStage(Stage):
         quantized_J = copy.deepcopy(J)
         quantized_J[nonzero_mask] = np.round((J[nonzero_mask] - quantization_lower_bound) / step_size) \
             * step_size + quantization_lower_bound
+
+        # Remove the last one as it exceeds the range
+        max_quantized_J = np.max(quantized_J[nonzero_mask])
+        quantized_J[quantized_J == max_quantized_J] = max_quantized_J - step_size
+
         if ternary_quantization and not same_sign:
             # Convert all the most negative values to the second most negative values
             # This is to ensure that we have only one unique negative value
             quantized_J[quantized_J == quantization_lower_bound] = quantization_lower_bound + step_size
+            assert len(np.unique(quantized_J)) == 3, \
+                f"Quantized J matrix should have 3 unique values, but has {len(np.unique(quantized_J))} unique values."
 
         self.plot_ndarray_in_matrix(quantized_J)
         return quantized_J
