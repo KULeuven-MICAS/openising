@@ -8,7 +8,8 @@ from ising.stages.config_parser_stage import ConfigParserStage
 from ising.stages.maxcut_parser_stage import MaxcutParserStage
 from ising.stages.tsp_parser_stage import TSPParserStage
 from ising.stages.atsp_parser_stage import ATSPParserStage
-# from ising.stages.mimo_parser_stage import MIMOParserStage
+from ising.stages.mimo_parser_stage import MIMOParserStage
+from ising.stages.mimo_ber_calc_stage import MIMOBerCalcStage
 from ising.stages.tsp_energy_calc_stage import TSPEnergyCalcStage
 from ising.stages.simulation_stage import SimulationStage
 from ising.stages.initialization_stage import InitializationStage
@@ -39,8 +40,8 @@ def get_hamiltonian_energy(
         parser_stage = TSPParserStage
     elif problem_type == "ATSP":
         parser_stage = ATSPParserStage
-    # elif problem_type == "MIMO":
-    #     parser_stage = MIMOParserStage
+    elif problem_type == "MIMO":
+        parser_stage = MIMOParserStage
     else:
         logging.error(f"Parser for {problem_type} is not implemented.")
         raise NotImplementedError(f"Parser for {problem_type} is not implemented.")
@@ -48,6 +49,8 @@ def get_hamiltonian_energy(
     # Decide on the energy calculation stage
     if problem_type == "TSP" or problem_type == "ATSP":
         energy_calc_stage = TSPEnergyCalcStage
+    elif problem_type == "MIMO":
+        energy_calc_stage = MIMOBerCalcStage
     else:
         energy_calc_stage = None
 
@@ -55,8 +58,8 @@ def get_hamiltonian_energy(
     stages = [
         ConfigParserStage,  # Parses the configuration file
         parser_stage,  # Parses the specific problem into an Ising graph model
-        NpmosStage,  # Injects NMOS/PMOS imbalance if needed
-        QuantizationStage,  # Quantizes the Ising model if needed
+        # NpmosStage,  # Injects NMOS/PMOS imbalance if needed
+        # QuantizationStage,  # Quantizes the Ising model if needed
         energy_calc_stage,  # Calculates the energy for the problems
         SimulationStage,  # Runs the simulation on the Ising model
         InitializationStage,  # Initializes the Ising spins and model

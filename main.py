@@ -12,8 +12,8 @@ logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdou
 os.system("rm -rf ising/outputs/TSP/logs/*")  # Clear previous logs
 
 # Input file directory
-problem_type = "TSP"  # Specify the problem type
-config_path = "ising/inputs/config/config_tsp.yaml"
+problem_type = "MIMO"  # Specify the problem type
+config_path = "ising/inputs/config/config_mimo.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
@@ -21,18 +21,21 @@ ans, debug_info = api.get_hamiltonian_energy(
     config_path=config_path,
     logging_level=logging_level,
 )
-benchmark = ans.benchmark
-ising_energies = ans.energies
-best_found = ans.best_found
-ising_energy_max = np.max(ising_energies)
-ising_energy_min = np.min(ising_energies)
-ising_energy_avg = np.mean(ising_energies)
+if problem_type == "MIMO":
+    logging.info("BER: %s", ans.BER)
+else:
+    benchmark = ans.benchmark
+    ising_energies = ans.energies
+    best_found = ans.best_found
+    ising_energy_max = np.max(ising_energies)
+    ising_energy_min = np.min(ising_energies)
+    ising_energy_avg = np.mean(ising_energies)
 
-logging.info(
-    "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %s",
-    benchmark,
-    best_found,
-    ising_energy_max,
-    ising_energy_min,
-    ising_energy_avg
-)
+    logging.info(
+        "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %s",
+        benchmark,
+        best_found,
+        ising_energy_max,
+        ising_energy_min,
+        ising_energy_avg
+    )
