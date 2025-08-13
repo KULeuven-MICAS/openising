@@ -33,10 +33,10 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
     hyperparameters["resistance"] = float(args.resistance)
-    # hyperparameters["flipping"] = bool(int(args.flipping))
-    # hyperparameters["flipping_freq"] = int(args.flipping_freq)
-    # hyperparameters["flipping_prob"] = float(args.flipping_prob)
-    # hyperparameters["mu_param"] = float(args.mu_param)
+    hyperparameters["nb_flipping"] = int(args.nb_flipping)
+    hyperparameters["cluster_threshold"] = float(args.cluster_threshold)
+    hyperparameters["init_cluster_size"] = float(args.init_cluster_size)
+    hyperparameters["end_cluster_size"] = float(args.end_cluster_size)
 
     # BRIM parameters
     dtBRIM = float(args.dtBRIM)
