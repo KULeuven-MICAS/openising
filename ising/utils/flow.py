@@ -5,12 +5,6 @@ import scipy.sparse.linalg as spalg
 from ising.utils.HDF5Logger import return_metadata
 
 from ising.stages.model.ising import IsingModel
-from ising.solvers.BRIM import BRIM
-from ising.solvers.SB import ballisticSB, discreteSB
-from ising.solvers.SCA import SCA
-from ising.solvers.SA import SASolver
-from ising.solvers.DSA import DSASolver
-from ising.solvers.Multiplicative import Multiplicative
 from ising.utils.helper_functions import return_rx
 from ising.utils.numpy import triu_to_symm
 
