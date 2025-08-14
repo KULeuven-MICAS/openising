@@ -9,7 +9,7 @@ from ising.postprocessing.helper_functions import get_metadata_from_logfiles, co
 def plot_energy_distribution(
     logfiles: list[pathlib.Path],
     benchmark: str,
-    figName: str = "benchmark_distribution_sweep",
+    fig_name: str = "benchmark_distribution_sweep.png",
     save: bool = True,
     save_dir: pathlib.Path = ".",
     percentage: float = 1.0,
@@ -34,14 +34,14 @@ def plot_energy_distribution(
     plt.ylabel("Relative error with optimal value of benchmark")
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     if save:
-        plt.savefig(save_dir / f"{figName}.pdf")
+        plt.savefig(save_dir / fig_name)
     plt.close()
 
 
 def plot_energy_average(
     logfiles: list[pathlib.Path],
     benchmark: str,
-    figName: str = "benchmark_average_sweep",
+    fig_name: str = "benchmark_average_sweep.png",
     save: bool = True,
     save_dir: pathlib.Path = ".",
     percentage: float = 1.0,
@@ -75,5 +75,5 @@ def plot_energy_average(
     plt.ylabel("Relative error to optimal value of benchmark")
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     if save:
-        plt.savefig(save_dir / f"{figName}.pdf")
+        plt.savefig(save_dir / fig_name)
     plt.close()

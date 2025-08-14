@@ -60,7 +60,7 @@ def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', force=True, level=logging.INFO)
 
     benchmark = args.benchmark
-    benchmark_list, _ = go_over_benchmark(TOP / f"ising/benchmarks/{benchmark}", float(args.percentage), int(args.part))
+    benchmark_list = go_over_benchmark(TOP / f"ising/benchmarks/{benchmark}", float(args.percentage), int(args.part))
     LOGGER.info(f"Benchmarks that will run are: {benchmark}")
 
     if benchmark == "G":
@@ -97,7 +97,7 @@ def main():
 
     for thread in threads:
         thread.join()
-        LOGGER.info(f"Thread {thread.name} finished")
+        # LOGGER.info(f"Thread {thread.name} finished")
     LOGGER.info("All threads finished")
 
 if __name__ == "__main__":
