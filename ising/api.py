@@ -58,8 +58,8 @@ def get_hamiltonian_energy(
     stages = [
         ConfigParserStage,  # Parses the configuration file
         parser_stage,  # Parses the specific problem into an Ising graph model
-        # NpmosStage,  # Injects NMOS/PMOS imbalance if needed
-        # QuantizationStage,  # Quantizes the Ising model if needed
+        NpmosStage,  # Injects NMOS/PMOS imbalance if needed
+        QuantizationStage,  # Quantizes the Ising model if needed
         energy_calc_stage,  # Calculates the energy for the problems
         SimulationStage,  # Runs the simulation on the Ising model
         InitializationStage,  # Initializes the Ising spins and model
