@@ -97,7 +97,7 @@ def main():
 
     for thread in threads:
         thread.join()
-        # LOGGER.info(f"Thread {thread.name} finished")
+        LOGGER.info(f"Thread {thread.name} finished")
     LOGGER.info("All threads finished")
 
 if __name__ == "__main__":

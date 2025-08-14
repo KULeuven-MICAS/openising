@@ -3,7 +3,7 @@ import numpy as np
 
 from ising.utils.HDF5Logger import return_metadata
 
-from ising.model.ising import IsingModel
+from ising.stages.model.ising import IsingModel
 from ising.solvers.BRIM import BRIM
 from ising.solvers.SB import ballisticSB, discreteSB
 from ising.solvers.SCA import SCA
@@ -133,12 +133,12 @@ def run_solver(
                 "initial_temp_cont",
                 "end_temp_cont",
                 "seed",
-                "coupling_annealing",
                 "capacitance",
                 "resistance",
                 "flipping",
                 "flipping_freq",
                 "flipping_prob",
+                "flipping_time",
                 "mu_param",
             ],
         ),
