@@ -3,7 +3,7 @@
 #################################
 
 # Benchmark file name
-benchmark: ./ising/MIMO.txt
+benchmark: ./ising/benchmarks/G/G2.txt
 
 # Number of iteration to check in each trial (trail length)
 iter_list:
@@ -11,10 +11,10 @@ iter_list:
 
 # Solver to use: [BRIM, SA, bSB, dSB, SCA, Multiplicative, all]
 solvers:
-  - Multiplicative
+  - dSB
 
 # Number of trials
-nb_runs: 50
+nb_runs: 10
 
 # Use gurobi or not
 use_gurobi: False
@@ -22,21 +22,18 @@ use_gurobi: False
 # Use multiprocessing or not
 use_multiprocessing: False
 
-initialization_seed: 42
-
-
 #################################
 ## Solvers hyperparameters
 #################################
-# Folder to save the results
-fig_folder: no_backup/figs/
 
-# Name of the file to save the results
-fig_name: .png
+# Parameters for SA
+T: 50.0
+T_final: 0.05
+seed: 100
 
-#################################
-## Low-level hyperparameters
-#################################
+# Parameters for SCA
+q: 0.0
+q_final: 10.0
 
 # Parameters for Multiplicative
 dtMult: 0.01
@@ -53,29 +50,8 @@ capacitance: 1
 dtBRIM: 1e-6  # 10us
 stop_criterion: 1e-6  # 1uV
 
-# Parameters for MIMO
-SNR: 60
-Nt: 5
-Nr: 5
-M: 4
-
-# Parameters for Multiplicative
-dtMult: 1e-5
-T_cont: 0.0
-T_final_cont: 0.0005
-resistance: 1
-capacitance: 1
-nb_flipping: 100
-cluster_threshold: 0.3
-init_cluster_size: 0.875
-end_cluster_size: 0.0625
-
-# Parameters for BRIM
-dtBRIM: 1e-6  # 10us
-stop_criterion: 1e-6  # 1uV
-
 # Parameters for SB
-dtSB: 0.25
+dtSB: 0.01
 a0: 1.0
 c0: 0.0
 

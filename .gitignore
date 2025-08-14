@@ -23,3 +23,6 @@ __pycache__/
 *.jpg
 *.pdf
 *.csv
+
+# Config yaml files
+**/config_*.yaml
