@@ -23,17 +23,17 @@ use_gurobi: False
 use_multiprocessing: False
 
 #################################
-## Output parameters
+## Solvers hyperparameters
 #################################
-# Folder to save the results
-fig_folder: no_backup/figs/
 
-# Name of the file to save the results
-fig_name: .png
+# Parameters for SA
+T: 50.0
+T_final: 0.05
+seed: 100
 
-#################################
-## Low-level hyperparameters
-#################################
+# Parameters for SCA
+q: 0.0
+q_final: 10.0
 
 # Parameters for Multiplicative
 dtMult: 0.01
@@ -50,16 +50,36 @@ capacitance: 1
 dtBRIM: 1e-6  # 10us
 stop_criterion: 1e-6  # 1uV
 
-# Parameters for SA
-T: 50.0
-T_final: 0.05
-seed: 100
-
-# Parameters for SCA
-q: 0.0
-q_final: 10.0
-
 # Parameters for SB
 dtSB: 0.01
 a0: 1.0
 c0: 0.0
+
+#################################
+## Problems hyperparameters
+#################################
+
+# Parameters for TSP
+weight_constant: 0
+
+# Parameters for MIMO
+SNR: None
+Nt: 2
+Nr: 2
+M: 4
+
+#################################
+## Specific Stages hyperparameters
+#################################
+
+# Parameters for quantization stage
+quantization: False
+quantization_precision: 1.5
+
+# Parameters for npmos stage
+offset_type: others
+offset_ratio: 0.3
+
+# Parameters for noise stage
+device_noise: False
+noise_level: 0.1
