@@ -4,6 +4,7 @@ import logging
 from ising.flow import LOGGER, TOP
 from ising.utils.flow import go_over_benchmark
 from ising.postprocessing.plot_all_benchmarks import plot_energy_distribution, plot_energy_average
+from ising.postprocessing.energy_plot import plot_energies_multiple
 from ising.postprocessing.plot_solutions import plot_state
 from ising.utils.helper_functions import make_directory
 
@@ -25,7 +26,7 @@ logging.basicConfig(format="%(levelname)s:%(message)s", force=True, level=loggin
 
 benchmark = args.benchmark
 LOGGER.info(f"Benchmarks that will be plotted are: {benchmark}")
-benchmark_list = go_over_benchmark(TOP / f"ising/benchmarks/{benchmark}", float(args.percentage))
+benchmark_list, best_found = go_over_benchmark(TOP / f"ising/benchmarks/{benchmark}", float(args.percentage))
 
 # Create a thread for each benchmark
 if args.solvers == "all":
@@ -55,9 +56,22 @@ logfiles = [
     for run in range(nb_runs)
 ]
 
+for bench in range(len(benchmark_list)):
+    current_logfiles = [
+        logtop / f"{solver}_{benchmark_list[bench]}_nbiter{num_iter}_run{run}.log"
+        for solver in solvers
+        for run in range(nb_runs)
+    ]
+    plot_energies_multiple(
+        current_logfiles,
+        figName=f"{benchmark_list[bench]}_energies.png",
+        best_found=float(best_found[bench]),
+        save_folder=figtop / args.fig_folder,
+    )
+
 for solver in solvers:
     for bench in benchmark_list:
-        logfile = logtop / f"{solver}_{bench}_nbiter{num_iter}_run{nb_runs-1}.log"
+        logfile = logtop / f"{solver}_{bench}_nbiter{num_iter}_run{nb_runs - 1}.log"
         plot_state(solver, logfile, f"{solver}_{bench}_state.png", figtop=figtop / args.fig_folder)
 
 LOGGER.info("plotting data of the logfiles")

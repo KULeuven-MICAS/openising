@@ -12,6 +12,7 @@ from ising.solvers.DSA import DSASolver
 from ising.solvers.Multiplicative import Multiplicative
 from ising.utils.helper_functions import return_rx
 
+
 def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     """Parses the arguments needed for the solvers.
 
@@ -74,7 +75,8 @@ def get_best_found_gurobi(gurobi_files: list[pathlib.Path]) -> list[float]:
         best_found_list.append(best_found)
     return best_found_list
 
-def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:int=0) -> np.ndarray:
+
+def go_over_benchmark(which_benchmark: pathlib.Path, percentage: float = 1.0, part: int = 0) -> np.ndarray:
     """Go over all the benchmarks in the given directory.
 
     Args:
@@ -84,12 +86,15 @@ def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:
         np.ndarray: a list of all the benchmarks.
     """
     optimal_energies = which_benchmark / "optimal_energy.txt"
-    benchmarks = np.loadtxt(optimal_energies, dtype=str)[:, 0]
+    benchmarks = np.loadtxt(optimal_energies, dtype=str)
     percentage = int(len(benchmarks) * percentage)
-    if (part+1)*percentage == 1.0:
-        return benchmarks[part*percentage:]
+    if (part + 1) * percentage == 1.0:
+        return benchmarks[part * percentage :, 0], benchmarks[part * percentage :, 1]
     else:
-        return benchmarks[part*percentage:(part+1)*percentage]
+        return benchmarks[part * percentage : (part + 1) * percentage, 0], benchmarks[
+            part * percentage : (part + 1) * percentage, 1
+        ]
+
 
 def run_solver(
     solver: str,
