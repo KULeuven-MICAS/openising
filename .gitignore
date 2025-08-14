@@ -6,7 +6,7 @@
 *.out
 */outputs/
 **/no_backup
-*.pkl
+**.pkl
 
 # environment stuff
 .env
@@ -23,6 +23,3 @@ __pycache__/
 *.jpg
 *.pdf
 *.csv
-
-# Config yaml files
-**/config_*.yaml
