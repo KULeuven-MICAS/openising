@@ -32,13 +32,13 @@ The config file is written in YAML. It must has the following parameters:
 
 **resistance:** the resistance used in Multiplicative solver. Default value is 1.
 
-**flipping:** whether to turn on flipping or not. 
+**nb_flipping:** amount of times flipping will be done. 
 
-**flipping_freq:** at what frequency the flipping should take place.
+**cluster_threshold:** threshold value for designing the cluster.
 
-**flipping_prob:** the beginning probability of flipping acceptance.
+**init_cluster_size:** the beginning cluster size for flipping. This value is a float between 0 and 1.
 
-**mu_param:** parameter that defines the strength of the diode in the Multiplicative solver. When negative (positive), nodes are pushed away from (attracted to) -1 and 1.
+**end_cluster_size:** final cluster size for flipping.This value is a float and between 0 and 1.
 
 **capacitance:** the capacitance 
 
