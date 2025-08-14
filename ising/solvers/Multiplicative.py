@@ -146,7 +146,7 @@ class Multiplicative(SolverBase):
         z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
 
         # Flipping changes
-        flip = np.where(self.sh_ts, (self.sh_tv - vt), 0.0)
+        flip = np.where(self.chosen_nodes, (self.flip_value - vt), 0.0)
 
         # Compute the voltage change dv
         dv = 1 / self.capacitance * (np.dot(coupling, c * vt) - z + flip / self.flip_resistance)
@@ -183,7 +183,7 @@ class Multiplicative(SolverBase):
             vt[-1] = 1.0
 
         # Buffering
-        c = 1 / np.abs(vt)
+        c = np.where(np.abs(vt) > 1., 1 / np.abs(vt), vt)
 
         # ZIV diode
         z = vt / self.resistance * (vt - 1) * (vt + 1) * self.mu_param
