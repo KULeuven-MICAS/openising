@@ -41,6 +41,14 @@ The config file is written in YAML. It must has the following parameters:
 
 *T_cont:* [float] will remove in branch
 
+*nb_flipping:* [int] amount of times flipping will be done. 
+
+*cluster_threshold:* [float] threshold value for designing the cluster.
+
+*init_cluster_size:* [float] the beginning cluster size for flipping. This value is a float between 0 and 1.
+
+*end_cluster_size:* [float] final cluster size for flipping.This value is a float and between 0 and 1.
+
 *T_final_cont:* [float] will remove in branch
 
 *resistance:* [float] the resistance used in Multiplicative solver. Default value is 1.
