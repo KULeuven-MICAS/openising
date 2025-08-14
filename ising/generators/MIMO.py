@@ -33,8 +33,8 @@ def MU_MIMO(Nt: int, Nr: int, M: int, seed: int = 1, absolute_val: float = 5) ->
 
     phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
     phi_u.sort()
-    mean_phi  = np.mean(phi_u, axis=0)
-    sigma_phi = np.random.normal(0, 1, (Nt,))
+    # mean_phi  = np.mean(phi_u, axis=0)
+    # sigma_phi = np.random.normal(0, 1, (Nt,))
 
     # H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
     H = np.zeros((Nr, Nt), dtype='complex_')
