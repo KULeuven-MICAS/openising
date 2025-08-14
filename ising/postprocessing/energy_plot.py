@@ -28,7 +28,7 @@ def plot_energies_on_figure(energies: np.ndarray, label: str | None = None):
 def plot_energies(
     fileName: pathlib.Path,
     figName: str = "energies",
-    best_found: float = None,
+    best_found: float = 0.0,
     save: bool = True,
     save_folder: pathlib.Path = pathlib.Path("./"),
 ):
@@ -55,7 +55,7 @@ def plot_energies(
     plt.xlabel("iteration")
     plt.ylabel("Energy")
     if save:
-        plt.savefig(save_folder / f"{figName}.png")
+        plt.savefig(save_folder / f"{figName}.pdf")
     plt.close()
 
 
@@ -111,7 +111,7 @@ def plot_energies_multiple(
     if best_found is not None:
         plt.ylim((best_found - 0.2*np.abs(best_found), max_energy + 0.1*np.abs(best_found)))
     if save:
-        plt.savefig(save_folder / f"{figName}.pdf", bbox_inches="tight")
+        plt.savefig(save_folder / f"{figName}.pdf", dpi=600, bbox_inches="tight")
     plt.close()
 
 

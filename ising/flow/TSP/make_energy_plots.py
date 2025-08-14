@@ -23,7 +23,6 @@ parser.add_argument("-nb_runs", help="Number of runs", default=10)
 parser.add_argument("-use_gurobi", help="whether Gurobi was used", default=False)
 parser.add_argument("-fig_folder", help="Folder in which to save the figures", default="")
 parser.add_argument("-fig_name", help="Name of the figure that needs to be saved", default="best_energy")
-parser.add_argument("-percentage", help="Amount of percentage to plot of energies", default=1.0)
 
 # Parsing the arguments
 args = parser.parse_args()
