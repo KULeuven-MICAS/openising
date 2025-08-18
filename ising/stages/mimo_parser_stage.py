@@ -25,7 +25,6 @@ class MIMOParserStage(Stage):
             np.random.seed(self.initialization_seed)
 
         nb_trials = int(self.config.nb_runs)
-        self.config.nb_runs = 1
         LOGGER.debug(f"Parsing MIMO benchmark: {self.benchmark_filename}")
         Nt, Nr = int(self.config.Nt), int(self.config.Nr)
         M = int(self.config.M)
