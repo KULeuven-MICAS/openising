@@ -67,6 +67,7 @@ SNR: None
 Nt: 2
 Nr: 2
 M: 4
+nb_trials: 100
 
 #################################
 ## Specific Stages hyperparameters

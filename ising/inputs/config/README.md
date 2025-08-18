@@ -91,6 +91,8 @@ The config file is written in YAML. It must has the following parameters:
 
 *M:* [2, 4, 8, et.al.] the modulation scheme used, i.e. M-QAM, for the MIMO problem.
 
+*nb_trials*: [positive int] amount of symbols each user needs to send. More means the BER will be more correct.
+
 ## Extra note
 
 **If NpmosStage is used, the following parameters are required:**
