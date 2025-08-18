@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import pathlib
 
 from ising.stages import LOGGER, TOP
 from typing import Any
@@ -17,26 +18,19 @@ class MIMOParserStage(Stage):
                  **kwargs: Any):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
-        self.benchmark_filename = TOP / "MIMO.mimo"
+        self.benchmark_filename = TOP / config.benchmark
 
     def run(self) -> Any:
         """! Parse the MIMO benchmark workload."""
-        self.initialization_seed = self.config.initialization_seed
-        if self.initialization_seed is not None:
-            np.random.seed(self.initialization_seed)
-
-        nb_trials = int(self.config.nb_trials)
         LOGGER.debug(f"Parsing MIMO benchmark: {self.benchmark_filename}")
+
         Nt, Nr = int(self.config.Nt), int(self.config.Nr)
         M = int(self.config.M)
-        H, symbols = self.MU_MIMO(Nt=Nt, Nr=Nr,
-                             M=M, seed=int(self.config.seed))
-
+        H, x, M = self.parse_MIMO(self.benchmark_filename)
+        nb_trials = x.shape[1]
         self.kwargs["config"] = self.config
         self.kwargs["best_found"] = 0.0
 
-        x = np.random.choice(symbols, size=(int(self.config.Nt), nb_trials)) + \
-            1j * np.random.choice(symbols, size=(int(self.config.Nt), nb_trials))
         self.x_tilde = np.zeros((2*Nt, nb_trials))
         ans_all = Ans()
         ans_all.MIMO = []
@@ -61,59 +55,79 @@ class MIMOParserStage(Stage):
 
         yield ans_all, debug
 
-
-    def MU_MIMO(self, Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[np.ndarray, np.ndarray]:
-        """!Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
-        This is consecutively transformed into an Ising model.
-
-        @param Nt (int): The amount of users.
-        @param Nr (int): The amount of antennas at the Base Station.
-        @param M (int): the considered QAM scheme.
-        @param seed (int, optional): The seed for the random number generator. Defaults to 1.
-
-        @return H (np.ndarray): the generated transfer function matrix of shape (Nt, Nr).
-        @return symbols (np.ndarray): the possible symbols the users can send.
-        """
-        if seed == 0:
-            seed = int(time.time())
-        np.random.seed(seed)
-
-        if M==2:
-            # BPSK scheme
-            symbols = np.array([-1, 1])
-            r = 1
-        else:
-            r = int(np.ceil(np.log2(np.sqrt(M))))
-            symbols = np.concatenate(
-                ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
-            )
-
-        phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
-        phi_u.sort()
-        mean_phi  = np.mean(phi_u, axis=0)
-        sigma_phi = np.random.normal(0, 1, (Nt,))
-
-        # H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
-        H = np.zeros((Nr, Nt), dtype='complex_')
-        for i in range(Nt):
-            C     = np.zeros((Nr, Nr), dtype="complex_")
-            phi   = mean_phi[i]
-            sigma = sigma_phi[i]
-            for m in range(Nr):
-                for n in range(Nr):
-                    d = self.spacing_BS_antennas(m, n)
-                    C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
-                        -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
-                    )
-            D, V = np.linalg.eig(C)
-            hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
-            H[:, i] = hu
-
-        return H, symbols
-
     @staticmethod
-    def spacing_BS_antennas(m, n):
-        return np.abs(m - n)
+    def parse_MIMO(benchmark:pathlib.Path) -> tuple[np.ndarray, np.ndarray, int]:
+        """! Parses the MIMO benchmark from the given file.
+
+        @param benchmark (pathlib.Path): the path to the benchmark to parse.
+
+        @return H (np.ndarray): the transfer function matrix of the MIMO system.
+        @return x (np.ndarray): all the input signals that where sent.
+        @return M (int): the considered QAM scheme.
+        """
+        M = None
+        Nt = None
+        Nr = None
+
+        H = None
+        x = None
+
+        transfer_stage = False
+        signals_stage = False
+
+        Real_stage = False
+        Imag_stage = False
+        with benchmark.open() as f:
+            for line in f:
+                parts = line.split(" ")
+                if transfer_stage:
+                    if parts[0] == "REAL":
+                        Real_stage = True
+                        Imag_stage = False
+                        index = 0
+                        continue
+                    elif parts[0] == "IMAG":
+                        Real_stage = False
+                        Imag_stage = True
+                        index = 0
+                        continue
+
+                    if Real_stage:
+                        H[index, :] = np.array([float(h) for h in parts])
+                        index += 1
+                    elif Imag_stage:
+                        H[index, :] += 1j * np.array([float(h) for h in parts])
+                        index += 1
+                elif signals_stage:
+                    if parts[0] == "REAL":
+                        Real_stage = True
+                        Imag_stage = False
+                        continue
+                    elif parts[0] == "IMAG":
+                        Real_stage = False
+                        Imag_stage = True
+                        index = 0
+                        continue
+
+                    if Real_stage:
+                        x = np.append(x, np.array([float(symbol) for symbol in parts]), axis=1)
+                    elif Imag_stage:
+                        x[index, :] += 1j * np.array([float(symbol) for symbol in parts])
+                        index += 1
+                elif parts[0] == "H":
+                    transfer_stage = True
+                elif parts[0] == "SIGNALS":
+                    signals_stage = True
+                    transfer_stage = False
+                elif parts[0] == "M":
+                    M = int(parts[1])
+                elif parts[0] == "Nt":
+                    Nt = int(parts[1])
+                elif parts[0] == "Nr":
+                    Nr = int(parts[1])
+                    H = np.zeros((Nr, Nt), dtype='complex_')
+                    x = np.zeros((Nt, 0), dtype='complex_')
+        return H, x, M
 
     @staticmethod
     def MIMO_to_Ising(
