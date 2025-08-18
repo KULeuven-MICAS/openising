@@ -2,20 +2,20 @@ from ising.stages import LOGGER
 from typing import Any
 import networkx as nx
 import numpy as np
+from argparse import Namespace
+
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.generators.TSP import TSP
+from ising.stages.qkp_parser_stage import QKPParserStage
+
 
 class DummyCreatorStage(Stage):
     """! Stage to create a dummy Ising model for testing purposes.
     To create a dummy model, the problem type and size must be specified in the yaml configuration.
     """
 
-    def __init__(self,
-                 list_of_callables: list[StageCallable],
-                 *,
-                 config: Any,
-                 **kwargs: Any):
+    def __init__(self, list_of_callables: list[StageCallable], *, config: Any, **kwargs: Any):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.problem_type = config.problem_type
@@ -30,8 +30,8 @@ class DummyCreatorStage(Stage):
         if self.problem_type == "Maxcut":
             graph, ising_model = self.generate_dummy_maxcut(N, seed)
         elif self.problem_type in ["TSP", "ATSP"]:
-            weight_constant = self.config.weight_constant if hasattr(self.config, 'weight_constant') else 1.0
-            if not hasattr(self.config, 'weight_constant'):
+            weight_constant = self.config.weight_constant if hasattr(self.config, "weight_constant") else 1.0
+            if not hasattr(self.config, "weight_constant"):
                 LOGGER.warning("No weight_constant provided in config, using default value of 1.0.")
             if self.problem_type == "TSP":
                 graph, ising_model = self.generate_dummy_tsp(N, seed, weight_constant=weight_constant)
@@ -146,3 +146,28 @@ class DummyCreatorStage(Stage):
         """
         # Placeholder for MIMO generation logic
         raise NotImplementedError("Dummy creator for MIMO is not implemented.")
+
+    def generate_dummy_knapsack(size: int, dens: int, penalty_value: float = 1.0, bit_width: int = 16) -> IsingModel:
+        """Generates a dummy knapsack problem instance.
+
+        Args:
+            size (int): the number of items.
+            dens (int): the density of the problem.
+            penalty_value (float, optional): the penalty value for the constraint. Defaults to 1.0.
+
+        Returns:
+            IsingModel: the corresponding Ising model.
+        """
+        max_number = int(2**bit_width)
+        profit = np.triu(
+            np.random.choice(
+                max_number + 1, size=(size, size), p=[1, -dens / 100] + [dens / (dens * max_number)] * (max_number - 1)
+            )
+        )
+        profit = profit + profit.T
+        weights = np.random.randint(1, max_number, size=(size,))
+        capacity = np.random.randint(np.min(weights) * 2, np.sum(weights) - np.min(weights), size=(1,))[0]
+
+        return QKPParserStage([StageCallable], config=Namespace()).knapsack_to_ising(
+            profit, capacity, weights, penalty_value
+        )
