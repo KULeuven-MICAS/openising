@@ -121,7 +121,7 @@ class Multiplicative(SolverBase):
                 max_change = np.max(diff) / (norm_prev if norm_prev != 0 else 1)
                 norm_prev = np.linalg.norm(new_voltages, ord=np.inf)
             previous_voltages = new_voltages.copy()
-        return np.sign(new_voltages[:model.num_variables]), energy
+        return np.sign(new_voltages[:model.num_variables]), energy, count
 
     def solve(
         self,

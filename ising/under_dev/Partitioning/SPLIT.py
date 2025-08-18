@@ -3,7 +3,7 @@ import numpy as np
 from ising.flow import LOGGER
 from ising.stages.model.ising import IsingModel
 # from ising.under_dev import sim_stage
-from ising.under_dev.Flipping.new_strategy import do_flipping
+from ising.solvers.Multiplicative import Multiplicative
 
 def SPLIT(partitions:list[int], sigma_init:np.ndarray, model: IsingModel,  num_iterations:int, **hyperparameters):
     partitioned_models, nodes_per_partition = partition_model(model, partitions)
@@ -14,15 +14,16 @@ def SPLIT(partitions:list[int], sigma_init:np.ndarray, model: IsingModel,  num_i
         local_fields = compute_local_fields(model, sigma, nodes_per_partition)
         for part_id, part_model in partitioned_models.items():
             part_model.h += local_fields[part_id]
-            _,  energy, sigma[nodes_per_partition[part_id]] = do_flipping(cluster_size_init=int(hyperparameters["cluster_size_init"]*part_model.num_variables),
-                                                                      cluster_size_end=int(hyperparameters["cluster_size_end"]*part_model.num_variables),
-                                                                      sigma_init=sigma[nodes_per_partition[part_id]],
-                                                                      model=part_model,
-                                                                      cluster_threshold=hyperparameters["threshold"],
-                                                                      nb_flipping=hyperparameters["nb_flipping"],
-                                                                      dt=hyperparameters["dt"],
-                                                                      num_iterations=hyperparameters["num_iter"],
-                                                                      )
+            _,  energy, sigma[nodes_per_partition[part_id]] = Multiplicative().solve(
+                            model=part_model,
+                            init_cluster_size=int(hyperparameters["cluster_size_init"]*part_model.num_variables),
+                            end_cluster_size=int(hyperparameters["cluster_size_end"]*part_model.num_variables),
+                            initial_state=sigma[nodes_per_partition[part_id]],
+                            cluster_threshold=hyperparameters["threshold"],
+                            nb_flipping=hyperparameters["nb_flipping"],
+                            dtMult=hyperparameters["dt"],
+                            num_iterations=hyperparameters["num_iter"],
+                            initial_temp_cont=0.0)
             part_model.h -= local_fields[part_id]
         
         energy_old = energy
