@@ -129,19 +129,18 @@ class QKPParserStage(Stage):
         G.add_weighted_edges_from(((i, i, weights[i]) for i in range(N)), weight="weight")
         return G, best_found
 
+    @staticmethod
     def knapsack_to_ising(
-        self, profit: np.ndarray, capacity: int, weights: np.ndarray, penalty_value: float
+        profit: np.ndarray, capacity: int, weights: np.ndarray, penalty_value: float
     ) -> IsingModel:
-        """Generates an instance of the knapsack problem in the Ising form.
+        """!Generates an instance of the knapsack problem in the Ising form.
 
-        Args:
-            profit (np.ndarray): the profits of choosing the items.
-            capacity (int): the capacity of the knapsack.
-            weights (np.ndarray): the weight of every item.
-            penalty_value (float): the penalty value for the constraint.
+        @param profit (np.ndarray): the profits of choosing the items.
+        @param capacity (int): the capacity of the knapsack.
+        @param weights (np.ndarray): the weight of every item.
+        @param penalty_value (float): the penalty value for the constraint.
 
-        Returns:
-            IsingModel: the corresponding Ising model.
+        @return IsingModel: the corresponding Ising model.
         """
         alpha = np.max(profit) * penalty_value
 
@@ -235,6 +234,7 @@ class QKPParserStage(Stage):
 
         return model
 
+    @staticmethod
     def get_optim_value(benchmark: pathlib.Path | str) -> float | None:
         """! Returns the best found value of the benchmark if the optimal value is known.
 

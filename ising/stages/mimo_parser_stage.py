@@ -4,8 +4,8 @@ import time
 from ising.stages import LOGGER, TOP
 from typing import Any
 from ising.stages.stage import Stage, StageCallable
-from ising.generators.MIMO import MIMO_to_Ising
 from ising.stages.simulation_stage import Ans
+from ising.stages.model.ising import IsingModel
 
 class MIMOParserStage(Stage):
     """! Stage to parse the MIMO benchmark workload."""
@@ -43,7 +43,7 @@ class MIMOParserStage(Stage):
         diff = np.zeros((2*Nt, nb_trials))
         for run in range(nb_trials):
             xi = x[:, run]
-            ising_model, x_tilde, _ = MIMO_to_Ising(H, xi, int(self.config.SNR), Nr, Nt, M, int(self.config.seed))
+            ising_model, x_tilde, _ = self.MIMO_to_Ising(H, xi, int(self.config.SNR), Nr, Nt, M, int(self.config.seed))
             self.x_tilde[:, run] = x_tilde
             self.kwargs["ising_model"] = ising_model
             self.kwargs["x_tilde"] = x_tilde
@@ -63,17 +63,16 @@ class MIMOParserStage(Stage):
 
 
     def MU_MIMO(self, Nt: int, Nr: int, M: int, seed: int = 1) -> tuple[np.ndarray, np.ndarray]:
-        """Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
+        """!Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
         This is consecutively transformed into an Ising model.
 
-        Args:
-            Nt (int): The amount of users.
-            Nr (int): The amount of antennas at the Base Station.
-            M (int): the considered QAM scheme.
-            seed (int, optional): The seed for the random number generator. Defaults to 1.
+        @param Nt (int): The amount of users.
+        @param Nr (int): The amount of antennas at the Base Station.
+        @param M (int): the considered QAM scheme.
+        @param seed (int, optional): The seed for the random number generator. Defaults to 1.
 
-        Returns:
-            H,symbols (tuple[np.ndarray, np.ndarray]): The generated transfer function matrix and the symbols.
+        @return H (np.ndarray): the generated transfer function matrix of shape (Nt, Nr).
+        @return symbols (np.ndarray): the possible symbols the users can send.
         """
         if seed == 0:
             seed = int(time.time())
@@ -112,6 +111,69 @@ class MIMOParserStage(Stage):
 
         return H, symbols
 
-    def spacing_BS_antennas(self,m, n):
+    @staticmethod
+    def spacing_BS_antennas(m, n):
         return np.abs(m - n)
+
+    @staticmethod
+    def MIMO_to_Ising(
+        H: np.ndarray, x: np.ndarray, SNR: float, Nr: int, Nt: int, M: int, seed:int=0
+    ) -> tuple[IsingModel, np.ndarray]:
+        """!Transforms the MIMO model into an Ising model.
+
+        @param H (np.ndarray): The transfer function matrix.
+        @param x (np.ndarray): the input signal.
+        @param T (np.ndarray): the transformation matrix to transform the input signal to Ising format.
+        @param SNR (float): the signal to noise ratio.
+        @param Nr (int): the amount of input signals.
+        @param Nt (int): the amount of output signals.
+        @param M (int): the considered QAM scheme.
+        @param seed (int, optional): The seed for the random number generator. Defaults to 0.
+
+        @return model (IsingModel): the generated Ising model.
+        @return xtilde (np.ndarray): the real version of the input symbols.
+        @return ytilde (np.ndarray): the real version of the output symbols.
+        """
+        if np.linalg.norm(np.imag(x)) == 0:
+            # BPSK scheme
+            r = 1
+            Nx = np.shape(x)[0]
+            Ny = 2*Nx
+        else:
+            r = int(np.ceil(np.log2(np.sqrt(M))))
+            Nx = np.shape(x)[0]*2
+            Ny = Nx
+
+        if seed == 0:
+            seed = int(time.time())
+        np.random.seed(seed)
+
+        # Compute the amplitude of the noise
+        power_x = (np.abs(x)**2)
+        SNR = 10 ** (SNR / 10)
+        var_noise = np.sqrt(power_x / SNR)
+        n = var_noise*(np.random.randn(Nr) + 1j * np.random.randn(Nr)) / (np.sqrt(2))
+
+        # Compute the received symbols
+        y = H @ x + n
+        ytilde = np.block([np.real(y), np.imag(y)])
+
+        Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
+
+        T = np.block([2**(r-i)*np.eye(Ny, Nx) for i in range(1, r+1)])
+
+        xtilde = np.block([np.real(x), np.imag(x)])
+
+        ones_end = np.eye(Ny, Nx) @ np.ones((Nx,))
+        constant = ytilde.T@ytilde - 2*ytilde.T @ Htilde @ (T@np.ones((r*Nx,)) - \
+                                            (np.sqrt(M)-1)*ones_end)
+
+        bias = 2*(ytilde - Htilde@(T@np.ones((r*Nx,))-(np.sqrt(M)-1)*ones_end))
+        bias = bias.T @ Htilde @ T
+        coupling = -2*T.T @ Htilde.T @ Htilde @ T
+        diagonal = np.diag(coupling)
+        constant -= np.sum(diagonal)/2
+
+        coupling = np.triu(coupling, k=1)
+        return IsingModel(coupling, bias, constant, name=f"MIMO_{SNR}"), xtilde, ytilde
 

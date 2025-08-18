@@ -148,15 +148,13 @@ class DummyCreatorStage(Stage):
         raise NotImplementedError("Dummy creator for MIMO is not implemented.")
 
     def generate_dummy_knapsack(size: int, dens: int, penalty_value: float = 1.0, bit_width: int = 16) -> IsingModel:
-        """Generates a dummy knapsack problem instance.
+        """! Generates a dummy knapsack problem instance.
 
-        Args:
-            size (int): the number of items.
-            dens (int): the density of the problem.
-            penalty_value (float, optional): the penalty value for the constraint. Defaults to 1.0.
+        @param size (int): the number of items.
+        @param dens (int): the density of the problem.
+        @param penalty_value (float, optional): the penalty value for the constraint. Defaults to 1.0.
 
-        Returns:
-            IsingModel: the corresponding Ising model.
+        @return IsingModel: the corresponding Ising model.
         """
         max_number = int(2**bit_width)
         profit = np.triu(

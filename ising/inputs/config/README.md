@@ -55,13 +55,13 @@ The config file is written in YAML. It must has the following parameters:
 
 *capacitance:* [float] the capacitance.
 
-*nb_flipping:* amount of times flipping will be done. 
+*nb_flipping:* [int] amount of times flipping will be done. 
 
-*cluster_threshold:* threshold value for designing the cluster.
+*cluster_threshold:* [float] threshold value for designing the cluster.
 
-*init_cluster_size:* the beginning cluster size for flipping. This value is a float between 0 and 1.
+*init_cluster_size:* [float] the beginning cluster size for flipping. This value is a float between 0 and 1.
 
-*end_cluster_size:* final cluster size for flipping.This value is a float and between 0 and 1.
+*end_cluster_size:* [float] final cluster size for flipping.This value is a float and between 0 and 1.
 
 **Parameters for BRIM solver**
 
@@ -83,7 +83,7 @@ The config file is written in YAML. It must has the following parameters:
 
 ### Following parameters are required only when the targeted benchmark is MIMO.
 
-*SNR:* the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
+*SNR:* [int] the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
 
 *Nt:* [positive int] amount of user antennas for the MIMO problem.
 
