@@ -67,7 +67,7 @@ class DummyCreatorStage(Stage):
 
         # Map the J matrix to a graph
         graph = nx.Graph(name=name)
-        graph.add_nodes_from(1, range(N + 1))  # Nodes are 1-indexed in the graph
+        graph.add_nodes_from(range(1, N + 1))  # Nodes are 1-indexed in the graph
         for i in range(N):
             for j in range(i + 1, N):
                 if J[i, j] != 0:
