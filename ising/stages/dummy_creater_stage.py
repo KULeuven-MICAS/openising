@@ -2,20 +2,20 @@ from ising.stages import LOGGER
 from typing import Any
 import networkx as nx
 import numpy as np
+from argparse import Namespace
+
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.generators.TSP import TSP
+from ising.stages.qkp_parser_stage import QKPParserStage
+from ising.stages.mimo_parser_stage import MIMOParserStage
 
 class DummyCreatorStage(Stage):
     """! Stage to create a dummy Ising model for testing purposes.
     To create a dummy model, the problem type and size must be specified in the yaml configuration.
     """
 
-    def __init__(self,
-                 list_of_callables: list[StageCallable],
-                 *,
-                 config: Any,
-                 **kwargs: Any):
+    def __init__(self, list_of_callables: list[StageCallable], *, config: Any, **kwargs: Any):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.problem_type = config.problem_type
@@ -30,8 +30,8 @@ class DummyCreatorStage(Stage):
         if self.problem_type == "Maxcut":
             graph, ising_model = self.generate_dummy_maxcut(N, seed)
         elif self.problem_type in ["TSP", "ATSP"]:
-            weight_constant = self.config.weight_constant if hasattr(self.config, 'weight_constant') else 1.0
-            if not hasattr(self.config, 'weight_constant'):
+            weight_constant = self.config.weight_constant if hasattr(self.config, "weight_constant") else 1.0
+            if not hasattr(self.config, "weight_constant"):
                 LOGGER.warning("No weight_constant provided in config, using default value of 1.0.")
             if self.problem_type == "TSP":
                 graph, ising_model = self.generate_dummy_tsp(N, seed, weight_constant=weight_constant)
@@ -67,7 +67,7 @@ class DummyCreatorStage(Stage):
 
         # Map the J matrix to a graph
         graph = nx.Graph(name=name)
-        graph.add_nodes_from(1, range(N + 1))  # Nodes are 1-indexed in the graph
+        graph.add_nodes_from(range(1, N + 1))  # Nodes are 1-indexed in the graph
         for i in range(N):
             for j in range(i + 1, N):
                 if J[i, j] != 0:
@@ -136,13 +136,75 @@ class DummyCreatorStage(Stage):
         return graph, ising_model
 
     @staticmethod
-    def generate_dummy_mimo(N: int, seed: int = 0) -> tuple[nx.Graph, IsingModel]:
-        """! Generates a random MIMO Ising model.
-        @param N: Number of nodes in the MIMO problem.
-        @param seed: Random seed for reproducibility.
+    def generate_dummy_mimo(Nt:int, Nr:int, M: int, SNR: int, seed: int = 0) -> tuple[nx.Graph, IsingModel]:
+        """!Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
+        This is consecutively transformed into an Ising model.
 
-        @return graph: A NetworkX graph representing the MIMO problem.
-        @return ising_model: An IsingModel object representing the MIMO problem.
+        @param Nt (int): The amount of users.
+        @param Nr (int): The amount of antennas at the Base Station.
+        @param M (int): the considered QAM scheme.
+        @param SNR (int): the Signal-to-Noise Ratio.
+        @param seed (int, optional): The seed for the random number generator. Defaults to 1.
+
+        @return H (np.ndarray): the generated transfer function matrix of shape (Nt, Nr).
+        @return symbols (np.ndarray): the possible symbols the users can send.
         """
-        # Placeholder for MIMO generation logic
-        raise NotImplementedError("Dummy creator for MIMO is not implemented.")
+        np.random.seed(seed)
+
+        if M==2:
+            # BPSK scheme
+            symbols = np.array([-1, 1])
+            r = 1
+        else:
+            r = int(np.ceil(np.log2(np.sqrt(M))))
+            symbols = np.concatenate(
+                ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
+            )
+
+        phi_u     = 120 * (np.random.random((10, Nt)) - 0.5)
+        phi_u.sort()
+        mean_phi  = np.mean(phi_u, axis=0)
+        sigma_phi = np.random.normal(0, 1, (Nt,))
+
+
+        # H = np.random.random((Nr, Nt)) + 1j*np.random.random((Nr, Nt))
+        H = np.zeros((Nr, Nt), dtype='complex_')
+        for i in range(Nt):
+            C     = np.zeros((Nr, Nr), dtype="complex_")
+            phi   = mean_phi[i]
+            sigma = sigma_phi[i]
+            for m in range(Nr):
+                for n in range(Nr):
+                    d = np.abs(m-n)
+                    C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
+                        -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
+                    )
+            D, V = np.linalg.eig(C)
+            hu = V @ np.diag(D)**0.5 @ V.conj().T @ (np.random.normal(0, 1, (Nr,)) + 1j*np.random.normal(0, 1, (Nr,)))
+            H[:, i] = hu
+        x = np.random.choice(symbols, size=(Nt,)) + 1j * np.random.choice(symbols, size=(Nt,))
+        ising_model = MIMOParserStage([StageCallable], config=Namespace()).MIMO_to_Ising(H, x, SNR, Nr, Nt, M, seed)
+        return None, ising_model
+
+    def generate_dummy_knapsack(size: int, dens: int, penalty_value: float = 1.0, bit_width: int = 16) -> IsingModel:
+        """! Generates a dummy knapsack problem instance.
+
+        @param size (int): the number of items.
+        @param dens (int): the density of the problem.
+        @param penalty_value (float, optional): the penalty value for the constraint. Defaults to 1.0.
+
+        @return IsingModel: the corresponding Ising model.
+        """
+        max_number = int(2**bit_width)
+        profit = np.triu(
+            np.random.choice(
+                max_number + 1, size=(size, size), p=[1, -dens / 100] + [dens / (dens * max_number)] * (max_number - 1)
+            )
+        )
+        profit = profit + profit.T
+        weights = np.random.randint(1, max_number, size=(size,))
+        capacity = np.random.randint(np.min(weights) * 2, np.sum(weights) - np.min(weights), size=(1,))[0]
+
+        return None, QKPParserStage([StageCallable], config=Namespace()).knapsack_to_ising(
+            profit, capacity, weights, penalty_value
+        )

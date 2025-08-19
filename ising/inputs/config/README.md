@@ -41,19 +41,27 @@ The config file is written in YAML. It must has the following parameters:
 
 *T_cont:* [float] will remove in branch
 
+*nb_flipping:* [int] amount of times flipping will be done. 
+
+*cluster_threshold:* [float] threshold value for designing the cluster.
+
+*init_cluster_size:* [float] the beginning cluster size for flipping. This value is a float between 0 and 1.
+
+*end_cluster_size:* [float] final cluster size for flipping.This value is a float and between 0 and 1.
+
 *T_final_cont:* [float] will remove in branch
 
 *resistance:* [float] the resistance used in Multiplicative solver. Default value is 1.
 
-*flipping:* [float] whether to turn on flipping or not. 
-
-*flipping_freq:* [float] at what frequency the flipping should take place.
-
-*flipping_prob:* [float] the beginning probability of flipping acceptance.
-
-*mu_param:* [float] parameter that defines the strength of the diode in the Multiplicative solver. When negative (positive), nodes are pushed away from (attracted to) -1 and 1.
-
 *capacitance:* [float] the capacitance.
+
+*nb_flipping:* [int] amount of times flipping will be done. 
+
+*cluster_threshold:* [float] threshold value for designing the cluster.
+
+*init_cluster_size:* [float] the beginning cluster size for flipping. This value is a float between 0 and 1.
+
+*end_cluster_size:* [float] final cluster size for flipping.This value is a float and between 0 and 1.
 
 **Parameters for BRIM solver**
 
@@ -75,13 +83,15 @@ The config file is written in YAML. It must has the following parameters:
 
 ### Following parameters are required only when the targeted benchmark is MIMO.
 
-*SNR:* the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
+*SNR:* [int] the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
 
 *Nt:* [positive int] amount of user antennas for the MIMO problem.
 
 *Nr:* [positive int] amount of receiver antennas for the MIMO problem.
 
 *M:* [2, 4, 8, et.al.] the modulation scheme used, i.e. M-QAM, for the MIMO problem.
+
+*nb_trials*: [positive int] amount of symbols each user needs to send. More means the BER will be more correct.
 
 ## Extra note
 

@@ -16,21 +16,26 @@ from ising.solvers.SA import SASolver
 from ising.solvers.DSA import DSASolver
 from ising.solvers.Multiplicative import Multiplicative
 
+
 class SimulationStage(Stage):
     """! Stage to simulate the Ising model and evaluate its Hamiltonian."""
 
-    def __init__(self,
-                 list_of_callables: list[StageCallable],
-                 *,
-                 config: Any,
-                 ising_model: IsingModel,
-                 best_found: float | None = None,
-                 **kwargs: Any):
+    def __init__(
+        self,
+        list_of_callables: list[StageCallable],
+        *,
+        config: Any,
+        ising_model: IsingModel,
+        best_found: float | None = None,
+        **kwargs: Any,
+    ):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.ising_model = ising_model
         self.best_found = best_found if best_found is not None else float("inf")
         self.benchmark_abbreviation = self.config.benchmark.split("/")[-1].split(".")[0]
+        if "run_id" in self.kwargs:
+            self.run_id = self.kwargs["run_id"]
 
     def run(self) -> Any:
         """! Simulate the Ising model and evaluate its Hamiltonian."""
@@ -40,7 +45,7 @@ class SimulationStage(Stage):
         problem_type = self.config.problem_type
 
         logpath = TOP / f"ising/outputs/{problem_type}/logs"
-        LOGGER.debug("Logpath: "+ str(logpath))
+        LOGGER.debug("Logpath: " + str(logpath))
         logpath.mkdir(parents=True, exist_ok=True)
 
         if bool(int(self.config.use_gurobi)):
@@ -78,13 +83,20 @@ class SimulationStage(Stage):
                     initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
 
                 for solver in self.config.solvers:
-                    logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
-                    optim_state, optim_energy = self.run_solver(solver, num_iter, initial_state,
-                                                                self.ising_model, logfile, **hyperparameters)
+                    if self.benchmark_abbreviation == "MIMO":
+                        logfile = None #(
+                            # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
+                        # )
+                    else:
+                        logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
+
+                    optim_state, optim_energy = self.run_solver(
+                        solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
+                    )
                     optim_state_collect.append(optim_state)
                     optim_energy_collect.append(optim_energy)
                     logfile_collect.append(logfile)
-                pbar.set_description(f"Running trails [#{trail_id+1}, energy: {optim_energy:.2f}]")
+                pbar.set_description(f"Running trails [#{trail_id + 1}, energy: {optim_energy:.2f}]")
         end_time = datetime.datetime.now()
         LOGGER.info(f"Simulation finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         LOGGER.info(f"Total simulation time: {end_time - start_time}")
@@ -101,14 +113,15 @@ class SimulationStage(Stage):
 
         yield ans, debug_info
 
-    def run_solver(self,
-                   solver: str,
-                   num_iter: int,
-                   s_init: np.ndarray,
-                   model: IsingModel,
-                   logfile: pathlib.Path | None = None,
-                   **hyperparameters,
-                   ) -> tuple[np.ndarray, float]:
+    def run_solver(
+        self,
+        solver: str,
+        num_iter: int,
+        s_init: np.ndarray,
+        model: IsingModel,
+        logfile: pathlib.Path | None = None,
+        **hyperparameters,
+    ) -> tuple[np.ndarray, float]:
         """! Solves the given problem with the specified solver.
 
         @param solver: The solver to use
@@ -144,10 +157,10 @@ class SimulationStage(Stage):
                     "seed",
                     "capacitance",
                     "resistance",
-                    "flipping",
-                    "flipping_freq",
-                    "flipping_prob",
-                    "mu_param",
+                    "nb_flipping",
+                    "cluster_threshold",
+                    "init_cluster_size",
+                    "end_cluster_size"
                 ],
             ),
             "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
@@ -173,13 +186,14 @@ class SimulationStage(Stage):
             raise NotImplementedError(f"Solver {solver} is not implemented.")
         return optim_state, optim_energy
 
+
 class Ans(metaclass=ABCMeta):
     """! Abstract class for the answer of the simulation stage."""
 
     def __init__(self, **kwargs: Any):
         """! Initializes the answer with the given parameters."""
-        object.__setattr__(self, 'kwargs', kwargs)
-        object.__setattr__(self, '_attributes', {})
+        object.__setattr__(self, "kwargs", kwargs)
+        object.__setattr__(self, "_attributes", {})
         # Set initial attributes from kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)

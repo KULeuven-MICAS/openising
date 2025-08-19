@@ -11,7 +11,9 @@ def find_cluster_mean(best_sigmas, sigma, max_size, threshold, option):
     if len(available_nodes[available_nodes >= 0]) < max_size:
         current_size = len(available_nodes[available_nodes >= 0])
         ind_unavailable_nodes = np.where(available_nodes < 0)[0]
-        chosen_nodes = np.random.choice(ind_unavailable_nodes, (max_size - current_size,))
+        chosen_nodes = np.array([], dtype=int)
+        while len(chosen_nodes) < max_size - current_size:
+            chosen_nodes = np.unique(np.append(chosen_nodes, np.random.choice(ind_unavailable_nodes, (max_size - current_size-len(chosen_nodes),))))
         available_nodes[chosen_nodes] = np.arange(len(available_nodes))[chosen_nodes]
 
 

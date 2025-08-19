@@ -5,17 +5,8 @@ import scipy.sparse.linalg as spalg
 from ising.utils.HDF5Logger import return_metadata
 
 from ising.stages.model.ising import IsingModel
-
+from ising.utils.helper_functions import return_rx
 from ising.utils.numpy import triu_to_symm
-
-
-def make_directory(path: pathlib.Path) -> None:
-    """Makes the given directory if it does not exist.
-
-    Args:
-        path (pathlib.Path): the directory to create
-    """
-    path.mkdir(parents=True, exist_ok=True)
 
 
 def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
@@ -33,10 +24,10 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     # Multiplicative parameters
     hyperparameters["dtMult"] = float(args.dtMult)
     hyperparameters["resistance"] = float(args.resistance)
-    # hyperparameters["flipping"] = bool(int(args.flipping))
-    # hyperparameters["flipping_freq"] = int(args.flipping_freq)
-    # hyperparameters["flipping_prob"] = float(args.flipping_prob)
-    # hyperparameters["mu_param"] = float(args.mu_param)
+    hyperparameters["nb_flipping"] = int(args.nb_flipping)
+    hyperparameters["cluster_threshold"] = float(args.cluster_threshold)
+    hyperparameters["init_cluster_size"] = float(args.init_cluster_size)
+    hyperparameters["end_cluster_size"] = float(args.end_cluster_size)
 
     # BRIM parameters
     dtBRIM = float(args.dtBRIM)
@@ -96,20 +87,6 @@ def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:
         return benchmarks[part*percentage:]
     else:
         return benchmarks[part*percentage:(part+1)*percentage]
-
-def return_rx(num_iter: int, r_init: float, r_final: float) -> float:
-    """Returns the change rate of SA/SCA hyperparameters
-
-    Args:
-        num_iter (int): amount of iterations.
-        r_init (float): the initial value of the hyperparameter.
-        r_final (float): the end value of the hyperparameter.
-
-    Returns:
-        float: the change rate of the hyperarameter.
-    """
-    return (r_final / r_init) ** (1 / (num_iter + 1))
-
 
 def return_c0(model: IsingModel) -> float:
     """Returns the optimal c0 value for simulated bifurcation.
