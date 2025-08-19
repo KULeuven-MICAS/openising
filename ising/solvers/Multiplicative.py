@@ -95,6 +95,7 @@ class Multiplicative(SolverBase):
         count = np.zeros((model.num_variables,))
         norm_prev = np.linalg.norm(previous_voltages, ord=np.inf)
         while i < self.num_iterations and max_change > self.stop_criterion:
+            # LOGGER.info(f"Iteration {i}")
             k1 = self.dt * self.dvdt(tk, previous_voltages)
             k2 = self.dt * self.dvdt(tk + self.dt, previous_voltages + k1)
             k3 = self.dt * self.dvdt(tk + 0.5 * self.dt, previous_voltages + 0.25 * (k1 + k2))
@@ -223,7 +224,7 @@ class Multiplicative(SolverBase):
             best_sample = v[:model.num_variables].copy()
             size_func = self.cluster_size(init_size, end_size, nb_flipping)
             for it in range(nb_flipping):
-
+                LOGGER.info(f"Iteration {it} - energy: {best_energy}")
                 sample, energy, count = self.inner_loop(model, v, log)
 
                 if energy < best_energy:

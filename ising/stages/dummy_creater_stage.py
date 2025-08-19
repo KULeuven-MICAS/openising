@@ -184,7 +184,7 @@ class DummyCreatorStage(Stage):
             H[:, i] = hu
         x = np.random.choice(symbols, size=(Nt,)) + 1j * np.random.choice(symbols, size=(Nt,))
         ising_model = MIMOParserStage([StageCallable], config=Namespace()).MIMO_to_Ising(H, x, SNR, Nr, Nt, M, seed)
-        return ising_model
+        return None, ising_model
 
     def generate_dummy_knapsack(size: int, dens: int, penalty_value: float = 1.0, bit_width: int = 16) -> IsingModel:
         """! Generates a dummy knapsack problem instance.
@@ -205,6 +205,6 @@ class DummyCreatorStage(Stage):
         weights = np.random.randint(1, max_number, size=(size,))
         capacity = np.random.randint(np.min(weights) * 2, np.sum(weights) - np.min(weights), size=(1,))[0]
 
-        return QKPParserStage([StageCallable], config=Namespace()).knapsack_to_ising(
+        return None, QKPParserStage([StageCallable], config=Namespace()).knapsack_to_ising(
             profit, capacity, weights, penalty_value
         )
