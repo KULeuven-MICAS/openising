@@ -75,10 +75,7 @@ class Multiplicative(SolverBase):
             noise = np.zeros_like(voltages)
         return noise
 
-    def inner_loop(self,
-                   model:IsingModel,
-                   state: np.ndarray,
-                   log: HDF5Logger):
+    def inner_loop(self, model: IsingModel, state: np.ndarray, log: HDF5Logger):
         # Set up the simulation
         i = 0
         tk = 0
@@ -122,7 +119,7 @@ class Multiplicative(SolverBase):
                 max_change = np.max(diff) / (norm_prev if norm_prev != 0 else 1)
                 norm_prev = np.linalg.norm(new_voltages, ord=np.inf)
             previous_voltages = new_voltages.copy()
-        return np.sign(new_voltages[:model.num_variables]), energy, count
+        return np.sign(new_voltages[: model.num_variables]), energy, count
 
     def solve(
         self,
@@ -131,9 +128,9 @@ class Multiplicative(SolverBase):
         dtMult: float,
         num_iterations: int,
         nb_flipping: int,
-        cluster_threshold:float,
-        init_cluster_size:float,
-        end_cluster_size:float,
+        cluster_threshold: float,
+        init_cluster_size: float,
+        end_cluster_size: float,
         resistance: float = 1.0,
         capacitance: float = 1.0,
         seed: int = 0,
@@ -221,10 +218,12 @@ class Multiplicative(SolverBase):
                 temperature=initial_temp_cont,
             )
             best_energy = np.inf
-            best_sample = v[:model.num_variables].copy()
-            size_func = self.cluster_size(init_size, end_size, nb_flipping)
+            best_sample = v[: model.num_variables].copy()
+            size_func = lambda x: int(
+                (return_rx(num_iterations, init_size, end_size) ** (x * 3)) * (init_size - end_size) + end_size
+            )
             for it in range(nb_flipping):
-                LOGGER.info(f"Iteration {it} - energy: {best_energy}")
+                # LOGGER.info(f"Iteration {it} - energy: {best_energy}")
                 sample, energy, count = self.inner_loop(model, v, log)
 
                 if energy < best_energy:
@@ -241,9 +240,6 @@ class Multiplicative(SolverBase):
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=dtMult * num_iterations)
         return best_sample, best_energy
 
-    def cluster_size(self, init_size:int, end_size:int, num_iterations:int) -> callable:
-        return lambda x: int((return_rx(num_iterations, init_size, end_size)**(x*3)) * (init_size-end_size) + end_size)
-
     def find_cluster(self, counts: np.ndarray, cluster_size: int, cluster_threshold: float):
         """Finds the cluster of nodes to flip. These nodes are chosen based on the frequency of flipping.
 
@@ -256,7 +252,7 @@ class Multiplicative(SolverBase):
 
         available_nodes = np.where(freq < cluster_threshold)[0]
         current_size = len(available_nodes)
-        if len(available_nodes) <= cluster_size:
+        if len(available_nodes) < cluster_size:
             ind_unavailable_nodes = np.where(freq >= cluster_threshold)[0]
             chosen_nodes = np.array([], dtype=int)
             while len(chosen_nodes) < cluster_size - current_size:
@@ -266,6 +262,7 @@ class Multiplicative(SolverBase):
                         np.random.choice(ind_unavailable_nodes, (cluster_size - current_size - len(chosen_nodes),)),
                     )
                 )
+                ind_unavailable_nodes = np.setdiff1d(ind_unavailable_nodes, chosen_nodes)
             available_nodes = np.append(available_nodes, chosen_nodes)
             cluster = available_nodes
         else:
