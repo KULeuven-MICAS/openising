@@ -44,4 +44,4 @@ class MIMOBerCalcStage(Stage):
             ans.lowest_energy = min_en
             ans.lowest_energy_state = ans.states[best_found]
 
-            return ans, debug_info
+            yield ans, debug_info

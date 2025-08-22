@@ -21,12 +21,17 @@ class MaxcutParserStage(Stage):
     def run(self) -> Any:
         """! Parse the Maxcut benchmark workload."""
 
-        LOGGER.debug(f"Parsing Maxcut benchmark: {self.benchmark_filename}")
-        graph: nx.Graph
-        best_found: float | None
-        graph, best_found = self.G_parser(benchmark=self.benchmark_filename)
-
-        ising_model: IsingModel = self.generate_maxcut(graph=graph)
+        if self.config.dummy_creator:
+            dummy_dict = self.kwargs.get("dummy_dict", {})
+            graph = dummy_dict.get("graph", None)
+            best_found = dummy_dict.get("best_found", None)
+            ising_model = dummy_dict.get("ising_model", None)
+        else:
+            LOGGER.debug(f"Parsing Maxcut benchmark: {self.benchmark_filename}")
+            graph: nx.Graph
+            best_found: float | None
+            graph, best_found = self.G_parser(benchmark=self.benchmark_filename)
+            ising_model: IsingModel = self.generate_maxcut(graph=graph)
 
         self.kwargs["config"] = self.config
         self.kwargs["ising_model"] = ising_model

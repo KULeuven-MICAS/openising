@@ -13,7 +13,7 @@ os.system("rm -rf ising/outputs/TSP/logs/*")  # Clear previous logs
 
 # Input file directory
 problem_type = "MIMO"  # Specify the problem type
-config_path = "ising/inputs/config/config_mimo.yaml"
+config_path = "ising/inputs/config/example.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
