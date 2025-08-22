@@ -15,7 +15,9 @@ The config file is written in YAML. It must has the following parameters:
 
 *use_multiprocessing:* not used yet.
 
-### Following parameters are optional, depending on the solvers used.
+*initialization_seed:* seed to initialize the initial spin states.
+
+## Following parameters are optional, depending on the solvers used.
 
 **Parameters for SA solver**
 
@@ -77,23 +79,19 @@ The config file is written in YAML. It must has the following parameters:
 
 *c0:* [float] the parameter that defines the strength of the Ising part in the solver. When it is set to 0 will the optimal parameter be used.
 
-### Following parameters are required only when the targeted benchmark is TSP.
+## Following parameters are required only when the targeted benchmark is TSP.
 
 *weight_constant:* penalty value added to the constraints in the TSP formulation.
 
-### Following parameters are required only when the targeted benchmark is MIMO.
+## Following parameters are required only when the targeted benchmark is MIMO.
 
 *SNR:* [int] the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
 
-*Nt:* [positive int] amount of user antennas for the MIMO problem.
-
-*Nr:* [positive int] amount of receiver antennas for the MIMO problem.
-
-*M:* [2, 4, 8, et.al.] the modulation scheme used, i.e. M-QAM, for the MIMO problem.
-
 *nb_trials*: [positive int] amount of symbols each user needs to send. More means the BER will be more correct.
 
-## Extra note
+*mimo_seed*: [float] seed for random number generation when applying noise (same as dummy_seed).
+
+## Extra parameters for specific stages
 
 **If NpmosStage is used, the following parameters are required:**
 
@@ -126,3 +124,37 @@ Besides, the following parameters will be added within returned ans:
 *quantized_model:* [IsingModel] the Ising model after quantization.
 
 *original_required_int_precision:* [int] the J precision required in the Ising model without quantization (h is not quantized).
+
+**If DummyCreatorStage is used, the following parameters are required:**
+
+*dummy_creator*: [bool] if turn on the dummy creation stage.
+
+*dummy_seed*: [float] seed for random number generation.
+
+**If dummy MIMO is to be generated, these parameters are required:**
+
+*dummy_qam*: [int] QAM modulation (e.g., 2, 4, 8, 16).
+
+*dummy_snr*: [float] Signal-to-Noise ratio (in dB).
+
+*dummy_user_num*: [int] the amount of users.
+
+*dummy_ant_num*: [int] the amount of antennas at the Base Station.
+
+*dummy_trails*: [int] the amount of dummy trails to generate.
+
+**If dummy MaxCut/TSP/ATSP is to be generated, these paramters are required:**
+
+*dummy_size*: [int] the amount of nodes (cities in TSP/ATSP).
+
+*dummy_weight_constant*: [float] (optional, only for TSP/ATSP) the weight constant to add.
+
+**If dummy KnapSack is to be generated, these paramters are required:**
+
+*dummy_size*: [int] the amount of items.
+
+*dummy_density*: [float] the problem density.
+
+*dummy_penalty_value*: [float] the penalty value.
+
+*dummy_bit_width*: [int] bit width of the highest profit.

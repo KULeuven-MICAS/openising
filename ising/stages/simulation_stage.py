@@ -57,13 +57,18 @@ class SimulationStage(Stage):
         for num_iter in self.config.iter_list:
             hyperparameters = parse_hyperparameters(self.config, num_iter)
 
-            if hyperparameters["c0"] == 0.0:
-                hyperparameters["c0"] = return_c0(model=self.ising_model)
-            if hyperparameters["q"] == 0.0:
-                hyperparameters["q"] = return_q(self.ising_model)
-                hyperparameters["r_q"] = 1.0
-            else:
-                hyperparameters["r_q"] = return_rx(num_iter, hyperparameters["q"], float(self.config.q_final))
+            if "bSB" in self.config.solvers or "dSB" in self.config.solvers:
+                if hyperparameters["c0"] == 0.0:
+                    # Set c0 if not provided
+                    hyperparameters["c0"] = return_c0(model=self.ising_model)
+
+            if "SCA" in self.config.solvers:
+                if hyperparameters["q"] == 0.0:
+                    # Set q and r_q if not provided
+                    hyperparameters["q"] = return_q(self.ising_model)
+                    hyperparameters["r_q"] = 1.0
+                else:
+                    hyperparameters["r_q"] = return_rx(num_iter, hyperparameters["q"], float(self.config.q_final))
 
             optim_state_collect = []
             optim_energy_collect = []
