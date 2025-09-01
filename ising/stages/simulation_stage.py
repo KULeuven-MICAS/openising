@@ -8,7 +8,7 @@ import pathlib
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
-from ising.utils.flow import parse_hyperparameters, return_c0, return_rx, return_q
+from ising.utils.flow import parse_hyperparameters
 from ising.solvers.BRIM import BRIM
 from ising.solvers.SB import ballisticSB, discreteSB
 from ising.solvers.SCA import SCA
@@ -76,11 +76,13 @@ class SimulationStage(Stage):
 
             for solver in self.config.solvers:
                 if self.benchmark_abbreviation == "MIMO":
-                    logfile = None #(
-                        # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
+                    logfile = None  # (
                     # )
+                # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
                 else:
-                    logfile = None #logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
+                    logfile = (
+                        None  # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
+                    )
 
                 optim_state, optim_energy = self.run_solver(
                     solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
@@ -152,7 +154,7 @@ class SimulationStage(Stage):
                     "nb_flipping",
                     "cluster_threshold",
                     "init_cluster_size",
-                    "end_cluster_size"
+                    "end_cluster_size",
                 ],
             ),
             "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
