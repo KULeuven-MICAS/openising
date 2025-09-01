@@ -47,6 +47,9 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
 
     # SCA parameters
     hyperparameters["q"] = float(args.q)
+    hyperparameters["r_q"] = (
+        return_rx(num_iter, hyperparameters["q"], float(args.q_final)) if hyperparameters["q"] != 0 else 0.0
+    )
 
     # SB parameters
     hyperparameters["dtSB"] = float(args.dtSB)
@@ -71,7 +74,8 @@ def get_best_found_gurobi(gurobi_files: list[pathlib.Path]) -> list[float]:
         best_found_list.append(best_found)
     return best_found_list
 
-def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:int=0) -> np.ndarray:
+
+def go_over_benchmark(which_benchmark: pathlib.Path, percentage: float = 1.0, part: int = 0) -> np.ndarray:
     """Go over all the benchmarks in the given directory.
 
     Args:
@@ -83,10 +87,11 @@ def go_over_benchmark(which_benchmark: pathlib.Path, percentage:float=1.0, part:
     optimal_energies = which_benchmark / "optimal_energy.txt"
     benchmarks = np.loadtxt(optimal_energies, dtype=str)[:, 0]
     percentage = int(len(benchmarks) * percentage)
-    if (part+1)*percentage == 1.0:
-        return benchmarks[part*percentage:]
+    if (part + 1) * percentage == 1.0:
+        return benchmarks[part * percentage :]
     else:
-        return benchmarks[part*percentage:(part+1)*percentage]
+        return benchmarks[part * percentage : (part + 1) * percentage]
+
 
 def return_c0(model: IsingModel) -> float:
     """Returns the optimal c0 value for simulated bifurcation.

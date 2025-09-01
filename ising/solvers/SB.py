@@ -7,6 +7,7 @@ from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
+from ising.utils.flow import return_c0
 
 
 class SB(SolverBase):
@@ -71,6 +72,9 @@ class ballisticSB(SB):
             sample, energy (tuple[np.ndarray, float]): optimal solution and energy
         """
         N  = model.num_variables
+
+        if c0 == 0.0:
+            c0 = return_c0(model)
 
         # Set up the model and initial states with the correct data type
         J             = np.array(triu_to_symm(model.J), dtype=np.float32)
@@ -157,6 +161,9 @@ class discreteSB(SB):
         """
         N = model.num_variables
         tk = 0.0
+        if c0 == 0.0:
+            c0 = return_c0(model)
+
         J = triu_to_symm(model.J)
 
         x = 0.01 * initial_state
