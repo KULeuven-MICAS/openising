@@ -3,23 +3,30 @@
 #################################
 
 # Benchmark file name
-benchmark: ./ising/benchmarks/G/G2.txt
+benchmark: ./ising/benchmarks/MIMO/Nr5_Nt5_M16.txt
 
 # Number of iteration to check in each trial (trail length)
 iter_list: 50000
 
+
 # Solver to use: [BRIM, SA, bSB, dSB, SCA, Multiplicative, all]
 solvers:
-  - dSB
+  - bSB
 
 # Number of trials
-nb_runs: 10
+nb_runs: 5
 
 # Use gurobi or not
 use_gurobi: False
 
 # Use multiprocessing or not
 use_multiprocessing: False
+
+# Initialization seed
+initialization_seed: 42
+
+# Logging or not
+gen_logfile: False
 
 #################################
 ## Solvers hyperparameters
@@ -39,10 +46,10 @@ dtMult: 0.01
 T_cont: 0.05
 T_final_cont: 0.0005
 resistance: 1
-flipping: 1
-flipping_freq: 1
-flipping_prob: 1
-mu_param: -3.55
+nb_flipping: 100
+cluster_threshold: 0.3
+init_cluster_size: 1.0
+end_cluster_size: 0.0625
 capacitance: 1
 
 # Parameters for BRIM
@@ -62,11 +69,9 @@ c0: 0.0
 weight_constant: 0
 
 # Parameters for MIMO
-SNR: None
-Nt: 2
-Nr: 2
-M: 4
+SNR: 10
 nb_trials: 100
+mimo_seed: 12
 
 #################################
 ## Specific Stages hyperparameters
@@ -83,3 +88,27 @@ offset_ratio: 0.3
 # Parameters for noise stage
 device_noise: False
 noise_level: 0.1
+
+#################################
+## Dummy creator hyperparameters
+#################################
+dummy_creator: True
+
+# Parameters for dummy MIMO
+dummy_seed: 42
+dummy_qam: 4
+dummy_snr: 8
+dummy_user_num: 16
+dummy_ant_num: 64
+dummy_case_num: 10
+
+# Parameters for dummy MaxCut/TSP/ATSP/Knapsack
+dummy_size: 20
+
+# for TSP/ATSP
+dummy_weight_constant: 0.0
+
+# for dummy Knapsack
+dummy_density: 1
+dummy_penalty_value: 1.0
+dummy_bit_width: 16

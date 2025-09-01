@@ -22,39 +22,44 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
     hyperparameters = dict()
 
     # Multiplicative parameters
-    hyperparameters["dtMult"] = float(args.dtMult)
-    hyperparameters["resistance"] = float(args.resistance)
-    hyperparameters["nb_flipping"] = int(args.nb_flipping)
-    hyperparameters["cluster_threshold"] = float(args.cluster_threshold)
-    hyperparameters["init_cluster_size"] = float(args.init_cluster_size)
-    hyperparameters["end_cluster_size"] = float(args.end_cluster_size)
+    if "Multiplicative" in args.solvers:
+        hyperparameters["dtMult"] = float(args.dtMult)
+        hyperparameters["resistance"] = float(args.resistance)
+        hyperparameters["nb_flipping"] = int(args.nb_flipping)
+        hyperparameters["cluster_threshold"] = float(args.cluster_threshold)
+        hyperparameters["init_cluster_size"] = float(args.init_cluster_size)
+        hyperparameters["end_cluster_size"] = float(args.end_cluster_size)
 
     # BRIM parameters
-    dtBRIM = float(args.dtBRIM)
-    hyperparameters["dtBRIM"] = dtBRIM
-    hyperparameters["capacitance"] = float(args.capacitance)
-    hyperparameters["stop_criterion"] = float(args.stop_criterion)
-    hyperparameters["initial_temp_cont"] = float(args.T_cont)
-    hyperparameters["end_temp_cont"] = float(args.T_final_cont)
+    if "BRIM" in args.solvers:
+        dtBRIM = float(args.dtBRIM)
+        hyperparameters["dtBRIM"] = dtBRIM
+        hyperparameters["capacitance"] = float(args.capacitance)
+        hyperparameters["stop_criterion"] = float(args.stop_criterion)
+        hyperparameters["initial_temp_cont"] = float(args.T_cont)
+        hyperparameters["end_temp_cont"] = float(args.T_final_cont)
 
     # SA parameters
-    hyperparameters["initial_temp"] = float(args.T)
-    Tfin = float(args.T_final)
-    hyperparameters["cooling_rate"] = (
-        return_rx(num_iter, hyperparameters["initial_temp"], Tfin) if hyperparameters["initial_temp"] != 0 else 0.0
-    )
-    hyperparameters["seed"] = int(args.seed)
+    if "SA" in args.solvers or "SCA" in args.solvers:
+        hyperparameters["initial_temp"] = float(args.T)
+        Tfin = float(args.T_final)
+        hyperparameters["cooling_rate"] = (
+            return_rx(num_iter, hyperparameters["initial_temp"], Tfin) if hyperparameters["initial_temp"] != 0 else 0.0
+        )
+        hyperparameters["seed"] = int(args.seed)
 
     # SCA parameters
-    hyperparameters["q"] = float(args.q)
-    hyperparameters["r_q"] = (
-        return_rx(num_iter, hyperparameters["q"], float(args.q_final)) if hyperparameters["q"] != 0 else 0.0
-    )
+    if "SCA" in args.solvers:
+        hyperparameters["q"] = float(args.q)
+        hyperparameters["r_q"] = (
+            return_rx(num_iter, hyperparameters["q"], float(args.q_final)) if hyperparameters["q"] != 0 else 0.0
+        )
 
     # SB parameters
-    hyperparameters["dtSB"] = float(args.dtSB)
-    hyperparameters["a0"] = float(args.a0)
-    hyperparameters["c0"] = float(args.c0)
+    if "dSB" in args.solvers or "bSB" in args.solvers:
+        hyperparameters["dtSB"] = float(args.dtSB)
+        hyperparameters["a0"] = float(args.a0)
+        hyperparameters["c0"] = float(args.c0)
 
     return hyperparameters
 

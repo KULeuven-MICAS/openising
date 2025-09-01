@@ -224,6 +224,7 @@ class Multiplicative(SolverBase):
             )
             for it in range(nb_flipping):
                 # LOGGER.info(f"Iteration {it} - energy: {best_energy}")
+
                 sample, energy, count = self.inner_loop(model, v, log)
 
                 if energy < best_energy:
@@ -236,7 +237,7 @@ class Multiplicative(SolverBase):
                 if self.bias:
                     v = np.block([v, 1.0])
 
-            LOGGER.info(f"Finished with energy: {energy}")
+            LOGGER.debug(f"Finished with energy: {energy}")
             log.write_metadata(solution_state=sample, solution_energy=energy, total_time=dtMult * num_iterations)
         return best_sample, best_energy
 

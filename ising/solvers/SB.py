@@ -2,7 +2,6 @@ import numpy as np
 import pathlib
 from abc import abstractmethod
 
-from ising.flow import LOGGER
 from ising.stages.model.ising import IsingModel
 from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
@@ -122,7 +121,6 @@ class ballisticSB(SB):
             log.write_metadata(
                 solution_state=sample, solution_energy=energy, total_operations=nb_operations
             )
-        LOGGER.info(f"Finished with energy: {energy}")
         return sample, energy
 
 

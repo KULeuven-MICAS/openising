@@ -3,7 +3,7 @@ from typing import Any
 import sys
 from ising.stages.stage import StageCallable
 from ising.stages.main_stage import MainStage
-from ising.stages.dummy_creater_stage import DummyCreatorStage
+from ising.stages.dummy_creator_stage import DummyCreatorStage
 from ising.stages.config_parser_stage import ConfigParserStage
 from ising.stages.maxcut_parser_stage import MaxcutParserStage
 from ising.stages.tsp_parser_stage import TSPParserStage
@@ -57,10 +57,11 @@ def get_hamiltonian_energy(
     # Add simulation stages
     stages = [
         ConfigParserStage,  # Parses the configuration file
+        DummyCreatorStage,  # Creates a dummy Ising model if needed
         parser_stage,  # Parses the specific problem into an Ising graph model
+        energy_calc_stage,  # Calculates the energy for the problems
         NpmosStage,  # Injects NMOS/PMOS imbalance if needed
         QuantizationStage,  # Quantizes the Ising model if needed
-        energy_calc_stage,  # Calculates the energy for the problems
         SimulationStage,  # Runs the simulation on the Ising model
         InitializationStage,  # Initializes the Ising spins and model
     ]
