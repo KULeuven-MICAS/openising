@@ -6,8 +6,8 @@
 benchmark: ./ising/benchmarks/MIMO/Nr5_Nt5_M16.txt
 
 # Number of iteration to check in each trial (trail length)
-iter_list:
-  - 2000
+iter_list: 50000
+
 
 # Solver to use: [BRIM, SA, bSB, dSB, SCA, Multiplicative, all]
 solvers:

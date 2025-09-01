@@ -5,7 +5,7 @@ from ising.stages.model.ising import IsingModel
 from ising.utils.numpy import triu_to_symm
 
 
-def partitioning_modularity(model:IsingModel, nb_cores:int=2):
+def partitioning_modularity(model:IsingModel, nb_cores:int=2, sign=1):
     """partitions the models nodes into a number of partitions according to the modularity partitioning scheme.
     The number of partitions is determined by the parameter nb_cores.
 
@@ -40,8 +40,13 @@ def partitioning_modularity(model:IsingModel, nb_cores:int=2):
         model1 = IsingModel(model.J[nodes[s==1], :][:, nodes[s==1]], model.h[nodes[s==1]])
         model2 = IsingModel(model.J[nodes[s==-1], :][:, nodes[s==-1]], model.h[nodes[s==-1]])
 
-        s1, _ = partitioning_modularity(model1, nb_cores / 2)
-        s2, _ = partitioning_modularity(model2, nb_cores / 2)
-        s[s==-1] = 2*s2
-        s[s==1] = s1
+        s1, _ = partitioning_modularity(model1, nb_cores / 2, sign=1)
+        s2, _ = partitioning_modularity(model2, nb_cores / 2, sign=-1)
+
+        if sign == -1:
+            s[s==-1] = 4*s2
+            s[s==1] = 3*s1
+        if sign == 1:
+            s[s==-1] = 2*s2
+            s[s==1] = s1
         return s, None
