@@ -32,39 +32,45 @@ class MIMOParserStage(Stage):
             M = dummy_dict.get("M", None)
             ant_num = dummy_dict.get("ant_num", None)
             user_num = dummy_dict.get("user_num", None)
+            snr = dummy_dict.get("SNR", None)
+            mimo_seed = dummy_dict.get("seed", None)
         else:
             H, x, M, ant_num, user_num = self.parse_MIMO(self.benchmark_filename)
+            snr = int(self.config.SNR)
+            mimo_seed = int(self.config.mimo_seed)
 
-        if self.config.nb_trials:
-            nb_trials = self.config.nb_trials
-            nb_trials = min(nb_trials, x.shape[1])
+        if hasattr(self.config, "nb_trials"):
+            case_num = self.config.nb_trials
+            case_num = min(case_num, x.shape[1])
         else:
-            nb_trials = x.shape[1]
+            case_num = x.shape[1]
         self.kwargs["config"] = self.config
         self.kwargs["best_found"] = 0.0
 
         ans_all = Ans()
         ans_all.MIMO = []
-        diff = np.zeros((2*user_num, nb_trials))
-        for run in range(nb_trials):
+        diff = np.zeros((2*user_num, case_num))
+        for run in range(case_num):
             xi = x[:, run]
             ising_model, x_tilde, _ = self.MIMO_to_Ising(
-                H, xi, int(self.config.SNR), user_num, ant_num, M, int(self.config.mimo_seed))
+                H, xi, snr, user_num, ant_num, M, mimo_seed)
             self.kwargs["ising_model"] = ising_model
             self.kwargs["x_tilde"] = x_tilde
             self.kwargs["M"] = M
             self.kwargs["run_id"] = run
             sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
 
-            ans, debug = next(sub_stage.run())
+            ans: Ans
+            debug_info: Ans
+            ans, debug_info = next(sub_stage.run())
             ans_all.MIMO.append(ans)
             diff[:, run] = ans.difference
 
-        ans_all.BER = np.sum(np.abs(diff) / 2, axis=0) / (np.sqrt(M)*ant_num)
-        LOGGER.info("BER: %s", ans_all.BER)
-        ans_all.BER = np.mean(ans_all.BER)
+        ans_all.ber_of_trails = np.sum(np.abs(diff) / 2, axis=0) / (np.sqrt(M)*ant_num)
+        ans_all.BER = np.mean(ans_all.ber_of_trails)
+        LOGGER.info("BER/case: %s, mean: %s", ans_all.ber_of_trails, ans_all.BER)
 
-        yield ans_all, debug
+        yield ans_all, debug_info
 
     @staticmethod
     def parse_MIMO(benchmark:pathlib.Path) -> tuple[np.ndarray, np.ndarray, int, int, int]:
