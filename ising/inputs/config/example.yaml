@@ -6,8 +6,7 @@
 benchmark: ./ising/benchmarks/G/G2.txt
 
 # Number of iteration to check in each trial (trail length)
-iter_list:
-  - 50000
+iter_list: 50000
 
 # Solver to use: [BRIM, SA, bSB, dSB, SCA, Multiplicative, all]
 solvers:

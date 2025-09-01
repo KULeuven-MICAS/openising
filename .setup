@@ -14,3 +14,4 @@ export PYTHON=$TOP/.venv/bin/python3.12
 
 # Load requirements.txt (should usually not update anything)
 pip --python $PYTHON install --quiet -r ./requirements.txt
+PYDEVD_WARN_EVALUATION_TIMEOUT=10
