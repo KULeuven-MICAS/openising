@@ -17,6 +17,8 @@ The config file is written in YAML. It must has the following parameters:
 
 *initialization_seed:* seed to initialize the initial spin states.
 
+*gen_logfile:* [bool] whether generate HDF5 log file that records all spin updating details (Default: False if not defined.)
+
 ## Following parameters are optional, depending on the solvers used.
 
 **Parameters for SA solver**
@@ -141,7 +143,7 @@ Besides, the following parameters will be added within returned ans:
 
 *dummy_ant_num*: [int] the amount of antennas at the Base Station.
 
-*dummy_trails*: [int] the amount of dummy trails to generate.
+*dummy_case_num*: [int] the amount of dummy input testcases to generate.
 
 **If dummy MaxCut/TSP/ATSP is to be generated, these paramters are required:**
 

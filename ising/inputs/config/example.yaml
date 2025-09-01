@@ -25,6 +25,9 @@ use_multiprocessing: False
 # Initialization seed
 initialization_seed: 42
 
+# Logging or not
+gen_logfile: False
+
 #################################
 ## Solvers hyperparameters
 #################################
@@ -97,7 +100,7 @@ dummy_qam: 4
 dummy_snr: 8
 dummy_user_num: 16
 dummy_ant_num: 64
-dummy_trails: 10
+dummy_case_num: 10
 
 # Parameters for dummy MaxCut/TSP/ATSP/Knapsack
 dummy_size: 20

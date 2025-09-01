@@ -22,13 +22,14 @@ class DummyCreatorStage(Stage):
     def run(self) -> Any:
         """! Creates a dummy Ising model."""
 
-        LOGGER.info(f"Creating a dummy {self.problem_type} model.")
         dummy_creator = self.config.dummy_creator if hasattr(self.config, "dummy_creator") else False
         if dummy_creator:
+            LOGGER.info(f"Creating a dummy {self.problem_type} model.")
             seed = self.config.dummy_seed
 
             if self.problem_type == "Maxcut":
                 N = self.config.dummy_size
+                LOGGER.info(f"size: {N}, seed: {seed}")
                 dummy_dict = self.generate_dummy_maxcut(N, seed)
             elif self.problem_type in ["TSP", "ATSP"]:
                 N = self.config.dummy_size
@@ -36,6 +37,7 @@ class DummyCreatorStage(Stage):
                     self.config, "dummy_weight_constant") else 0.0
                 if not hasattr(self.config, "weight_constant"):
                     LOGGER.warning("No weight_constant provided in config, using default value of 1.0.")
+                LOGGER.info(f"size: {N}, seed: {seed}, weight_constant: {weight_constant}")
                 if self.problem_type == "TSP":
                     dummy_dict = self.generate_dummy_tsp(N, seed, weight_constant=weight_constant)
                 else:
@@ -45,14 +47,19 @@ class DummyCreatorStage(Stage):
                 dummy_snr = self.config.dummy_snr if hasattr(self.config, "dummy_snr") else 10
                 user_num = self.config.dummy_user_num if hasattr(self.config, "dummy_user_num") else 4
                 ant_num = self.config.dummy_ant_num if hasattr(self.config, "dummy_ant_num") else 4
+                dummy_case_num = self.config.dummy_case_num if hasattr(self.config, "dummy_case_num") else 10
+                LOGGER.info(f"QAM: {dummy_qam}, SNR: {dummy_snr}, user_num: {user_num}, ant_num: {ant_num}, "
+                            f"seed: {seed}, case_num: {dummy_case_num}")
                 dummy_dict = self.generate_dummy_mimo(user_num=user_num, ant_num=ant_num,
                                                       M=dummy_qam, SNR=dummy_snr, seed=seed,
-                                                      dummy_trails=self.config.dummy_trails)
+                                                      dummy_case_num=dummy_case_num)
             elif self.problem_type == "Knapsack":
                 N = self.config.dummy_size
                 density = self.config.dummy_density if hasattr(self.config, "dummy_density") else 1
                 penalty_value = self.config.dummy_penalty_value if hasattr(self.config, "dummy_penalty_value") else 1.0
                 bit_width = self.config.dummy_bit_width if hasattr(self.config, "dummy_bit_width") else 16
+                LOGGER.info(f"size: {N}, density: {density}, penalty_value: {penalty_value}, "
+                            f"bit_width: {bit_width}, seed: {seed}")
                 dummy_dict = self.generate_dummy_knapsack(size=N,
                                                           dns=density,
                                                           penalty_value=penalty_value,
@@ -176,7 +183,14 @@ class DummyCreatorStage(Stage):
         return dummy_dict
 
     @staticmethod
-    def generate_dummy_mimo(user_num:int, ant_num:int, M: int, SNR: int, seed: int = 0, dummy_trails: int = 10) -> dict:
+    def generate_dummy_mimo(
+        user_num:int,
+        ant_num:int,
+        M: int,
+        SNR: int,
+        seed: int = 0,
+        dummy_case_num: int = 10
+        ) -> dict:
         """!Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
         This is consecutively transformed into an Ising model.
 
@@ -185,7 +199,7 @@ class DummyCreatorStage(Stage):
         @param M (int): the considered QAM scheme.
         @param SNR (int): the Signal-to-Noise Ratio.
         @param seed (int, optional): The seed for the random number generator. Defaults to 1.
-        @param dummy_trails (int, optional): The number of dummy trails to generate. Defaults to 10.
+        @param dummy_case_num (int, optional): The number of dummy trails to generate. Defaults to 10.
 
         @return dummy_dict: dict containing IsingModel representing the MIMO problem.
         """
@@ -223,10 +237,10 @@ class DummyCreatorStage(Stage):
                 np.random.normal(0, 1, (ant_num,)) + 1j*np.random.normal(0, 1, (ant_num,)))
             H[:, i] = hu
         x_collect: list = []
-        for i in range(dummy_trails):
+        for i in range(dummy_case_num):
             x = np.random.choice(symbols, size=(user_num,)) + 1j * np.random.choice(symbols, size=(user_num,))
             x_collect.append(x)
-        x_collect: np.ndarray = np.array(x_collect).T  # shape (user_num, dummy_trails)
+        x_collect: np.ndarray = np.array(x_collect).T  # shape (user_num, dummy_case_num)
         dummy_dict: dict = {
             "H": H,
             "x_collect": x_collect,

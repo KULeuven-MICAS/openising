@@ -31,6 +31,7 @@ class SimulationStage(Stage):
     ):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
+        self.gen_logfile = self.config.gen_logfile if hasattr(self.config, "gen_logfile") else False
         self.ising_model = ising_model
         self.best_found = best_found if best_found is not None else float("inf")
         self.benchmark_abbreviation = self.config.benchmark.split("/")[-1].split(".")[0]
@@ -88,12 +89,10 @@ class SimulationStage(Stage):
                     initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
 
                 for solver in self.config.solvers:
-                    if self.benchmark_abbreviation == "MIMO":
-                        logfile = None #(
-                            # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
-                        # )
-                    else:
+                    if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
                         logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
+                    else:
+                        logfile = None
 
                     optim_state, optim_energy = self.run_solver(
                         solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
