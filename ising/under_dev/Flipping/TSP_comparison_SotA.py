@@ -19,8 +19,12 @@ save_path = TOP / "ising/under_dev/Flipping"
 def run_benchmark_TSP(benchmark_name:str)->None:
     graph, _ = TSPParser.TSP_parser(TOP / f"ising/benchmarks/TSP/{benchmark_name}.tsp")
     model = TSP(graph, 1.2)
-    hyperparameters = {"dt": 1e-6, "num_iterations": 50000, "init_size":7/8, "end_size":1/12, "threshold":0.3, "cluster_choice":"frequency"}
-    run_benchmark(model, benchmark_name, **hyperparameters)
+    cluster_size_end = [1/20, 1/16, 1/14, 1/12, 1/8, 1/6]
+    size_change = [1, 2, 3, 4, 5, 6]
+    for end_size, change in zip(cluster_size_end, size_change):
+        LOGGER.info(f"End cluster size: {end_size}, size change: {change}")
+        hyperparameters = {"dt": 1e-6, "num_iterations": 50000, "init_size":7/8, "end_size":end_size, "threshold":0.3, "cluster_choice":"random", "change_size":change}
+        run_benchmark(model, benchmark_name, **hyperparameters)
 
 def run_benchmark_MCP(benchmark_name:str)->None:
     g, _ = MaxCutParser.G_parser(TOP / f"ising/benchmarks/G/{benchmark_name}.txt")
@@ -74,7 +78,8 @@ def run_benchmark(model: IsingModel, benchmark_name:str, **hyperparameters) -> N
                                    nb_flipping=nb_flipping,
                                    dt=hyperparameters["dt"],
                                    num_iterations=hyperparameters["num_iterations"],
-                                   cluster_choice=hyperparameters["cluster_choice"],)
+                                   cluster_choice=hyperparameters["cluster_choice"],
+                                   size_change=hyperparameters["change_size"])
         results = pool.starmap(flipping_partial, tasks)
 
     all_energies = np.empty((nb_runs,))
@@ -97,8 +102,8 @@ def parse_out_file(filename: str, save_file_name:str):
     np.savetxt(save_path / f"{save_file_name}.pkl", results)
 
 if __name__ == "__main__":
-    # run_benchmark_TSP("burma14")
+    run_benchmark_TSP("burma14")
     # run_benchmark_MIMO(5, 16, 5)
-    run_benchmark_MCP("G11")
+    # run_benchmark_MCP("G11")
     # run_benchmark_QKP("jeu_100_25_1")
     # parse_out_file(TOP / "ising/under_dev/Flipping/burma14_comparison_random.out", "TSP_random_flipping")
