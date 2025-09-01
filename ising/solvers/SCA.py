@@ -7,6 +7,7 @@ from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
+from ising.utils.flow import return_q
 
 
 class SCA(SolverBase):
@@ -48,6 +49,11 @@ class SCA(SolverBase):
         Returns:
             sample, energy (tuple[np.ndarray, float]): final state and energy of the optimisation process.
         """
+        if q== 0.0:
+            q= return_q(self.ising_model)
+            r_q = 1.0
+
+
         N = model.num_variables
         hs = np.zeros((N,))
         J = triu_to_symm(model.J)

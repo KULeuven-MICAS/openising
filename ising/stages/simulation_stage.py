@@ -8,7 +8,7 @@ import pathlib
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
-from ising.utils.flow import parse_hyperparameters, return_c0, return_rx, return_q
+from ising.utils.flow import parse_hyperparameters
 from ising.solvers.BRIM import BRIM
 from ising.solvers.SB import ballisticSB, discreteSB
 from ising.solvers.SCA import SCA
@@ -55,36 +55,31 @@ class SimulationStage(Stage):
 
         start_time = datetime.datetime.now()
         LOGGER.info(f"Simulation started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        for num_iter in self.config.iter_list:
-            hyperparameters = parse_hyperparameters(self.config, num_iter)
+        num_iter = self.config.iter_list
+        hyperparameters = parse_hyperparameters(self.config, num_iter)
 
-            if "bSB" in self.config.solvers or "dSB" in self.config.solvers:
-                if hyperparameters["c0"] == 0.0:
-                    # Set c0 if not provided
-                    hyperparameters["c0"] = return_c0(model=self.ising_model)
+        optim_state_collect = []
+        optim_energy_collect = []
+        logfile_collect = []
+        pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc="Running trials")
+        for trail_id in pbar:
+            # Set the seed for flipping mechanism
+            hyperparameters["seed"] = trail_id + 1 + int(self.config.seed)
 
-            if "SCA" in self.config.solvers:
-                if hyperparameters["q"] == 0.0:
-                    # Set q and r_q if not provided
-                    hyperparameters["q"] = return_q(self.ising_model)
-                    hyperparameters["r_q"] = 1.0
-                else:
-                    hyperparameters["r_q"] = return_rx(num_iter, hyperparameters["q"], float(self.config.q_final))
+            self.kwargs["config"] = self.config
+            self.kwargs["ising_model"] = self.ising_model
+            self.kwargs["trail_id"] = trail_id
+            if len(self.list_of_callables) >= 1:
+                sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
+                initial_state, _ = sub_stage.run()
+            else:
+                initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
 
-            optim_state_collect = []
-            optim_energy_collect = []
-            logfile_collect = []
-            pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc="Running trials")
-            for trail_id in pbar:
-                # Set the seed for flipping mechanism
-                hyperparameters["seed"] = trail_id + 1 + int(self.config.seed)
-
-                self.kwargs["config"] = self.config
-                self.kwargs["ising_model"] = self.ising_model
-                self.kwargs["trail_id"] = trail_id
-                if len(self.list_of_callables) >= 1:
-                    sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
-                    initial_state, _ = sub_stage.run()
+            for solver in self.config.solvers:
+                if self.benchmark_abbreviation == "MIMO":
+                    logfile = None  # (
+                    # )
+                # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
                 else:
                     initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
 
@@ -97,10 +92,14 @@ class SimulationStage(Stage):
                     optim_state, optim_energy = self.run_solver(
                         solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
                     )
-                    optim_state_collect.append(optim_state)
-                    optim_energy_collect.append(optim_energy)
-                    logfile_collect.append(logfile)
-                pbar.set_description(f"Running trails [#{trail_id + 1}, energy: {optim_energy:.2f}]")
+
+                optim_state, optim_energy = self.run_solver(
+                    solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
+                )
+                optim_state_collect.append(optim_state)
+                optim_energy_collect.append(optim_energy)
+                logfile_collect.append(logfile)
+            pbar.set_description(f"Running trails [#{trail_id + 1}, energy: {optim_energy:.2f}]")
         end_time = datetime.datetime.now()
         LOGGER.info(f"Simulation finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         LOGGER.info(f"Total simulation time: {end_time - start_time}")
@@ -164,7 +163,7 @@ class SimulationStage(Stage):
                     "nb_flipping",
                     "cluster_threshold",
                     "init_cluster_size",
-                    "end_cluster_size"
+                    "end_cluster_size",
                 ],
             ),
             "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
