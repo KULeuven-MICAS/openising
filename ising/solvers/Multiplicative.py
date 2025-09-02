@@ -1,6 +1,5 @@
 import numpy as np
 import pathlib
-import time
 # from scipy.integrate import solve_ivp
 
 from ising.stages import LOGGER
@@ -35,14 +34,18 @@ class Multiplicative(SolverBase):
             frozen_nodes (np.ndarray | None): the nodes that are frozen.
             stop_criterion (float): the stopping criterion to stop the solver when the voltages stagnate.
         """
-        self.dt = dt
+        self.dt = np.float32(dt)
         self.num_iterations = num_iterations
-        self.resistance = resistance
-        self.capacitance = capacitance
+        self.resistance = np.float32(resistance)
+        self.capacitance = np.float32(capacitance)
         self.stop_criterion = stop_criterion
         self.initial_temp_cont = initial_temp_cont
         self.end_temp_cont = end_temp_cont
-        self.coupling = coupling
+        self.coupling_d = coupling.astype(np.float32)
+        self.quarter = np.float32(0.25)
+        self.half = np.float32(0.5)
+        self.four = np.float32(4.0)
+        self.six = np.float32(6.0)
 
     def mosfet(self, voltage: np.ndarray):
         pass
@@ -62,32 +65,29 @@ class Multiplicative(SolverBase):
         Returns:
             dv (np.ndarray): the change of the voltages
         """
-        t = np.float32(t)
-        vt = vt.astype(np.float32)
-        coupling = self.coupling.astype(np.float32)
-        return dvdt_solver(
-            t, vt, coupling, np.int8(self.bias), np.float32(self.capacitance)
-        )
-
-    def noise(self, Temp: float, voltages: np.ndarray):
-        if Temp != 0.0:
-            noise = Temp * (np.random.normal(scale=1 / 1.96, size=voltages.shape))
-            cond1 = (voltages >= 1) & (noise > 0)
-            cond2 = (voltages <= -1) & (noise < 0)
-            noise *= np.where(cond1 | cond2, 0.0, 1.0)
-        else:
-            noise = np.zeros_like(voltages)
-        return noise
+        return dvdt_solver(t, vt, self.coupling_d, np.int8(self.bias), self.capacitance)
 
     def inner_loop(self, model: IsingModel, state: np.ndarray, log: HDF5Logger):
+        """! Simulates the hardware
+
+        @param model (IsingModel): the model to solve.
+        @param state (np.ndarray): the initial state to start the simulation.
+        @param log (HDF5Logger): the logger to use for saving results.
+
+        @return sigma (np.ndarray): the final discrete state of the system.
+        @return energy (float): the final energy of the system.
+        @return count (np.ndarray): the count of sign flips for every node.
+        """
         # Set up the simulation
         i = 0
-        tk = 0
+        tk = np.float32(0.0)
         max_change = np.inf
 
-        previous_voltages = state
-        energy = model.evaluate(np.sign(state[: model.num_variables]))
-        log.log(time_clock=0.0, energy=energy, state=np.sign(state), voltages=state)
+        previous_voltages = state.astype(np.float32)
+
+        if log.filename is not None:
+            energy = model.evaluate(np.sign(state[: model.num_variables], dtype=np.float32))
+            log.log(time_clock=0.0, energy=energy, state=np.sign(state), voltages=state)
         count = np.zeros((model.num_variables,))
         norm_prev = np.linalg.norm(previous_voltages, ord=np.inf)
         while i < self.num_iterations and max_change > self.stop_criterion:
@@ -95,37 +95,35 @@ class Multiplicative(SolverBase):
             k1 = self.dt * self.dvdt(tk, previous_voltages)
             k2 = self.dt * self.dvdt(tk + self.dt, previous_voltages + k1)
             k3 = self.dt * self.dvdt(
-                tk + 0.5 * self.dt, previous_voltages + 0.25 * (k1 + k2)
+                tk + self.half * self.dt, previous_voltages + self.quarter * (k1 + k2)
             )
 
-            new_voltages = previous_voltages + (k1 + k2 + 4.0 * k3) / 6.0
+            new_voltages = previous_voltages + (k1 + k2 + self.four * k3) / self.six
             tk += self.dt
             i += 1
 
-            # Log everything
-            sample = np.sign(new_voltages[: model.num_variables])
-            energy = model.evaluate(sample)
-            count += np.where(
-                (
-                    previous_voltages[: model.num_variables]
-                    * new_voltages[: model.num_variables]
-                    < 0
-                ), 1, 0,
-            )
+            count += (previous_voltages[: model.num_variables] * new_voltages[: model.num_variables]) < 0
 
-            log.log(
-                time_clock=tk,
-                energy=energy,
-                state=sample,
-                voltages=new_voltages[: model.num_variables],
-            )
+            # Log everything
+            if log.filename is not None:
+                sample = np.sign(new_voltages[: model.num_variables], dtype=np.float32)
+                energy = model.evaluate(sample)
+                log.log(
+                    time_clock=tk,
+                    energy=energy,
+                    state=sample,
+                    voltages=new_voltages[: model.num_variables],
+                )
 
             # Only compute norm if needed
-            if i > 0:
+            if i > 0 and i % 1000:
                 diff = np.abs(new_voltages - previous_voltages)
                 max_change = np.max(diff) / (norm_prev if norm_prev != 0 else 1)
                 norm_prev = np.linalg.norm(new_voltages, ord=np.inf)
             previous_voltages = new_voltages.copy()
+
+        if log.filename is None:
+            energy = model.evaluate(np.sign(new_voltages[: model.num_variables], dtype=np.float32))
         # Set up the simulation
         # time_points = np.linspace(0, self.dt * self.num_iterations, self.num_iterations)
         # count = np.zeros((model.num_variables,))
@@ -185,10 +183,10 @@ class Multiplicative(SolverBase):
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
             new_model = model.transform_to_no_h()
-            self.bias = True
+            self.bias = np.int8(1)
         else:
             new_model = model
-            self.bias = False
+            self.bias = np.int8(0)
 
         # Ensure the mean and variance of J are reasonable
         alpha = 1.0
@@ -209,8 +207,6 @@ class Multiplicative(SolverBase):
         )
 
         # make sure the correct random seed is used
-        if seed == 0:
-            seed = int(time.time())
         np.random.seed(seed)
 
         # Set up the bias node and add noise to the initial voltages
@@ -241,12 +237,11 @@ class Multiplicative(SolverBase):
             )
             best_energy = np.inf
             best_sample = v[: model.num_variables].copy()
-            start_time = time.time()
             for it in range(nb_flipping):
                 # LOGGER.info(f"Iteration {it} - energy: {best_energy}")
 
                 sample, energy, count = self.inner_loop(model, v, log)
-
+                LOGGER.debug(f"Iteration {it} - energy: {energy}")
                 if energy < best_energy:
                     best_energy = energy
                     best_sample = sample.copy()
@@ -265,14 +260,13 @@ class Multiplicative(SolverBase):
                 v[cluster] *= -1
                 if self.bias:
                     v = np.block([v, 1.0])
-            end_time = time.time()
             LOGGER.debug(f"Finished with energy: {energy}")
             log.write_metadata(
                 solution_state=sample,
                 solution_energy=energy,
                 total_time=dtMult * num_iterations,
             )
-        return best_sample, best_energy, end_time - start_time
+        return best_sample, best_energy
 
     def size_function(
         self,
@@ -283,14 +277,11 @@ class Multiplicative(SolverBase):
         exponent: float = 3.0,
     ):
         return int(
-            (return_rx(total_iterations, init_size, end_size) ** (iteration * exponent))
-            * (init_size - end_size)
+            (return_rx(total_iterations, init_size, end_size) ** (iteration * exponent)) * (init_size - end_size)
             + end_size
         )
 
-    def find_cluster(
-        self, counts: np.ndarray, cluster_size: int, cluster_threshold: float
-    ):
+    def find_cluster(self, counts: np.ndarray, cluster_size: int, cluster_threshold: float):
         """Finds the cluster of nodes to flip. These nodes are chosen based on the frequency of flipping.
 
         Args:
@@ -315,13 +306,9 @@ class Multiplicative(SolverBase):
                         ),
                     )
                 )
-                ind_unavailable_nodes = np.setdiff1d(
-                    ind_unavailable_nodes, chosen_nodes
-                )
+                ind_unavailable_nodes = np.setdiff1d(ind_unavailable_nodes, chosen_nodes)
             available_nodes = np.append(available_nodes, chosen_nodes)
             cluster = available_nodes
         else:
-            cluster = np.random.choice(
-                available_nodes, size=(cluster_size,), replace=False
-            )
+            cluster = np.random.choice(available_nodes, size=(cluster_size,), replace=False)
         return cluster

@@ -35,9 +35,9 @@ class IsingModel:
             raise ValueError("J must be a strictly upper triangular matrix")
         if not len(h) == J.shape[0]:
             raise ValueError(f"h ({h.shape}) and J ({J.shape}) are not compatible")
-        self.J = J
-        self.h = h
-        self.c = c
+        self.J = J.astype(np.float32)
+        self.h = h.astype(np.float32)
+        self.c = np.float32(c)
         self.benchmark_name = name
         self.transformation_history = []
 
@@ -189,8 +189,8 @@ class IsingModel:
         Returns:
             float: The calculated Hamiltonian value for the given sample.
         """
-        sample = sample.astype(np.float32)
-        return evaluate_ising(sample, self.J.astype(np.float32), self.h.astype(np.float32), np.float32(self.c))
+        # sample = sample.astype(np.float32)
+        return evaluate_ising(sample, self.J, self.h, self.c)
         # return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
 
     @classmethod

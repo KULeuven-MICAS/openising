@@ -76,26 +76,15 @@ class SimulationStage(Stage):
                 initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
 
             for solver in self.config.solvers:
-                if self.benchmark_abbreviation == "MIMO":
-                    logfile = None  # (
-                    # )
-                # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
+                if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
+                    logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
                 else:
-                    initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
-
-                for solver in self.config.solvers:
-                    if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
-                        logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
-                    else:
-                        logfile = None
-
-                    optim_state, optim_energy = self.run_solver(
-                        solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
-                    )
+                    logfile = None
 
                 optim_state, optim_energy = self.run_solver(
                     solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
                 )
+
                 optim_state_collect.append(optim_state)
                 optim_energy_collect.append(optim_energy)
                 logfile_collect.append(logfile)
