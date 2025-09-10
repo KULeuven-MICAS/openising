@@ -41,6 +41,9 @@ class QKPParserStage(Stage):
 
         @return model (IsingModel): generated model from the graph
         """
+        if penalty_value < 1.0:
+            raise ValueError("Penalty value should be larger than 1.0")
+
         N = len(graph.nodes)
         profit_edges = nx.get_edge_attributes(graph, "profit")
         profit = np.zeros((N, N))
@@ -48,7 +51,7 @@ class QKPParserStage(Stage):
             profit[i, j] = value
             profit[j, i] = value
         weight_edges = nx.get_edge_attributes(graph, "weight")
-        weights = np.array([weight_edges[i] for i in range(N)])
+        weights = np.array([weight_edges[(i, i)] for i in range(N)])
         capacity = graph.graph["capacity"]
         return self.knapsack_to_ising(profit, capacity, weights, penalty_value)
 
@@ -119,7 +122,7 @@ class QKPParserStage(Stage):
                     elif parts[0] == str(0) + "\n":
                         # After the profit matrix there is an empty line. Use this to set the capacity part to True.
                         capacity_part = True
-        best_found = -QKPParserStage.get_optim_value(benchmark)
+        best_found = QKPParserStage.get_optim_value(benchmark)
 
         G = nx.Graph(capacity=capacity)
         G.add_nodes_from(range(N))

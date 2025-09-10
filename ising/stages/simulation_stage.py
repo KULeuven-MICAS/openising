@@ -5,6 +5,10 @@ import numpy as np
 import datetime
 import tqdm
 import pathlib
+import os
+import multiprocessing
+
+from ising import cores_nb
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
@@ -41,8 +45,6 @@ class SimulationStage(Stage):
     def run(self) -> Any:
         """! Simulate the Ising model and evaluate its Hamiltonian."""
 
-        nb_runs = int(self.config.nb_runs)  # Number of trails
-
         problem_type = self.config.problem_type
 
         logpath = TOP / f"ising/outputs/{problem_type}/logs"
@@ -53,6 +55,50 @@ class SimulationStage(Stage):
             gurobi_log = logpath / f"Gurobi_{self.benchmark_abbreviation}.log"
             Gurobi().solve(model=self.ising_model, file=gurobi_log)
 
+        nb_runs = int(self.config.nb_runs)  # Number of trails
+        if self.config.use_multiprocessing:
+            amount_threads = self.config.nb_threads if self.config.nb_threads < cores_nb else cores_nb // 2
+            runs_per_thread = nb_runs // amount_threads
+
+        start_time = datetime.datetime.now()
+
+        optim_state_collect = []
+        optim_energy_collect = []
+        logfile_collect = []
+        if self.config.use_multiprocessing:
+            runs_over = runs_per_thread * amount_threads - nb_runs
+            tasks = [
+                (runs_per_thread + 1, logpath, i) if i < runs_over else (runs_per_thread, logpath, i)
+                for i in range(amount_threads)
+            ]
+            with multiprocessing.Pool(cores_nb, initializer=os.nice, initargs=(1,)) as pool:
+                results = pool.starmap(self.partial_runs, tasks)
+        else:
+            results = self.partial_runs(nb_runs, logpath, 0)
+            results = [results]
+        end_time = datetime.datetime.now()
+        LOGGER.info(f"Simulation finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        LOGGER.info(f"Total simulation time: {end_time - start_time}")
+
+        for res in results:
+            optim_state_collect += res[0]
+            optim_energy_collect += res[1]
+            logfile_collect += res[2]
+
+        ans = Ans(
+            benchmark=self.benchmark_abbreviation,
+            ising_model=self.ising_model,
+            config=self.config,
+            best_found=self.best_found,
+            states=optim_state_collect,
+            energies=optim_energy_collect,
+            logfiles=logfile_collect,
+        )
+        debug_info = Ans()  # Placeholder for debug information, if needed
+
+        yield ans, debug_info
+
+    def partial_runs(self, nb_runs: int, logpath: pathlib.Path, initialization_seed: int):
         start_time = datetime.datetime.now()
         LOGGER.info(f"Simulation started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         num_iter = self.config.iter_list
@@ -61,10 +107,10 @@ class SimulationStage(Stage):
         optim_state_collect = []
         optim_energy_collect = []
         logfile_collect = []
-        pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc="Running trials")
+        pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc=f"Running trials of thread {os.getpid()}")
         for trail_id in pbar:
             # Set the seed for flipping mechanism
-            hyperparameters["seed"] = trail_id + 1 + int(self.config.seed)
+            hyperparameters["seed"] = trail_id + 1 + int(self.config.seed + initialization_seed)
 
             self.kwargs["config"] = self.config
             self.kwargs["ising_model"] = self.ising_model
@@ -88,22 +134,13 @@ class SimulationStage(Stage):
                 optim_state_collect.append(optim_state)
                 optim_energy_collect.append(optim_energy)
                 logfile_collect.append(logfile)
-            pbar.set_description(f"Running trails [#{trail_id + 1}, energy: {optim_energy:.2f}]")
+            pbar.set_description(
+                f"Running trails of thread {os.getpid()} [#{trail_id + 1}, energy: {optim_energy:.2f}]"
+            )
         end_time = datetime.datetime.now()
-        LOGGER.info(f"Simulation finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        LOGGER.info(f"Total simulation time: {end_time - start_time}")
-        ans = Ans(
-            benchmark=self.benchmark_abbreviation,
-            ising_model=self.ising_model,
-            config=self.config,
-            best_found=self.best_found,
-            states=optim_state_collect,
-            energies=optim_energy_collect,
-            logfiles=logfile_collect,
-        )
-        debug_info = Ans()  # Placeholder for debug information, if needed
-
-        yield ans, debug_info
+        LOGGER.info(f"Simulation of thread {os.getpid()} finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        LOGGER.info(f"Thread {os.getpid()} simulation time: {end_time - start_time}")
+        return optim_state_collect, optim_energy_collect, logfile_collect
 
     def run_solver(
         self,

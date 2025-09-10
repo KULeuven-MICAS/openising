@@ -32,7 +32,7 @@ else:
     ising_energy_avg = np.mean(ising_energies)
 
     logging.info(
-        "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %s",
+        "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %.2s",
         benchmark,
         best_found,
         ising_energy_max,

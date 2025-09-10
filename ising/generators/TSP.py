@@ -17,8 +17,8 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     Returns:
         model (IsingModel): Ising model of the TSP
     """
-    if weight_constant == 0:
-        raise ValueError("weight_constant should be larger than zero")
+    if weight_constant < 1.0:
+        raise ValueError("weight_constant should be larger than 1.0")
     N = len(graph.nodes)
     W = nx.linalg.adjacency_matrix(graph).toarray()
     maxW = np.max(W)
@@ -28,7 +28,7 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     for i in range(N):
         for j in range(N):
             if i != j and W[i, j] == 0:
-                W[i,j] = 10*maxW
+                W[i,j] = weight_constant*maxW
 
     # Make a QUBO representation of the TSP problem
     J = np.zeros((N**2, N**2))

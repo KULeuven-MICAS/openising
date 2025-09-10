@@ -110,10 +110,10 @@ class MIMOParserStage(Stage):
 
         # Read SIGNALS (flattened array, length = M * something)
         signals_real = []
-        for i in range(ant_num):
+        for i in range(user_num):
             signals_real.append([float(x) for x in lines[sig_real_idx + i].split()])
         signals_imag = []
-        for i in range(ant_num):
+        for i in range(user_num):
             signals_imag.append([float(x) for x in lines[sig_imag_idx + i].split()])
         x = np.array(signals_real) + 1j * np.array(signals_imag)
 
