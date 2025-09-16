@@ -28,7 +28,8 @@ def get_hamiltonian_energy(
 
     # Initialize the logger
     logging_format = "%(asctime)s - %(filename)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
-    logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdout)
+    logging.basicConfig(format=logging_format, stream=sys.stdout)
+    logging.getLogger().setLevel(logging_level)
 
     # Decide on the parser stage
     if create_dummy_problem:
