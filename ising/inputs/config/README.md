@@ -13,7 +13,9 @@ The config file is written in YAML. It must has the following parameters:
 
 *use_gurobi:* use local gurobi to simulate if True, otherwise use local solver if False. This will override *solvers*.
 
-*use_multiprocessing:* not used yet.
+*use_multiprocessing:* Whether to run the multiple runs with multithreading or not.
+
+*nb_threads:* [positive int] the amount of threads used for multiprocessing.
 
 *initialization_seed:* seed to initialize the initial spin states.
 

@@ -5,6 +5,9 @@ import numpy as np
 import datetime
 import tqdm
 import pathlib
+import os
+import multiprocessing
+
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
@@ -41,10 +44,8 @@ class SimulationStage(Stage):
     def run(self) -> Any:
         """! Simulate the Ising model and evaluate its Hamiltonian."""
 
-        nb_runs = int(self.config.nb_runs)  # Number of trails
-
         problem_type = self.config.problem_type
-
+        nb_cores = self.config.nb_cores
         logpath = TOP / f"ising/outputs/{problem_type}/logs"
         LOGGER.debug("Logpath: " + str(logpath))
         logpath.mkdir(parents=True, exist_ok=True)
@@ -53,56 +54,35 @@ class SimulationStage(Stage):
             gurobi_log = logpath / f"Gurobi_{self.benchmark_abbreviation}.log"
             Gurobi().solve(model=self.ising_model, file=gurobi_log)
 
+        nb_runs = int(self.config.nb_runs)  # Number of trails
+        if self.config.use_multiprocessing:
+            runs_per_thread = nb_runs // nb_cores
+
         start_time = datetime.datetime.now()
-        LOGGER.info(f"Simulation started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        num_iter = self.config.iter_list
-        hyperparameters = parse_hyperparameters(self.config, num_iter)
 
         optim_state_collect = []
         optim_energy_collect = []
         logfile_collect = []
-        pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc="Running trials")
-        for trail_id in pbar:
-            # Set the seed for flipping mechanism
-            hyperparameters["seed"] = trail_id + 1 + int(self.config.seed)
-
-            self.kwargs["config"] = self.config
-            self.kwargs["ising_model"] = self.ising_model
-            self.kwargs["trail_id"] = trail_id
-            if len(self.list_of_callables) >= 1:
-                sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
-                initial_state, _ = sub_stage.run()
-            else:
-                initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
-
-            for solver in self.config.solvers:
-                if self.benchmark_abbreviation == "MIMO":
-                    logfile = None  # (
-                    # )
-                # logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{self.run_id}.log"
-                else:
-                    initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
-
-                for solver in self.config.solvers:
-                    if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
-                        logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
-                    else:
-                        logfile = None
-
-                    optim_state, optim_energy = self.run_solver(
-                        solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
-                    )
-
-                optim_state, optim_energy = self.run_solver(
-                    solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
-                )
-                optim_state_collect.append(optim_state)
-                optim_energy_collect.append(optim_energy)
-                logfile_collect.append(logfile)
-            pbar.set_description(f"Running trails [#{trail_id + 1}, energy: {optim_energy:.2f}]")
+        if self.config.use_multiprocessing:
+            runs_over = nb_runs - runs_per_thread * nb_cores
+            tasks = [
+                (runs_per_thread + 1, logpath, i) if i < runs_over else (runs_per_thread, logpath, i)
+                for i in range(nb_cores)
+            ]
+            with multiprocessing.Pool(nb_cores, initializer=os.nice, initargs=(1,)) as pool:
+                results = pool.starmap(self.partial_runs, tasks)
+        else:
+            results = self.partial_runs(nb_runs, logpath, 0)
+            results = [results]
         end_time = datetime.datetime.now()
         LOGGER.info(f"Simulation finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         LOGGER.info(f"Total simulation time: {end_time - start_time}")
+
+        for res in results:
+            optim_state_collect += res[0]
+            optim_energy_collect += res[1]
+            logfile_collect += res[2]
+
         ans = Ans(
             benchmark=self.benchmark_abbreviation,
             ising_model=self.ising_model,
@@ -115,6 +95,50 @@ class SimulationStage(Stage):
         debug_info = Ans()  # Placeholder for debug information, if needed
 
         yield ans, debug_info
+
+    def partial_runs(self, nb_runs: int, logpath: pathlib.Path, initialization_seed: int):
+        start_time = datetime.datetime.now()
+        LOGGER.info(f"Simulation started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        num_iter = self.config.iter_list
+        hyperparameters = parse_hyperparameters(self.config, num_iter)
+
+        optim_state_collect = []
+        optim_energy_collect = []
+        logfile_collect = []
+        pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc=f"Running trials of thread {os.getpid()}")
+        for trail_id in pbar:
+            # Set the seed for flipping mechanism
+            hyperparameters["seed"] = trail_id + 1 + int(self.config.seed + initialization_seed)
+
+            self.kwargs["config"] = self.config
+            self.kwargs["ising_model"] = self.ising_model
+            self.kwargs["trail_id"] = trail_id
+            if len(self.list_of_callables) >= 1:
+                sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
+                initial_state, _ = sub_stage.run()
+            else:
+                initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
+
+            for solver in self.config.solvers:
+                if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
+                    logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
+                else:
+                    logfile = None
+
+                optim_state, optim_energy = self.run_solver(
+                    solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
+                )
+
+                optim_state_collect.append(optim_state)
+                optim_energy_collect.append(optim_energy)
+                logfile_collect.append(logfile)
+            pbar.set_description(
+                f"Running trails of thread {os.getpid()} [#{trail_id + 1}, energy: {optim_energy:.2f}]"
+            )
+        end_time = datetime.datetime.now()
+        LOGGER.info(f"Simulation of thread {os.getpid()} finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        LOGGER.info(f"Thread {os.getpid()} simulation time: {end_time - start_time}")
+        return optim_state_collect, optim_energy_collect, logfile_collect
 
     def run_solver(
         self,

@@ -22,6 +22,8 @@ use_gurobi: False
 # Use multiprocessing or not
 use_multiprocessing: False
 
+nb_cores: 16
+
 # Initialization seed
 initialization_seed: 42
 
