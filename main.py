@@ -12,8 +12,8 @@ logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdou
 os.system("rm -rf ising/outputs/TSP/logs/*")  # Clear previous logs
 
 # Input file directory
-problem_type = "TSP"  # Specify the problem type
-config_path = "ising/inputs/config/config_profiling.yaml"
+problem_type = "MaxCut"  # Specify the problem type
+config_path = "ising/inputs/config/example.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
