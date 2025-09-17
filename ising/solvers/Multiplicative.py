@@ -78,6 +78,7 @@ class Multiplicative(SolverBase):
         @return energy (float): the final energy of the system.
         @return count (np.ndarray): the count of sign flips for every node.
         """
+
         # Set up the simulation
         i = 0
         tk = np.float32(0.0)
@@ -88,6 +89,7 @@ class Multiplicative(SolverBase):
         if log.filename is not None:
             energy = model.evaluate(np.sign(state[: model.num_variables], dtype=np.float32))
             log.log(time_clock=0.0, energy=energy, state=np.sign(state), voltages=state)
+
         count = np.zeros((model.num_variables,))
         norm_prev = np.linalg.norm(previous_voltages, ord=np.inf)
         while i < self.num_iterations and max_change > self.stop_criterion:
@@ -99,6 +101,7 @@ class Multiplicative(SolverBase):
             )
 
             new_voltages = previous_voltages + (k1 + k2 + self.four * k3) / self.six
+
             tk += self.dt
             i += 1
 
@@ -124,6 +127,7 @@ class Multiplicative(SolverBase):
 
         if log.filename is None:
             energy = model.evaluate(np.sign(new_voltages[: model.num_variables], dtype=np.float32))
+
         # Set up the simulation
         # time_points = np.linspace(0, self.dt * self.num_iterations, self.num_iterations)
         # count = np.zeros((model.num_variables,))
@@ -281,7 +285,9 @@ class Multiplicative(SolverBase):
             + end_size
         )
 
-    def find_cluster(self, counts: np.ndarray, cluster_size: int, cluster_threshold: float):
+    def find_cluster(
+        self, counts: np.ndarray, cluster_size: int, cluster_threshold: float
+    ):
         """Finds the cluster of nodes to flip. These nodes are chosen based on the frequency of flipping.
 
         Args:
@@ -310,5 +316,7 @@ class Multiplicative(SolverBase):
             available_nodes = np.append(available_nodes, chosen_nodes)
             cluster = available_nodes
         else:
-            cluster = np.random.choice(available_nodes, size=(cluster_size,), replace=False)
+            cluster = np.random.choice(
+                available_nodes, size=(cluster_size,), replace=False
+            )
         return cluster

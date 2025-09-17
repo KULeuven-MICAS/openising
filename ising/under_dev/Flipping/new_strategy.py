@@ -22,10 +22,10 @@ np.random.seed(1)
 NICENESS = 0
 AMOUNT_CORES = os.getenv("AMOUNT_CORES")
 
-def do_flipping(cluster_size_init:int, cluster_size_end:int, sigma_init:np.ndarray,cluster_threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str=""):
+def do_flipping(cluster_size_init:int, cluster_size_end:int, size_change:int, sigma_init:np.ndarray,cluster_threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str=""):
     sigma = sigma_init.copy()
     energies = []
-    size_func = lambda x: int((return_rx(nb_flipping, cluster_size_init, cluster_size_end)**(x*3)) * (cluster_size_init-cluster_size_end) + cluster_size_end)
+    size_func = lambda x: int((return_rx(nb_flipping, cluster_size_init, cluster_size_end)**(x*size_change)) * (cluster_size_init-cluster_size_end) + cluster_size_end)
 
     prev_energy = np.inf
     prev_sigma = sigma.copy()
@@ -57,7 +57,7 @@ def do_flipping(cluster_size_init:int, cluster_size_end:int, sigma_init:np.ndarr
             cluster = find_cluster_gradient(model, prev_sigma, cluster_size, cluster_threshold)
         sigma = prev_sigma.copy()
         sigma[cluster] *= -1
-    LOGGER.info(f"Init cluster size: {cluster_size_init}, final cluster size: {cluster_size_end}, threshold: {cluster_threshold} Best energy: {prev_energy}")
+    LOGGER.info(f"Init cluster size: {cluster_size_init}, final cluster size: {cluster_size_end}, change in size: {size_change}, threshold: {cluster_threshold} Best energy: {prev_energy}")
     return energies, prev_energy, prev_sigma
 
 def do_flipping_local(init_size:list[int], end_size:list[int], sigma_init:np.ndarray, threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str):
@@ -117,7 +117,6 @@ def TSP_flipping():
     best_energies = np.mean(energies, axis=2).reshape((len(cluster_size_init), len(cluster_size_end)))
     np.savetxt("Energy_approximation.pkl", best_energies)
     plot_data(best_energies, "TSP_cluster_size_change.png",  "Final cluster size", str_size_end, "Initial cluster size",str_size_init, best_found)
-
 
 if __name__ == "__main__":
     TSP_flipping()
