@@ -49,16 +49,11 @@ class MaxcutParserStage(Stage):
         @return model (IsingModel): generated model from the graph
         """
         N = len(graph.nodes)
-        J = np.zeros((N, N))
+        coupling = -nx.adjacency_matrix(graph, weight='weight').toarray()/2
+        coupling = np.triu(coupling)
         h = np.zeros((N,))
-        c = 0.0
-        for node1, node2 in graph.edges:
-            weight = graph[node1][node2]["weight"]
-            J[node1, node2] = -weight / 2
-            J[node2, node1] = -weight / 2
-            c -= weight / 2
-        J = np.triu(J)
-        return IsingModel(J, h, c, name=graph.name)
+        c = np.sum(coupling)
+        return IsingModel(coupling, h, c, name=graph.name)
 
     @staticmethod
     def G_parser(benchmark: pathlib.Path | str) -> tuple[nx.DiGraph, float]:
