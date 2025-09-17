@@ -35,16 +35,14 @@ def do_flipping(cluster_size_init:int, cluster_size_end:int, size_change:int, si
         sigma, energy =  Multiplicative().solve(model, sigma, dt, num_iterations,
                                             initial_temp_cont=0.0, nb_flipping=1, cluster_threshold=1.0, init_cluster_size=1, end_cluster_size=1)
         energies.append(energy)
-        points.append((sigma.copy(), energy))
         if energy < prev_energy:
             prev_energy = energy
             prev_sigma = sigma.copy()
             best_sigmas.append(prev_sigma.copy())
+            points.append((sigma.copy(), energy))
             if len(best_sigmas) > 10:
                 best_sigmas.pop(0)
             # LOGGER.info(f"Current best energy: {prev_energy}")
-        if len(points) > 15:
-            points.pop(0)
         cluster_size = size_func(i)
         # LOGGER.info(f"Amount of seeds: {int(cluster_size / cluster_size_end)}")
         if cluster_choice=="random":
@@ -70,7 +68,7 @@ def do_flipping_local(init_size:list[int], end_size:list[int], sigma_init:np.nda
     return results
 
 def TSP_flipping():
-    graph, best_found = MaxCutParser.G_parser(TOP / "ising/benchmarks/G/G1.txt")
+    graph, best_found = MaxCutParser.G_parser(TOP / "ising/benchmarks/G/G11.txt")
     model = MaxCutParser.generate_maxcut(graph)
     LOGGER.info(f"Best found: {best_found}")
 
@@ -87,7 +85,7 @@ def TSP_flipping():
     str_size_end = [str(s) for s in cluster_size_end]
     threshold = 1.0
     nb_tasks = len(cluster_size_end)*len(cluster_size_init)*nb_runs
-    tasks_per_core = int(nb_tasks // (int(AMOUNT_CORES)/3))
+    tasks_per_core = int(nb_tasks // (int(AMOUNT_CORES)/2))
     tasks = [(init_size, final_cluster_size, sigma[:,j], threshold) for init_size in cluster_size_init for final_cluster_size in cluster_size_end for j in range(nb_runs)]
     new_tasks = []
     for task in tasks:

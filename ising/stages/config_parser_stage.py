@@ -1,5 +1,6 @@
 from ising.stages import LOGGER, TOP
 from typing import Any
+import os
 import yaml
 from pathlib import Path
 from argparse import Namespace
@@ -25,6 +26,11 @@ class ConfigParserStage(Stage):
         LOGGER.debug(f"Parsing configuration file: {self.config_path}")
         with Path(self.config_path).open(encoding="utf-8") as file:
             config: dict = yaml.safe_load(file)
+        os.environ["MKL_NUM_THREADS"] = str(config["nb_cores"]//3)
+        os.environ["NUMEXPR_NUM_THREADS"] = str(config["nb_cores"]//3)
+        os.environ["OMP_NUM_THREADS"] = str(config["nb_cores"]//3)
+        os.environ["OPENBLAS_NUM_THREADS"] = str(config["nb_cores"]//3)
+        os.sched_setaffinity(0, range(config["nb_cores"]))
         config["problem_type"] = self.problem_type
 
         # Validate the configuration structure

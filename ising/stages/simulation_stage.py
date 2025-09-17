@@ -8,7 +8,6 @@ import pathlib
 import os
 import multiprocessing
 
-from ising import cores_nb
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 from ising.solvers.Gurobi import Gurobi
@@ -46,7 +45,7 @@ class SimulationStage(Stage):
         """! Simulate the Ising model and evaluate its Hamiltonian."""
 
         problem_type = self.config.problem_type
-
+        nb_cores = self.config.nb_cores
         logpath = TOP / f"ising/outputs/{problem_type}/logs"
         LOGGER.debug("Logpath: " + str(logpath))
         logpath.mkdir(parents=True, exist_ok=True)
@@ -57,8 +56,7 @@ class SimulationStage(Stage):
 
         nb_runs = int(self.config.nb_runs)  # Number of trails
         if self.config.use_multiprocessing:
-            amount_threads = self.config.nb_threads if self.config.nb_threads < cores_nb else cores_nb // 2
-            runs_per_thread = nb_runs // amount_threads
+            runs_per_thread = nb_runs // nb_cores
 
         start_time = datetime.datetime.now()
 
@@ -66,12 +64,12 @@ class SimulationStage(Stage):
         optim_energy_collect = []
         logfile_collect = []
         if self.config.use_multiprocessing:
-            runs_over = runs_per_thread * amount_threads - nb_runs
+            runs_over = nb_runs - runs_per_thread * nb_cores
             tasks = [
                 (runs_per_thread + 1, logpath, i) if i < runs_over else (runs_per_thread, logpath, i)
-                for i in range(amount_threads)
+                for i in range(nb_cores)
             ]
-            with multiprocessing.Pool(cores_nb, initializer=os.nice, initargs=(1,)) as pool:
+            with multiprocessing.Pool(nb_cores, initializer=os.nice, initargs=(1,)) as pool:
                 results = pool.starmap(self.partial_runs, tasks)
         else:
             results = self.partial_runs(nb_runs, logpath, 0)
