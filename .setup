@@ -15,10 +15,3 @@ export PYTHON=$TOP/.venv/bin/python3.12
 # Load requirements.txt (should usually not update anything)
 pip --python $PYTHON install --quiet -r ./requirements.txt
 PYDEVD_WARN_EVALUATION_TIMEOUT=10
-
-
-export AMOUNT_CORES=16
-export MKL_NUM_THREADS=$((AMOUNT_CORES/3))
-export NUMEXPR_NUM_THREADS=$((AMOUNT_CORES/3))
-export OMP_NUM_THREADS=$((AMOUNT_CORES/3))
-export OPENBLAS_NUM_THREADS=$((AMOUNT_CORES/3))
