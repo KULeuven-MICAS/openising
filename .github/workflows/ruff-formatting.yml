@@ -1,0 +1,38 @@
+name: Ruff Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.7'
+          cache: 'pip'  # Automatically cache pip dependencies
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff==0.8.3
+
+      - name: Source environment setup
+        run: |
+          if [ -f .setup ]; then
+            source .setup
+            # Export variables to GitHub environment
+            env | grep -E '^[A-Z_][A-Z0-9_]*=' >> $GITHUB_ENV || true
+          fi
+
+      - name: Run Ruff linting
+        run: ruff check .
+
+      - name: Run Ruff formatting check
+        run: ruff format --check .
