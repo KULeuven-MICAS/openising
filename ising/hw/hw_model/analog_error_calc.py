@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
+
 def calc_prob(size, noise_std):
     # calculate the probability of the ground state succeed to be the ground state for a specific GS-ES pair
     # the prob is the CDF of a standard norm distribution at point z
@@ -19,6 +20,7 @@ def calc_prob(size, noise_std):
     prob_fail = 1 - prob_success
     print(z, prob_fail_single_pair, prob_success_single_gs, prob_fail)
     return prob_success
+
 
 if __name__ == "__main__":
     # derive the probability of the ground state succeed to be the ground state in Ising
