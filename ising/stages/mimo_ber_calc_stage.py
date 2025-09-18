@@ -22,7 +22,11 @@ class MIMOBerCalcStage(Stage):
         """! Calculate BER for all the different trials."""
         self.kwargs["config"] = self.config
         sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
-        r = int(np.ceil(np.log2(np.sqrt(self.M))))
+
+        if self.M == 2:
+            r = 1
+        else:
+            r = int(np.ceil(np.log2(np.sqrt(self.M))))
 
         N = np.shape(self.x_tilde)[0]
 
@@ -39,7 +43,12 @@ class MIMOBerCalcStage(Stage):
 
             # Compute the BER
             state = ans.states[best_found]
-            x_optim = T @ (state + np.ones((r * N,))) - (np.sqrt(self.M) - 1) * np.ones((N,))
+            if self.M == 2:
+                # BPSK scheme
+                x_optim = T @ (state + np.ones((r * N,))) - np.ones((N,))
+            else:
+                # QAM scheme
+                x_optim = T @ (state + np.ones((r * N,))) - (np.sqrt(self.M) - 1) * np.ones((N,))
             ans.difference = self.x_tilde - x_optim
             ans.lowest_energy = min_en
             ans.lowest_energy_state = ans.states[best_found]

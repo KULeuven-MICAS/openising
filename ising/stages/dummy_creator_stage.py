@@ -205,6 +205,10 @@ class DummyCreatorStage(Stage):
         """
         np.random.seed(seed)
 
+        # modulation scheme must be a power of 2
+        assert (M & (M - 1) == 0) and M != 0, f"Modulation {M} must be a power of 2"
+        assert M == 2 or np.sqrt(M).is_integer(), f"Modulation {M} must be a square of an integer"
+
         if M==2:
             # BPSK scheme
             symbols = np.array([-1, 1])
@@ -238,7 +242,10 @@ class DummyCreatorStage(Stage):
             H[:, i] = hu
         x_collect: list = []
         for i in range(dummy_case_num):
-            x = np.random.choice(symbols, size=(user_num,)) + 1j * np.random.choice(symbols, size=(user_num,))
+            if M == 2:
+                x = np.random.choice(symbols, size=(user_num,))
+            else:
+                x = np.random.choice(symbols, size=(user_num,)) + 1j * np.random.choice(symbols, size=(user_num,))
             x_collect.append(x)
         x_collect: np.ndarray = np.array(x_collect).T  # shape (user_num, dummy_case_num)
         dummy_dict: dict = {

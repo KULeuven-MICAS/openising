@@ -66,9 +66,18 @@ class MIMOParserStage(Stage):
             ans_all.MIMO.append(ans)
             diff[:, run] = ans.difference
 
-        ans_all.ber_of_trails = np.sum(np.abs(diff) / 2, axis=0) / (np.sqrt(M)*ant_num)
-        ans_all.BER = np.mean(ans_all.ber_of_trails)
-        LOGGER.info("BER/case: %s, mean: %s", ans_all.ber_of_trails, ans_all.BER)
+        # calc ber per trail
+        ans_all.ber_of_trails = np.sum(np.abs(diff) / 2, axis=0) / (np.log2(M)*user_num)
+
+        # calc ber per user
+        array_mid = diff.shape[0] // 2
+        diff_real_half = diff[0:array_mid, :]
+        diff_imag_half = diff[array_mid:, :]
+        diff_of_users = np.hstack((diff_real_half, diff_imag_half))
+        ans_all.ber_of_users = np.sum(np.abs(diff_of_users) / 2, axis=1) / (np.log2(M)*case_num)
+
+        ans_all.BER = np.mean(ans_all.ber_of_trails) # same as np.mean(ans_all.ber_of_users)
+        LOGGER.info("BER/case: %s, BER/user: %s, mean: %s", ans_all.ber_of_trails, ans_all.ber_of_users, ans_all.BER)
 
         yield ans_all, debug_info
 
@@ -138,7 +147,9 @@ class MIMOParserStage(Stage):
         @return xtilde (np.ndarray): the real version of the input symbols.
         @return ytilde (np.ndarray): the real version of the output symbols.
         """
-        if np.linalg.norm(np.imag(x)) == 0:
+        is_bpsk = np.linalg.norm(np.imag(x)) == 0
+
+        if is_bpsk:
             # BPSK scheme
             r = 1
             Nx = np.shape(x)[0]
@@ -155,8 +166,8 @@ class MIMOParserStage(Stage):
         # Compute the amplitude of the noise
         power_x = (np.abs(x)**2)
         SNR = 10 ** (SNR / 10)
-        var_noise = np.sqrt(np.max(power_x) / SNR)
-        n = var_noise*(np.random.randn(ant_num) + 1j * np.random.randn(ant_num)) / (np.sqrt(2))
+        var_noise = np.sqrt(np.mean(power_x) / SNR)
+        n = var_noise*(np.random.randn(ant_num) + 1j * np.random.randn(ant_num)) / (np.sqrt(2)) # noise
 
         # Compute the received symbols
         y = H @ x + n
@@ -166,7 +177,10 @@ class MIMOParserStage(Stage):
 
         T = np.block([2**(r-i)*np.eye(Ny, Nx) for i in range(1, r+1)])
 
-        xtilde = np.block([np.real(x), np.imag(x)])
+        if is_bpsk:
+            xtilde = x
+        else:
+            xtilde = np.block([np.real(x), np.imag(x)])
 
         ones_end = np.eye(Ny, Nx) @ np.ones((Nx,))
         constant = ytilde.T@ytilde - 2*ytilde.T @ Htilde @ (T@np.ones((r*Nx,)) - \
