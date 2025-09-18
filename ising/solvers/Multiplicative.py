@@ -155,6 +155,7 @@ class Multiplicative(SolverBase):
         cluster_threshold: float,
         init_cluster_size: float,
         end_cluster_size: float,
+        cluster_choice: str = "random",
         resistance: float = 1.0,
         capacitance: float = 1.0,
         seed: int = 0,

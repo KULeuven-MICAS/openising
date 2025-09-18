@@ -20,7 +20,6 @@ from ising.under_dev.Flipping.frequency_cluster import frequency_cluster
 from ising.under_dev.Flipping.plotting import plot_data, make_bar_plot
 np.random.seed(1)
 NICENESS = 0
-AMOUNT_CORES = os.getenv("AMOUNT_CORES")
 
 def do_flipping(cluster_size_init:int, cluster_size_end:int, size_change:int, sigma_init:np.ndarray,cluster_threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str=""):
     sigma = sigma_init.copy()
@@ -50,7 +49,7 @@ def do_flipping(cluster_size_init:int, cluster_size_end:int, size_change:int, si
         elif cluster_choice =="median":
             cluster = find_cluster_mean(best_sigmas, prev_sigma, cluster_size, cluster_threshold, 1)
         elif cluster_choice == "energy_approximation":
-            cluster = smoothening_cluster(points, cluster_size)
+            cluster = smoothening_cluster(points, cluster_size, choice="largest")
         else:
             cluster = find_cluster_gradient(model, prev_sigma, cluster_size, cluster_threshold)
         sigma = prev_sigma.copy()
@@ -79,13 +78,13 @@ def TSP_flipping():
     nb_nodes = model.num_variables
     sigma = np.random.uniform(-1, 1, (model.num_variables,nb_runs))
     flipping_length = 130
-    cluster_size_init = [int(0.6*nb_nodes), int(0.5*nb_nodes)] #int(0.9*nb_nodes), int(0.8*nb_nodes), int(0.7*nb_nodes), 
+    cluster_size_init = [int(0.9*nb_nodes), int(0.8*nb_nodes), int(0.7*nb_nodes)] #, int(0.6*nb_nodes), int(0.5*nb_nodes)
     str_size_init = [str(s) for s in cluster_size_init]
     cluster_size_end = [int(0.5*nb_nodes), int(0.4*nb_nodes), int(0.3*nb_nodes), int(0.2*nb_nodes), int(0.1*nb_nodes)] #  
     str_size_end = [str(s) for s in cluster_size_end]
     threshold = 1.0
     nb_tasks = len(cluster_size_end)*len(cluster_size_init)*nb_runs
-    tasks_per_core = int(nb_tasks // (int(AMOUNT_CORES)/2))
+    tasks_per_core = int(nb_tasks // (8))
     tasks = [(init_size, final_cluster_size, sigma[:,j], threshold) for init_size in cluster_size_init for final_cluster_size in cluster_size_end for j in range(nb_runs)]
     new_tasks = []
     for task in tasks:
