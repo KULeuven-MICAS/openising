@@ -25,11 +25,7 @@ jobs:
 
       - name: Source environment setup
         run: |
-          if [ -f .setup ]; then
-            source .setup
-            # Export variables to GitHub environment
-            env | grep -E '^[A-Z_][A-Z0-9_]*=' >> $GITHUB_ENV || true
-          fi
+          source .setup
 
       - name: Run Ruff linting
         run: ruff check .
