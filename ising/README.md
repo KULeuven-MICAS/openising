@@ -1,4 +1,4 @@
-**This folder contains the main body the framework, including:**
+**This folder contains the main body of the framework, including:**
 
 - **benchmarks/:** the benchmarks for different applications.
 
@@ -12,14 +12,12 @@
 
 - **postprocessing/:** standalone post-processing plotting scripts.
 
-- **solvers/:** imeplementation of different solvers.
+- **solvers/:** implementation of different solvers.
 
-- **stages/:** executation pipeline stages of the framework.
+- **stages/:** execution pipeline stages of the framework.
 
 - **under_dev/:** scripts under development.
 
 - **utils/:** utilities of the framework.
-
-- **generators/:** containing temporal functions used in development.
 
 - **api.py:** API of the framework.
