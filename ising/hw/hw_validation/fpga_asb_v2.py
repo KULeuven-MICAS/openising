@@ -236,9 +236,9 @@ def validation_to_fpga_asb_v2():
         # calculating the energy
         energy_model = nj_per_pe * j_matrix_size  # nJ
         logging.info(
-        f"Benchmark: {benchmark}, Latency (model): {latency_model} cycles, "
-        f"Latency (reported): {latency} cycles, "
-        f"Energy (model): {energy_model} nJ, Energy (reported): {energy} nJ"
+            f"Benchmark: {benchmark}, Latency (model): {latency_model} cycles, "
+            f"Latency (reported): {latency} cycles, "
+            f"Energy (model): {energy_model} nJ, Energy (reported): {energy} nJ"
         )
         benchmark_dict[benchmark]["energy_model"] = energy_model
         benchmark_dict[benchmark]["latency_model"] = latency_model

@@ -1,0 +1,45 @@
+name: Ruff Code Quality
+
+on:
+  push:  # Triggers on ALL branches
+  pull_request:  # Triggers on ALL pull requests
+
+# Prevent multiple runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    # Skip if commit message contains [skip ci]
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up project environment
+        run: |
+          # Set up environment variables like your .setup file
+          echo "TOP=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "PYTHON=python" >> $GITHUB_ENV
+          echo "PYDEVD_WARN_EVALUATION_TIMEOUT=10" >> $GITHUB_ENV
+
+      - name: Install requirements
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+            pip install ruff
+          fi 
+
+      - name: Run Ruff Check
+        run: ruff check . 
+
+
+      # Show which branch triggered this run
+      - name: Show branch info
+        run: |
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"

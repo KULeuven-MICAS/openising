@@ -3,6 +3,9 @@ from typing import Any
 import numpy as np
 import math
 import copy
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.cm as cm
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 
@@ -212,9 +215,6 @@ class QuantizationStage(Stage):
         @param output: output file name
         @param zero_as_white: whether to plot zero values as white
         """
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        import matplotlib.cm as cm
 
         fig, ax = plt.subplots(1, 1)
 
@@ -273,7 +273,6 @@ class QuantizationStage(Stage):
         @param output: output file name
         @param bins: number of bins for the histogram
         """
-        import matplotlib.pyplot as plt
 
         plt.figure(figsize=(8, 6))
         plt.hist(data.reshape(-1, 1), bins=bins, alpha=0.7, color='blue', edgecolor='black')
