@@ -33,16 +33,8 @@ jobs:
           fi
 
       - name: Run Ruff Check
-        uses: chartboost/ruff-action@v1
-        with:
-          version: 0.8.3
-          args: 'check --output-format=github'
+        run: ruff check .
 
-      - name: Run Ruff Format Check  
-        uses: chartboost/ruff-action@v1
-        with:
-          version: 0.8.3
-          args: 'format --check'
 
       # Show which branch triggered this run
       - name: Show branch info
