@@ -6,25 +6,23 @@ import os
 from ising.solvers.Multiplicative import Multiplicative
 
 from ising.flow import TOP, LOGGER
-from ising.under_dev import TSPParser, QKPParser, MaxCutParser
+from ising.under_dev import TSPParser, QKPParser, MaxCutParser, nb_cores
 from ising.generators.TSP import TSP
 # from ising.under_dev import MaxCutParser
 from ising.stages.model.ising import IsingModel
 from ising.utils.flow import return_rx
-from ising.under_dev.Flipping.Wolff_cluster import find_cluster_Wolff
 from ising.under_dev.Flipping.gradient_cluster import find_cluster_gradient, find_cluster_gradient_largest
 from ising.under_dev.Flipping.mean_cluster import find_cluster_mean
-from ising.under_dev.Flipping.frozen_gradient_cluster import find_frozen_gradient_cluster, approximate_frozen_gradient_cluster
 from ising.under_dev.Flipping.smoothening_cluster import smoothening_cluster
 from ising.under_dev.Flipping.frequency_cluster import frequency_cluster
 from ising.under_dev.Flipping.plotting import plot_data, make_bar_plot
 np.random.seed(1)
 NICENESS = 0
 
-def do_flipping(cluster_size_init:int, cluster_size_end:int, size_change:int, sigma_init:np.ndarray,cluster_threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str=""):
+def do_flipping(cluster_size_init:int, cluster_size_end:int, sigma_init:np.ndarray,cluster_threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str=""):
     sigma = sigma_init.copy()
     energies = []
-    size_func = lambda x: int((return_rx(nb_flipping, cluster_size_init, cluster_size_end)**(x*size_change)) * (cluster_size_init-cluster_size_end) + cluster_size_end)
+    size_func = lambda x: int((return_rx(nb_flipping, cluster_size_init, cluster_size_end)**(x*3)) * (cluster_size_init-cluster_size_end) + cluster_size_end)
 
     prev_energy = np.inf
     prev_sigma = sigma.copy()
@@ -54,7 +52,7 @@ def do_flipping(cluster_size_init:int, cluster_size_end:int, size_change:int, si
             cluster = find_cluster_gradient(model, prev_sigma, cluster_size, cluster_threshold)
         sigma = prev_sigma.copy()
         sigma[cluster] *= -1
-    LOGGER.info(f"Init cluster size: {cluster_size_init}, final cluster size: {cluster_size_end}, change in size: {size_change}, threshold: {cluster_threshold} Best energy: {prev_energy}")
+    LOGGER.info(f"Init cluster size: {cluster_size_init}, final cluster size: {cluster_size_end}, threshold: {cluster_threshold} Best energy: {prev_energy}")
     return energies, prev_energy, prev_sigma
 
 def do_flipping_local(init_size:list[int], end_size:list[int], sigma_init:np.ndarray, threshold:float, model:IsingModel, nb_flipping:int, dt:float, num_iterations:int, cluster_choice:str):
@@ -67,7 +65,7 @@ def do_flipping_local(init_size:list[int], end_size:list[int], sigma_init:np.nda
     return results
 
 def TSP_flipping():
-    graph, best_found = MaxCutParser.G_parser(TOP / "ising/benchmarks/G/G11.txt")
+    graph, best_found = MaxCutParser.G_parser(TOP / "ising/benchmarks/G/G1.txt")
     model = MaxCutParser.generate_maxcut(graph)
     LOGGER.info(f"Best found: {best_found}")
 
@@ -84,7 +82,7 @@ def TSP_flipping():
     str_size_end = [str(s) for s in cluster_size_end]
     threshold = 1.0
     nb_tasks = len(cluster_size_end)*len(cluster_size_init)*nb_runs
-    tasks_per_core = int(nb_tasks // (8))
+    tasks_per_core = int(nb_tasks // (nb_cores))
     tasks = [(init_size, final_cluster_size, sigma[:,j], threshold) for init_size in cluster_size_init for final_cluster_size in cluster_size_end for j in range(nb_runs)]
     new_tasks = []
     for task in tasks:
