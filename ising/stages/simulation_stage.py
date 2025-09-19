@@ -188,6 +188,7 @@ class SimulationStage(Stage):
                     "cluster_threshold",
                     "init_cluster_size",
                     "end_cluster_size",
+                    "cluster_choice",
                 ],
             ),
             "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),

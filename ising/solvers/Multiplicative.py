@@ -96,9 +96,7 @@ class Multiplicative(SolverBase):
             # LOGGER.info(f"Iteration {i}")
             k1 = self.dt * self.dvdt(tk, previous_voltages)
             k2 = self.dt * self.dvdt(tk + self.dt, previous_voltages + k1)
-            k3 = self.dt * self.dvdt(
-                tk + self.half * self.dt, previous_voltages + self.quarter * (k1 + k2)
-            )
+            k3 = self.dt * self.dvdt(tk + self.half * self.dt, previous_voltages + self.quarter * (k1 + k2))
 
             new_voltages = previous_voltages + (k1 + k2 + self.four * k3) / self.six
 
@@ -231,6 +229,33 @@ class Multiplicative(SolverBase):
             "voltages": (np.float32, (num_var,)),
         }
 
+        # Define cluster function
+        choice = ""
+        if cluster_choice == "random":
+            find_cluster = self.find_cluster_random
+        elif cluster_choice == "gradient":
+            find_cluster = self.find_cluster_gradient
+        elif cluster_choice == "weighted_mean_smallest":
+            find_cluster = self.find_cluster_weighted_mean
+            choice = "smallest"
+        elif cluster_choice == "weighted_mean_largest":
+            find_cluster = self.find_cluster_weighted_mean
+            choice = "largest"
+        elif cluster_choice == "frequency":
+            find_cluster = self.find_cluster_frequency
+        else:
+            raise ValueError(
+            f" Unknown cluster choice: {cluster_choice}. \
+             Currently supported: random, gradient, weighted_mean_smallest, weighted_mean_largest, frequency."
+            )
+        additional_information = {
+            "count": np.ndarray,
+            "current_state": np.ndarray,
+            "cluster_threshold": cluster_threshold,
+            "optimal_points": [],
+            "choice": choice,
+        }
+
         with HDF5Logger(file, schema) as log:
             self.log_metadata(
                 logger=log,
@@ -243,23 +268,23 @@ class Multiplicative(SolverBase):
             best_energy = np.inf
             best_sample = v[: model.num_variables].copy()
             for it in range(nb_flipping):
-                # LOGGER.info(f"Iteration {it} - energy: {best_energy}")
-
                 sample, energy, count = self.inner_loop(model, v, log)
+                additional_information["count"] = count
+                additional_information["current_state"] = sample
                 LOGGER.debug(f"Iteration {it} - energy: {energy}")
                 if energy < best_energy:
                     best_energy = energy
                     best_sample = sample.copy()
+                    additional_information["optimal_points"].append((best_sample.copy(), best_energy))
 
-                cluster = self.find_cluster(
-                    count,
+                cluster = find_cluster(
                     self.size_function(
                         iteration=it,
                         total_iterations=num_iterations,
                         init_size=init_size,
                         end_size=end_size,
                     ),
-                    cluster_threshold,
+                    **additional_information,
                 )
                 v = best_sample.copy()
                 v[cluster] *= -1
@@ -286,9 +311,71 @@ class Multiplicative(SolverBase):
             + end_size
         )
 
-    def find_cluster(
-        self, counts: np.ndarray, cluster_size: int, cluster_threshold: float
-    ):
+    def find_cluster_gradient(self, cluster_size: int, **additional_information):
+        coupling = self.coupling_d * self.resistance
+        sigma = additional_information["current_state"]
+        threshold = additional_information["cluster_threshold"]
+
+        gradient = coupling @ np.block([sigma, 1])
+        gradient /= np.max(gradient)
+        available_nodes = np.where(gradient >= threshold, np.arange(len(sigma)), -1)  # Chosen nodes based on threshold
+        if len(available_nodes[available_nodes >= 0]) < cluster_size:  # Case when not enough nodes are available
+            current_size = len(available_nodes[available_nodes >= 0])
+            ind_unavailable_nodes = np.where(available_nodes < 0)[0]
+            chosen_nodes = np.array([], dtype=int)
+            while len(chosen_nodes) < cluster_size - current_size:
+                chosen_nodes = np.unique(
+                    np.append(
+                        chosen_nodes,
+                        np.random.choice(ind_unavailable_nodes, (cluster_size - current_size - len(chosen_nodes),)),
+                    )
+                )
+            available_nodes[chosen_nodes] = np.arange(len(sigma))[chosen_nodes]
+            cluster = available_nodes[available_nodes >= 0]
+        else:  # case when enough nodes are available
+            cluster = np.array([], dtype=int)
+            while len(cluster) < cluster_size:
+                cluster = np.unique(
+                    np.append(
+                        cluster,
+                        np.random.choice(available_nodes[available_nodes >= 0], size=(cluster_size - len(cluster),)),
+                    )
+                )
+        return cluster
+
+    def find_cluster_random(self, cluster_size: int, **additional_information):
+        """Finds a random cluster of nodes to flip.
+
+        Args:
+            cluster_size (int): the size of the cluster to find.
+        """
+        cluster = np.unique(
+            np.random.choice(np.arange(0, self.coupling_d.shape[0]), size=(cluster_size,), replace=False)
+        )
+        while len(cluster) < cluster_size:
+            cluster = np.unique(
+                np.append(
+                    cluster, np.random.choice(np.arange(self.coupling_d.shape[0]), size=(cluster_size - len(cluster)))
+                )
+            )
+        return cluster
+
+    def find_cluster_weighted_mean(self, cluster_size: int, **additional_information):
+        optimal_points = additional_information["optimal_points"]
+        choice = additional_information["choice"]
+        weight_nodes = np.zeros_like(optimal_points[0], dtype=float)
+        for point, en in optimal_points:
+            weight_nodes += 1 / en * point  # the smaller the energy, the larger the weight
+        if np.linalg.norm(weight_nodes) == 0:
+            weight_nodes = np.random.random(weight_nodes.shape)  # First step is random choice
+        if choice == "smallest":
+            cluster = np.argsort(np.abs(weight_nodes))[:cluster_size]
+        else:
+            cluster = np.argsort(np.abs(weight_nodes))[-cluster_size:]
+
+        return cluster
+
+    def find_cluster_frequency(self, cluster_size: int, **additional_information):
         """Finds the cluster of nodes to flip. These nodes are chosen based on the frequency of flipping.
 
         Args:
@@ -296,6 +383,9 @@ class Multiplicative(SolverBase):
             cluster_size (int): the size of the cluster to find.
             cluster_threshold (float): the threshold for selecting nodes.
         """
+        counts = additional_information["counts"]
+        cluster_threshold = additional_information["cluster_threshold"]
+
         freq = counts / (np.max(np.abs(counts)) if np.max(np.abs(counts)) != 0 else 1)
 
         available_nodes = np.where(freq < cluster_threshold)[0]
@@ -317,7 +407,5 @@ class Multiplicative(SolverBase):
             available_nodes = np.append(available_nodes, chosen_nodes)
             cluster = available_nodes
         else:
-            cluster = np.random.choice(
-                available_nodes, size=(cluster_size,), replace=False
-            )
+            cluster = np.random.choice(available_nodes, size=(cluster_size,), replace=False)
         return cluster
