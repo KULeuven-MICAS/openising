@@ -112,14 +112,12 @@ class BRIM(SolverBase):
                 vt[-1] = 1.0
 
             # Compute the differential equation
-            V_mat = np.array([vt] * vt.shape[0])
-            dv = -1 / capacitance * np.sum(Ka * coupling * (V_mat.T - V_mat), axis=1)
+            dv = -1 / capacitance * (Ka * coupling) @ vt
 
             # Make sure the voltages stay in the range [-1, 1]
             cond1 = (dv > 0) & (vt > 1)
             cond2 = (dv < 0) & (vt < -1)
             dv *= np.where(cond1 | cond2, 0.0, 1)
-            LOGGER.debug(f"norm of dv: {np.linalg.norm(dv)}")
 
             # Make sure the bias node does not change
             if not zero_h:

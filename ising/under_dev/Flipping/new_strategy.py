@@ -76,13 +76,13 @@ def TSP_flipping():
     nb_nodes = model.num_variables
     sigma = np.random.uniform(-1, 1, (model.num_variables,nb_runs))
     flipping_length = 130
-    cluster_size_init = [int(0.9*nb_nodes), int(0.8*nb_nodes), int(0.7*nb_nodes)] #, int(0.6*nb_nodes), int(0.5*nb_nodes)
+    cluster_size_init = [int(0.9*nb_nodes), int(0.8*nb_nodes), int(0.7*nb_nodes)] # , int(0.6*nb_nodes), int(0.5*nb_nodes)
     str_size_init = [str(s) for s in cluster_size_init]
     cluster_size_end = [int(0.5*nb_nodes), int(0.4*nb_nodes), int(0.3*nb_nodes), int(0.2*nb_nodes), int(0.1*nb_nodes)] #  
     str_size_end = [str(s) for s in cluster_size_end]
     threshold = 1.0
     nb_tasks = len(cluster_size_end)*len(cluster_size_init)*nb_runs
-    tasks_per_core = int(nb_tasks // (nb_cores))
+    tasks_per_core = int(nb_tasks // (nb_cores-1))
     tasks = [(init_size, final_cluster_size, sigma[:,j], threshold) for init_size in cluster_size_init for final_cluster_size in cluster_size_end for j in range(nb_runs)]
     new_tasks = []
     for task in tasks:
@@ -103,7 +103,7 @@ def TSP_flipping():
                                                 nb_flipping=flipping_length, 
                                                 dt=dt, 
                                                 num_iterations=num_iterations,
-                                                cluster_choice="energy_approximation")
+                                                cluster_choice="random")
         results = pool.starmap(flipping_partial, new_tasks)
     energies = {key: result[1] for subresult in results for key, result in subresult.items()}
     energies = np.array([energies[(init_size, end_size, run)] for init_size in cluster_size_init
@@ -111,7 +111,7 @@ def TSP_flipping():
                                                               for run in range(nb_runs)]).reshape((len(cluster_size_init), len(cluster_size_end), nb_runs))
     best_energies = np.mean(energies, axis=2).reshape((len(cluster_size_init), len(cluster_size_end)))
     np.savetxt("Energy_approximation.pkl", best_energies)
-    plot_data(best_energies, "TSP_cluster_size_change.png",  "Final cluster size", str_size_end, "Initial cluster size",str_size_init, best_found)
+    plot_data(best_energies, "random_G1.png",  "Final cluster size", str_size_end, "Initial cluster size",str_size_init, best_found)
 
 if __name__ == "__main__":
     TSP_flipping()

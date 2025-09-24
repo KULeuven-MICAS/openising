@@ -1,6 +1,13 @@
 from argparse import Namespace
-import numpy as np
 import os
+
+os.environ["MKL_NUM_THREADS"] = str(4)
+os.environ["NUMEXPR_NUM_THREADS"] = str(4)
+os.environ["OMP_NUM_THREADS"] = str(4)
+os.environ["OPENBLAS_NUM_THREADS"] = str(4)
+
+import numpy as np
+
 
 from ising.stages.main_stage import MainStage
 from ising.stages.simulation_stage import SimulationStage
@@ -13,10 +20,7 @@ from ising.stages.mimo_parser_stage import MIMOParserStage
 
 nb_cores = 16
 os.sched_setaffinity(0, range(nb_cores))
-os.environ["MKL_NUM_THREADS"] = str(nb_cores//3)
-os.environ["NUMEXPR_NUM_THREADS"] = str(nb_cores//3)
-os.environ["OMP_NUM_THREADS"] = str(nb_cores//3)
-os.environ["OPENBLAS_NUM_THREADS"] = str(nb_cores//3)
+
 
 sim_stage = SimulationStage([MainStage], config=Namespace(benchmark="ising/G16.txt"), ising_model=IsingModel(np.zeros((2,2)), np.zeros((2,))))
 MaxCutParser = MaxcutParserStage([MainStage], config=Namespace(benchmark=""))
