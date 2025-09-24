@@ -74,6 +74,7 @@ weight_constant: 0
 SNR: 10
 nb_trials: 100
 mimo_seed: 12
+is_hamming_encoding: False
 
 #################################
 ## Specific Stages hyperparameters

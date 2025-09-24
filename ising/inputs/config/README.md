@@ -95,6 +95,8 @@ The config file is written in YAML. It must has the following parameters:
 
 *mimo_seed*: [float] seed for random number generation when applying noise (same as dummy_seed).
 
+*is_hamming_encoding*: [bool] if use Hamming encoding for multi-bit symbols when QAM>4. Otherwise, the binary encoding will be used.
+
 ## Extra parameters for specific stages
 
 **If NpmosStage is used, the following parameters are required:**
