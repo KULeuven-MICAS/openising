@@ -30,6 +30,7 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
         hyperparameters["init_cluster_size"] = float(args.init_cluster_size)
         hyperparameters["end_cluster_size"] = float(args.end_cluster_size)
         hyperparameters["cluster_choice"] = args.cluster_choice
+        hyperparameters["pseudo_length"] = None if args.pseudo_length == "None" else int(args.pseudo_length)
 
     # BRIM parameters
     if "BRIM" in args.solvers:
@@ -41,13 +42,17 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
         hyperparameters["end_temp_cont"] = float(args.T_final_cont)
 
     # SA parameters
-    if "SA" in args.solvers or "SCA" in args.solvers:
+    if "SA" in args.solvers or "SCA" in args.solvers or "inSituSA" in args.solvers or "DSA" in args.solvers:
         hyperparameters["initial_temp"] = float(args.T)
         Tfin = float(args.T_final)
         hyperparameters["cooling_rate"] = (
             return_rx(num_iter, hyperparameters["initial_temp"], Tfin) if hyperparameters["initial_temp"] != 0 else 0.0
         )
         hyperparameters["seed"] = int(args.seed)
+
+    # in-Situ SA parameters
+    if "inSituSA" in args.solvers:
+        hyperparameters["nb_flips"] = float(args.nb_flips)
 
     # SCA parameters
     if "SCA" in args.solvers:
@@ -61,6 +66,12 @@ def parse_hyperparameters(args: dict, num_iter: int) -> dict[str:]:
         hyperparameters["dtSB"] = float(args.dtSB)
         hyperparameters["a0"] = float(args.a0)
         hyperparameters["c0"] = float(args.c0)
+
+    # CIM parameters
+    if "CIM" in args.solvers:
+        hyperparameters["dtCIM"] = float(args.dtCIM)
+        hyperparameters["zeta"] = float(args.zeta)
+        hyperparameters["seed"] = int(args.seed)
 
     return hyperparameters
 

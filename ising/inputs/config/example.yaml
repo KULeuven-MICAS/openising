@@ -9,7 +9,7 @@ benchmark: ./ising/benchmarks/MIMO/Nr5_Nt5_M16.txt
 iter_list: 50000
 
 
-# Solver to use: [BRIM, SA, bSB, dSB, SCA, Multiplicative, all]
+# Solver to use: [BRIM, SA, DSA, inSituSA, bSB, dSB, SCA, Multiplicative, CIM, all]
 solvers:
   - bSB
 
@@ -29,6 +29,7 @@ initialization_seed: 42
 
 # Logging or not
 gen_logfile: False
+logfile_discrimination: None
 
 #################################
 ## Solvers hyperparameters
@@ -43,6 +44,9 @@ seed: 100
 q: 0.0
 q_final: 10.0
 
+# Parameters for in-Situ SA
+nb_flips: 0.5
+
 # Parameters for Multiplicative
 dtMult: 0.01
 T_cont: 0.05
@@ -50,9 +54,10 @@ T_final_cont: 0.0005
 resistance: 1
 nb_flipping: 100
 cluster_threshold: 0.3
-init_cluster_size: 1.0
+init_cluster_size: 0.8
 end_cluster_size: 0.0625
 cluster_choice: "random"
+pseudo_length: None
 capacitance: 1
 
 # Parameters for BRIM
@@ -63,6 +68,10 @@ stop_criterion: 1e-6  # 1uV
 dtSB: 0.01
 a0: 1.0
 c0: 0.0
+
+# Parameters for CIM
+dtCIM: 0.25
+zeta: 1.0
 
 #################################
 ## Problems hyperparameters

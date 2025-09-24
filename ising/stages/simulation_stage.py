@@ -17,6 +17,8 @@ from ising.solvers.SB import ballisticSB, discreteSB
 from ising.solvers.SCA import SCA
 from ising.solvers.SA import SASolver
 from ising.solvers.DSA import DSASolver
+from ising.solvers.inSitu_SA import InSituSASolver
+from ising.solvers.CIM import CIMSolver
 from ising.solvers.Multiplicative import Multiplicative
 
 
@@ -38,6 +40,11 @@ class SimulationStage(Stage):
         self.ising_model = ising_model
         self.best_found = best_found if best_found is not None else float("inf")
         self.benchmark_abbreviation = self.config.benchmark.split("/")[-1].split(".")[0]
+        if self.config.logfile_discrimination is not None:
+            self.logfile_discrimination = self.config.logfile_discrimination
+        else:
+            self.logfile_discrimination = ""
+        LOGGER.info(self.logfile_discrimination)
         if "run_id" in self.kwargs:
             self.run_id = self.kwargs["run_id"]
 
@@ -66,7 +73,14 @@ class SimulationStage(Stage):
         if self.config.use_multiprocessing:
             runs_over = nb_runs - runs_per_thread * nb_cores
             tasks = [
-                (runs_per_thread + 1, logpath, i) if i < runs_over else (runs_per_thread, logpath, i)
+                (runs_per_thread + 1, logpath, i, i * (runs_per_thread + 1))
+                if i < runs_over
+                else (
+                    runs_per_thread,
+                    logpath,
+                    i,
+                    runs_over * (runs_per_thread + 1) + (i - runs_over) * runs_per_thread,
+                )
                 for i in range(nb_cores)
             ]
             with multiprocessing.Pool(nb_cores, initializer=os.nice, initargs=(1,)) as pool:
@@ -96,7 +110,7 @@ class SimulationStage(Stage):
 
         yield ans, debug_info
 
-    def partial_runs(self, nb_runs: int, logpath: pathlib.Path, initialization_seed: int):
+    def partial_runs(self, nb_runs: int, logpath: pathlib.Path, initialization_seed: int, start_run_id: int = 0):
         start_time = datetime.datetime.now()
         LOGGER.info(f"Simulation started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         num_iter = self.config.iter_list
@@ -121,7 +135,11 @@ class SimulationStage(Stage):
 
             for solver in self.config.solvers:
                 if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
-                    logfile = logpath / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id}.log"
+                    logfile = (
+                        logpath
+                        / f"{solver}_{self.benchmark_abbreviation}_nbiter{num_iter}_run{trail_id +\
+                                                                                         start_run_id}_{self.logfile_discrimination}.log"
+                    )
                 else:
                     logfile = None
 
@@ -189,13 +207,16 @@ class SimulationStage(Stage):
                     "init_cluster_size",
                     "end_cluster_size",
                     "cluster_choice",
+                    "pseudo_length"
                 ],
             ),
+            "inSituSA": (InSituSASolver().solve, ["initial_temp", "cooling_rate", "nb_flips", "seed"]),
             "SA": (SASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
             "DSA": (DSASolver().solve, ["initial_temp", "cooling_rate", "seed"]),
             "SCA": (SCA().solve, ["initial_temp", "cooling_rate", "q", "r_q", "seed"]),
             "bSB": (ballisticSB().solve, ["c0", "dtSB", "a0"]),
             "dSB": (discreteSB().solve, ["c0", "dtSB", "a0"]),
+            "CIM": (CIMSolver().solve, ["dtCIM", "zeta", "seed"]),
         }
         if solver in solvers:
             func, params = solvers[solver]
