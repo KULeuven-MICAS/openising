@@ -49,7 +49,11 @@ class MIMOParserStage(Stage):
 
         ans_all = Ans()
         ans_all.MIMO = []
-        diff = np.zeros((2*user_num, case_num))
+        is_bpsk = M == 2
+        if is_bpsk:
+            diff = np.zeros((user_num, case_num))
+        else:
+            diff = np.zeros((2*user_num, case_num))
         for run in range(case_num):
             xi = x[:, run]
             ising_model, x_tilde, _ = self.MIMO_to_Ising(
