@@ -42,14 +42,6 @@ class QuantizationStage(Stage):
         if self.config.quantization:
             quantization_precision = self.config.quantization_precision
             original_J = self.ising_model.J
-            #####
-            # Debugging purpose
-            j_std = np.std(original_J)
-            j_mean = np.mean(original_J)
-            original_J[original_J > j_mean + 6 * j_std] = j_mean + 6 * j_std
-            original_J[original_J < j_mean - 6 * j_std] = j_mean - 6 * j_std
-            original_int_j_precision, j_is_unsigned = self.calc_original_precision(original_J)
-            #####
             quantized_J = self.quantize_matrix(J=original_J,
                                                original_precision=original_int_j_precision,
                                                quantization_precision=quantization_precision)
