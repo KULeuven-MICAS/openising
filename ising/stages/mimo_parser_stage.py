@@ -19,6 +19,10 @@ class MIMOParserStage(Stage):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.benchmark_filename = TOP / config.benchmark
+        if hasattr(config, "is_hamming_encoding"):
+            self.is_hamming_encoding = config.is_hamming_encoding
+        else:
+            self.is_hamming_encoding = False
 
     def run(self) -> Any:
         """! Parse the MIMO benchmark workload."""
@@ -57,7 +61,8 @@ class MIMOParserStage(Stage):
         for run in range(case_num):
             xi = x[:, run]
             ising_model, x_tilde, _ = self.MIMO_to_Ising(
-                H, xi, snr, user_num, ant_num, M, mimo_seed)
+                H, xi, snr, user_num, ant_num, M, mimo_seed,
+                is_hamming_encoding=self.is_hamming_encoding)
             self.kwargs["ising_model"] = ising_model
             self.kwargs["x_tilde"] = x_tilde
             self.kwargs["M"] = M
@@ -134,7 +139,8 @@ class MIMOParserStage(Stage):
 
     @staticmethod
     def MIMO_to_Ising(
-        H: np.ndarray, x: np.ndarray, SNR: float, user_num: int, ant_num: int, M: int, seed:int=0
+        H: np.ndarray, x: np.ndarray, SNR: float, user_num: int, ant_num: int, M: int, seed:int=0,
+        is_hamming_encoding: bool = False
     ) -> tuple[IsingModel, np.ndarray, np.ndarray]:
         """!Transforms the MIMO model into an Ising model.
 
@@ -146,6 +152,7 @@ class MIMOParserStage(Stage):
         @param ant_num (int): the amount of output signals.
         @param M (int): the considered QAM scheme.
         @param seed (int, optional): The seed for the random noise generation. Defaults to 0.
+        @param is_hamming_encoding (bool, optional): Whether to use Hamming encoding. Defaults to False.
 
         @return model (IsingModel): the generated Ising model.
         @return xtilde (np.ndarray): the real version of the input symbols.
@@ -159,7 +166,10 @@ class MIMOParserStage(Stage):
             Nx = np.shape(x)[0]
             Ny = 2*Nx
         else:
-            r = int(np.ceil(np.log2(np.sqrt(M))))
+            if is_hamming_encoding: # with hamming encoding
+                r = int(np.sqrt(M) - 1)
+            else: # with binary encoding
+                r = int(np.ceil(np.log2(np.sqrt(M))))
             Nx = np.shape(x)[0]*2
             Ny = Nx
 
@@ -179,7 +189,10 @@ class MIMOParserStage(Stage):
 
         Htilde = np.block([[np.real(H), -np.imag(H)], [np.imag(H), np.real(H)]])
 
-        T = np.block([2**(r-i)*np.eye(Ny, Nx) for i in range(1, r+1)])
+        if is_hamming_encoding: # with hamming encoding
+            T = np.block([np.eye(Ny, Nx) for _ in range(r)])
+        else: # with binary encoding
+            T = np.block([2**(r-i)*np.eye(Ny, Nx) for i in range(1, r+1)])
 
         if is_bpsk:
             xtilde = x
