@@ -6,15 +6,18 @@ import copy
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 
+
 class QuantizationStage(Stage):
     """! Stage to quantize the Ising model."""
 
-    def __init__(self,
-                 list_of_callables: list[StageCallable],
-                 *,
-                 config: Any,
-                 ising_model: IsingModel | None = None,
-                 **kwargs: Any):
+    def __init__(
+        self,
+        list_of_callables: list[StageCallable],
+        *,
+        config: Any,
+        ising_model: IsingModel | None = None,
+        **kwargs: Any,
+    ):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.ising_model = ising_model
@@ -27,8 +30,9 @@ class QuantizationStage(Stage):
         """! Quantize the J of the Ising model."""
         original_int_j_precision, j_is_unsigned = self.calc_original_precision(self.ising_model.J)
         original_int_h_precision, h_is_unsigned = self.calc_original_precision(self.ising_model.h)
-        LOGGER.info(f"Original required int precision for J: {original_int_j_precision}, "
-                    f"for h: {original_int_h_precision}")
+        LOGGER.info(
+            f"Original required int precision for J: {original_int_j_precision}, for h: {original_int_h_precision}"
+        )
         LOGGER.info(f"J is unsigned: {j_is_unsigned}, h is unsigned: {h_is_unsigned}")
 
         if original_int_h_precision == 0:
@@ -47,12 +51,14 @@ class QuantizationStage(Stage):
             original_J[original_J < j_mean - 6 * j_std] = j_mean - 6 * j_std
             original_int_j_precision, j_is_unsigned = self.calc_original_precision(original_J)
             #####
-            quantized_J = self.quantize_matrix(J=original_J,
-                                               original_precision=original_int_j_precision,
-                                               quantization_precision=quantization_precision)
-            quantized_h = self.quantize_matrix(J=self.ising_model.h,
-                                               original_precision=original_int_h_precision,
-                                               quantization_precision=quantization_precision)
+            quantized_J = self.quantize_matrix(
+                J=original_J, original_precision=original_int_j_precision, quantization_precision=quantization_precision
+            )
+            quantized_h = self.quantize_matrix(
+                J=self.ising_model.h,
+                original_precision=original_int_h_precision,
+                quantization_precision=quantization_precision,
+            )
             LOGGER.info(f"Quantization is enabled with precision: {quantization_precision}-bit.")
 
             quantized_model = IsingModel(
@@ -79,13 +85,16 @@ class QuantizationStage(Stage):
             ans.original_int_j_precision = original_int_j_precision
             ans.original_int_h_precision = original_int_h_precision
             ans.original_int_precision = original_precision
-            for energy_id in range(len(ans.energies)):
-                ans.energies[energy_id] = self.ising_model.evaluate(ans.states[energy_id])
-                if hasattr(ans, "tsp_energies"):
-                    if ans.tsp_energies[energy_id] == math.inf:
-                        ans.tsp_energies[energy_id] = math.inf
-                    else:
-                        ans.tsp_energies[energy_id] = ans.energies[energy_id]
+            for solver in ans.config.solvers:
+                for energy_id in range(len(ans.energies[solver])):
+                    ans.energies[solver][energy_id] = self.ising_model.evaluate(
+                        ans.states[solver][energy_id].astype(np.float32)
+                    )
+                    if hasattr(ans, "tsp_energies"):
+                        if ans.tsp_energies[energy_id] == math.inf:
+                            ans.tsp_energies[energy_id] = math.inf
+                        else:
+                            ans.tsp_energies[energy_id] = ans.energies[energy_id]
             yield ans, debug_info
 
     @staticmethod
@@ -122,11 +131,7 @@ class QuantizationStage(Stage):
         return original_precision, is_unsigned
 
     @staticmethod
-    def quantize_matrix(
-            J: np.ndarray,
-            original_precision: int,
-            quantization_precision: int | float = 2
-            ) -> np.ndarray:
+    def quantize_matrix(J: np.ndarray, original_precision: int, quantization_precision: int | float = 2) -> np.ndarray:
         """! Quantizes a matrix to a given precision.
 
         @param J: the input matrix
@@ -147,9 +152,10 @@ class QuantizationStage(Stage):
             original_precision,
             quantization_precision,
         )
-        assert quantization_precision <= original_precision, \
-            f"Quantization precision {quantization_precision} is larger " \
+        assert quantization_precision <= original_precision, (
+            f"Quantization precision {quantization_precision} is larger "
             f"than the original precision {original_precision}."
+        )
         assert quantization_precision == 1.5 or isinstance(quantization_precision, int)
 
         if quantization_precision == 1.5:
@@ -164,13 +170,14 @@ class QuantizationStage(Stage):
             if J_is_positive:
                 quantization_lower_bound = 0
             else:
-                quantization_lower_bound = - (2 ** original_precision - 1)
+                quantization_lower_bound = -(2**original_precision - 1)
         else:
             # If J has both positive and negative values, we need to consider the range
             # from the minimum to the maximum value.
-            assert quantization_precision > 1, \
-            f"Quantization precision {quantization_precision} must be greater than 1-bit for signed data."
-            quantization_lower_bound = - (2 ** (original_precision - 1))
+            assert quantization_precision > 1, (
+                f"Quantization precision {quantization_precision} must be greater than 1-bit for signed data."
+            )
+            quantization_lower_bound = -(2 ** (original_precision - 1))
 
         if same_sign:
             if ternary_quantization:
@@ -182,22 +189,24 @@ class QuantizationStage(Stage):
             if ternary_quantization:
                 step_num: int = 2
             else:
-                step_num: int = (2 ** quantization_precision) - 1
+                step_num: int = (2**quantization_precision) - 1
                 step_num = step_num - 1  # dismiss the most negative value
-        step_size: float = (2 ** original_precision) / step_num
+        step_size: float = (2**original_precision) / step_num
 
         nonzero_mask = J != 0
         quantized_J = copy.deepcopy(J)
         quantization_upper_bound = quantization_lower_bound + step_num * step_size
         quantized_J[quantized_J < quantization_lower_bound] = quantization_lower_bound
         quantized_J[quantized_J > quantization_upper_bound] = quantization_upper_bound
-        quantized_J[nonzero_mask] = np.round((J[nonzero_mask] - quantization_lower_bound) / step_size) \
-            * step_size + quantization_lower_bound
+        quantized_J[nonzero_mask] = (
+            np.round((J[nonzero_mask] - quantization_lower_bound) / step_size) * step_size + quantization_lower_bound
+        )
 
-        assert len(np.unique(quantized_J)) <= (step_num + 1), \
-            f"Quantized J matrix has {len(np.unique(quantized_J))} unique values, " \
-            f"which exceeds the limit for" \
+        assert len(np.unique(quantized_J)) <= (step_num + 1), (
+            f"Quantized J matrix has {len(np.unique(quantized_J))} unique values, "
+            f"which exceeds the limit for"
             f"{quantization_precision}-bit quantization."
+        )
 
         return quantized_J
 
@@ -206,8 +215,8 @@ class QuantizationStage(Stage):
         mat: np.ndarray,
         output: str = "vdarray_matrix.png",
         zero_as_white: bool = True,
-        ):
-        """ ! Visualize 2D ndarray in matrix
+    ):
+        """! Visualize 2D ndarray in matrix
         @param mat: input 2D ndarray
         @param output: output file name
         @param zero_as_white: whether to plot zero values as white
@@ -226,14 +235,16 @@ class QuantizationStage(Stage):
             mat_copy[mat_copy == 0] = np.nan
             # Get the viridis colormap and set the color for bad values (NaN) to white
             cmap = cm.get_cmap("viridis").copy()
-            cmap.set_bad(color='white')
+            cmap.set_bad(color="white")
         else:
             mat_copy = mat
 
-        sns.heatmap(mat_copy,
-                    ax=ax,
-                    cmap="viridis",  # Yellow-Orange-Red colormap
-                    cbar_kws={"label": "Value"})
+        sns.heatmap(
+            mat_copy,
+            ax=ax,
+            cmap="viridis",  # Yellow-Orange-Red colormap
+            cbar_kws={"label": "Value"},
+        )
 
         # Add annotation to the heatmap
         # for i in range(mat_copy.shape[0]):
@@ -245,12 +256,15 @@ class QuantizationStage(Stage):
         # Add colorbar legend
         ax.figure.axes[-1].yaxis.label.set_size(12)
         ax.set_title(
-        f"Shape: {mat.shape}, value min: {round(np.min(mat), 2)}, max: {round(np.max(mat), 2)},"
-        f"mean: {round(np.mean(mat), 2)}, unique levels: {len(np.unique(mat))}\n"
-        f"abs value min: {round(np.min(np.abs(mat)), 2)}, max: {round(np.max(np.abs(mat)), 2)},"
-        f"mean: {round(np.mean(np.abs(mat)), 2)}, nz_density: {nz_density:.0%}",
+            f"Shape: {mat.shape}, value min: {round(np.min(mat), 2)}, max: {round(np.max(mat), 2)},"
+            f"mean: {round(np.mean(mat), 2)}, unique levels: {len(np.unique(mat))}\n"
+            f"abs value min: {round(np.min(np.abs(mat)), 2)}, max: {round(np.max(np.abs(mat)), 2)},"
+            f"mean: {round(np.mean(np.abs(mat)), 2)}, nz_density: {nz_density:.0%}",
             loc="left",
-            pad=10, weight="bold", fontsize=8)
+            pad=10,
+            weight="bold",
+            fontsize=8,
+        )
         ax.set_xlabel("ID", fontsize=12, weight="bold")
         ax.set_ylabel("ID", fontsize=12, weight="bold")
         # Add box around the subplot
@@ -267,8 +281,8 @@ class QuantizationStage(Stage):
         data: np.ndarray,
         output: str = "ndarray_distribution.png",
         bins: int = 50,
-        ):
-        """ ! Plot the distribution of a ndarray
+    ):
+        """! Plot the distribution of a ndarray
         @param data: input ndarray
         @param output: output file name
         @param bins: number of bins for the histogram
@@ -276,14 +290,17 @@ class QuantizationStage(Stage):
         import matplotlib.pyplot as plt
 
         plt.figure(figsize=(8, 6))
-        plt.hist(data.reshape(-1, 1), bins=bins, alpha=0.7, color='blue', edgecolor='black')
-        plt.title(f"Distribution of values (min: {round(np.min(data), 2)}, "
-                  f"max: {round(np.max(data), 2)}, mean: {round(np.mean(data), 2)}, "
-                  f"unique levels: {len(np.unique(data))})",
-                  fontsize=10, weight="bold")
+        plt.hist(data.reshape(-1, 1), bins=bins, alpha=0.7, color="blue", edgecolor="black")
+        plt.title(
+            f"Distribution of values (min: {round(np.min(data), 2)}, "
+            f"max: {round(np.max(data), 2)}, mean: {round(np.mean(data), 2)}, "
+            f"unique levels: {len(np.unique(data))})",
+            fontsize=10,
+            weight="bold",
+        )
         plt.xlabel("Value", fontsize=12)
         plt.ylabel("Frequency", fontsize=12)
-        plt.grid(axis='y', alpha=0.75)
+        plt.grid(axis="y", alpha=0.75)
         plt.tight_layout()
         plt.savefig(output)
         plt.close()

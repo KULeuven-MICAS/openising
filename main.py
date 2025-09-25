@@ -1,19 +1,25 @@
 import logging
 import sys
+import os
+from pathlib import Path
+
+os.environ["MKL_NUM_THREADS"] = str(3)
+os.environ["NUMEXPR_NUM_THREADS"] = str(3)
+os.environ["OMP_NUM_THREADS"] = str(3)
+os.environ["OPENBLAS_NUM_THREADS"] = str(3)
+
 import numpy as np
 from ising import api
-import os
+
 
 # Initialize the logger
 logging_level = logging.INFO
 logging_format = "%(asctime)s - %(filename)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdout)
 
-os.system("rm -rf ising/outputs/TSP/logs/*")  # Clear previous logs
-
 # Input file directory
-problem_type = "MaxCut"  # Specify the problem type
-config_path = "ising/inputs/config/example.yaml"
+problem_type = "TSP"  # Specify the problem type
+config_path = "ising/inputs/config/config_pseudo_random.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
@@ -21,18 +27,57 @@ ans, debug_info = api.get_hamiltonian_energy(
     config_path=config_path,
     logging_level=logging_level,
 )
+
+# Output summary file
+output_file = Path("./simulation_summary.pkl")
+solvers = ans.config.solvers
+mean_computation_time = {solver: np.mean(ans.computation_time[solver]) for solver in solvers}
+comp_str = " ".join([f"{mean_computation_time[solver]:.4f}s" for solver in solvers])
+solver_str = " ".join(solvers)
 if problem_type == "MIMO":
     logging.info("BER: %s", ans.BER)
+    BER_str = " ".join([str(ans.BER[solver]) for solver in solvers])
+    with Path.open(output_file, 'a') as f:
+        f.write("\n")
+        f.write("=====================\n")
+        f.write(f"results of running {ans.benchmark} with {config_path.split('/')[-1]}:\n")
+        f.write("=====================\n")
+        f.write("MIMO results:\n")
+        f.write(f"SNR|BER  {solver_str}\n")
+        f.write(f"{ans.SNR}|     {BER_str}\n")
+        f.write("\n")
+        f.write("=====================\n")
+        f.write("Simulation results:\n")
+        f.write(f"solver| {solver_str}\n")
+        f.write(f"computation time| {comp_str}\n")
+        f.write("operation count| " + "\n")
 else:
     benchmark = ans.benchmark
     ising_energies = ans.energies
     best_found = ans.best_found
-    ising_energy_max = np.max(ising_energies)
-    ising_energy_min = np.min(ising_energies)
-    ising_energy_avg = np.mean(ising_energies)
+    ising_energy_max = {solver: np.max(ising_energies[solver]) for solver in solvers}
+    max_en_str = " ".join([f"{ising_energy_max[solver]:.4f}" for solver in solvers])
+    ising_energy_min = {solver: np.min(ising_energies[solver]) for solver in solvers}
+    min_en_str = " ".join([f"{ising_energy_min[solver]:.4f}" for solver in solvers])
+    ising_energy_avg = {solver: np.mean(ising_energies[solver]) for solver in solvers}
+    avg_en_str = " ".join([f"{ising_energy_avg[solver]:.4f}" for solver in solvers])
+    with Path.open(output_file, 'a') as f:
+        f.write("\n")
+        f.write("=====================\n")
+        f.write(f"results of running {ans.benchmark} with {config_path.split('/')[-1]}:\n")
+        f.write(f"reference energy {best_found}\n")
+        f.write("=====================\n")
+        f.write("Simulation results:\n")
+        f.write(f"solver| {solver_str}\n")
+        f.write(f"energy max| {max_en_str}\n")
+        f.write(f"energy min| {min_en_str}\n")
+        f.write(f"energy avg| {avg_en_str}\n")
+        f.write(f"computation time| {comp_str}\n")
+        f.write("TTS| ")
+
 
     logging.info(
-        "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %.2s",
+        "benchmark: %s, reference: %s, energy max: %s, min: %s, avg: %s",
         benchmark,
         best_found,
         ising_energy_max,

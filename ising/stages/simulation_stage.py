@@ -44,7 +44,6 @@ class SimulationStage(Stage):
             self.logfile_discrimination = self.config.logfile_discrimination
         else:
             self.logfile_discrimination = ""
-        LOGGER.info(self.logfile_discrimination)
         if "run_id" in self.kwargs:
             self.run_id = self.kwargs["run_id"]
 
@@ -55,7 +54,8 @@ class SimulationStage(Stage):
         nb_cores = self.config.nb_cores
         logpath = TOP / f"ising/outputs/{problem_type}/logs"
         LOGGER.debug("Logpath: " + str(logpath))
-        logpath.mkdir(parents=True, exist_ok=True)
+        if not logpath.exists():
+            logpath.mkdir(parents=True, exist_ok=True)
 
         if bool(int(self.config.use_gurobi)):
             gurobi_log = logpath / f"Gurobi_{self.benchmark_abbreviation}.log"
@@ -67,8 +67,9 @@ class SimulationStage(Stage):
 
         start_time = datetime.datetime.now()
 
-        optim_state_collect = []
-        optim_energy_collect = []
+        optim_state_collect = {solver: [] for solver in self.config.solvers}
+        optim_energy_collect = {solver: [] for solver in self.config.solvers}
+        comp_time_collect = {solver: [] for solver in self.config.solvers}
         logfile_collect = []
         if self.config.use_multiprocessing:
             runs_over = nb_runs - runs_per_thread * nb_cores
@@ -93,9 +94,11 @@ class SimulationStage(Stage):
         LOGGER.info(f"Total simulation time: {end_time - start_time}")
 
         for res in results:
-            optim_state_collect += res[0]
-            optim_energy_collect += res[1]
-            logfile_collect += res[2]
+            for solver in self.config.solvers:
+                optim_state_collect[solver] += res[0][solver]
+                optim_energy_collect[solver] += res[1][solver]
+                comp_time_collect[solver] += res[2][solver]
+            logfile_collect += res[3]
 
         ans = Ans(
             benchmark=self.benchmark_abbreviation,
@@ -104,6 +107,7 @@ class SimulationStage(Stage):
             best_found=self.best_found,
             states=optim_state_collect,
             energies=optim_energy_collect,
+            computation_time=comp_time_collect,
             logfiles=logfile_collect,
         )
         debug_info = Ans()  # Placeholder for debug information, if needed
@@ -116,8 +120,9 @@ class SimulationStage(Stage):
         num_iter = self.config.iter_list
         hyperparameters = parse_hyperparameters(self.config, num_iter)
 
-        optim_state_collect = []
-        optim_energy_collect = []
+        optim_state_collect = {solver:[] for solver in self.config.solvers}
+        optim_energy_collect = {solver:[] for solver in self.config.solvers}
+        comp_time_collect = {solver:[] for solver in self.config.solvers}
         logfile_collect = []
         pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc=f"Running trials of thread {os.getpid()}")
         for trail_id in pbar:
@@ -143,12 +148,13 @@ class SimulationStage(Stage):
                 else:
                     logfile = None
 
-                optim_state, optim_energy = self.run_solver(
+                optim_state, optim_energy, computation_time = self.run_solver(
                     solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
                 )
 
-                optim_state_collect.append(optim_state)
-                optim_energy_collect.append(optim_energy)
+                optim_state_collect[solver].append(optim_state)
+                optim_energy_collect[solver].append(optim_energy)
+                comp_time_collect[solver].append(computation_time)
                 logfile_collect.append(logfile)
             pbar.set_description(
                 f"Running trails of thread {os.getpid()} [#{trail_id + 1}, energy: {optim_energy:.2f}]"
@@ -156,7 +162,7 @@ class SimulationStage(Stage):
         end_time = datetime.datetime.now()
         LOGGER.info(f"Simulation of thread {os.getpid()} finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         LOGGER.info(f"Thread {os.getpid()} simulation time: {end_time - start_time}")
-        return optim_state_collect, optim_energy_collect, logfile_collect
+        return optim_state_collect, optim_energy_collect, comp_time_collect, logfile_collect
 
     def run_solver(
         self,
@@ -223,7 +229,7 @@ class SimulationStage(Stage):
             chosen_hyperparameters = {key: hyperparameters[key] for key in params if key in hyperparameters}
             optim_state: np.ndarray
             optim_energy: float | None
-            optim_state, optim_energy = func(
+            optim_state, optim_energy, computation_time = func(
                 model=model,
                 initial_state=s_init,
                 num_iterations=num_iter,
@@ -233,7 +239,7 @@ class SimulationStage(Stage):
         else:
             LOGGER.error(f"Solver {solver} is not implemented.")
             raise NotImplementedError(f"Solver {solver} is not implemented.")
-        return optim_state, optim_energy
+        return optim_state, optim_energy, computation_time
 
 
 class Ans(metaclass=ABCMeta):

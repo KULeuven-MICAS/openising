@@ -5,15 +5,18 @@ import copy
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 
+
 class NpmosStage(Stage):
     """! Stage to inject the nmos/pmos imbalance on the ising model."""
 
-    def __init__(self,
-                 list_of_callables: list[StageCallable],
-                 *,
-                 config: Any,
-                 ising_model: IsingModel | None = None,
-                 **kwargs: Any):
+    def __init__(
+        self,
+        list_of_callables: list[StageCallable],
+        *,
+        config: Any,
+        ising_model: IsingModel | None = None,
+        **kwargs: Any,
+    ):
         super().__init__(list_of_callables, **kwargs)
         self.config = config
         self.ising_model = ising_model
@@ -44,18 +47,21 @@ class NpmosStage(Stage):
         for ans, debug_info in sub_stage.run():
             ans.ising_model = self.ising_model
             ans.offset_model = offset_model
-            for energy_id in range(len(ans.energies)):
-                ans.energies[energy_id] = self.ising_model.evaluate(ans.states[energy_id])
+            for solver in self.config.solvers:
+                for energy_id in range(len(ans.energies[solver])):
+                    ans.energies[solver][energy_id] = self.ising_model.evaluate(
+                        ans.states[solver][energy_id].astype(np.float32)
+                    )
             yield ans, debug_info
 
     def offset_negative_on_matrix(self, J: np.ndarray, offset_ratio: float) -> np.ndarray:
         """Add uniform offset to the J matrix."""
         offset_J = copy.deepcopy(J)
-        offset_J[offset_J < 0] *= (1 + offset_ratio)
+        offset_J[offset_J < 0] *= 1 + offset_ratio
         return offset_J
 
     def offset_positive_on_matrix(self, J: np.ndarray, offset_ratio: float) -> np.ndarray:
         """Add uniform offset to the J matrix."""
         offset_J = copy.deepcopy(J)
-        offset_J[offset_J > 0] *= (1 + offset_ratio)
+        offset_J[offset_J > 0] *= 1 + offset_ratio
         return offset_J

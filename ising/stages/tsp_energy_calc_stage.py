@@ -30,27 +30,28 @@ class TSPEnergyCalcStage(Stage):
         sub_stage = self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs)
         for ans, debug_info in sub_stage.run():
             # Check if the answer is valid
-            tsp_energies = []
-            for state_id in range(len(ans.states)):
-                state = ans.states[state_id]
-                city_count = self.nx_graph.number_of_nodes()
-                state = state.reshape(city_count, city_count)
-                binary_state = state.copy()
-                binary_state[binary_state == -1] = 0  # Convert -1 to 0 for TSP calculation
-                if np.linalg.norm(binary_state.T @ binary_state - np.eye(city_count)) == 0:
-                    # Valid state
-                    ising_energy = ans.energies[state_id]
-                    ## Uncomment the following lines if you want to calculate TSP energy from logfiles
-                    # logfile = ans.logfiles[state_id]
-                    # tsp_energy = self.calculate_TSP_energy(
-                    #     logfile=logfile,
-                    #     graph=self.nx_graph,
-                    #     gurobi=self.use_gurobi,
-                    # )
-                    tsp_energies.append(ising_energy) # ising_energy equals to the TSP cost
-                else:
-                    # Invalid state, append NaN
-                    tsp_energies.append(np.nan)
+            tsp_energies = {solver: [] for solver in self.config.solvers}
+            for solver in self.config.solvers:
+                for state_id in range(len(ans.states[solver])):
+                    state = ans.states[solver][state_id]
+                    city_count = self.nx_graph.number_of_nodes()
+                    state = state.reshape(city_count, city_count)
+                    binary_state = state.copy()
+                    binary_state[binary_state == -1] = 0  # Convert -1 to 0 for TSP calculation
+                    if np.linalg.norm(binary_state.T @ binary_state - np.eye(city_count)) == 0:
+                        # Valid state
+                        ising_energy = ans.energies[solver][state_id]
+                        ## Uncomment the following lines if you want to calculate TSP energy from logfiles
+                        # logfile = ans.logfiles[state_id]
+                        # tsp_energy = self.calculate_TSP_energy(
+                        #     logfile=logfile,
+                        #     graph=self.nx_graph,
+                        #     gurobi=self.use_gurobi,
+                        # )
+                        tsp_energies[solver].append(ising_energy) # ising_energy equals to the TSP cost
+                    else:
+                        # Invalid state, append NaN
+                        tsp_energies[solver].append(np.nan)
             ans.tsp_energies = tsp_energies
 
             yield ans, debug_info
