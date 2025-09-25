@@ -1,6 +1,6 @@
 M 16
-Nt 5
-Nr 5
+ant_num 5
+user_num 5
 
 H
 REAL
