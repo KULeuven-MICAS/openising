@@ -30,5 +30,6 @@ urllib3==2.2.3
 gurobipy==12.0.0
 tsplib95==0.7.1
 tqdm==4.67.1
+pylfsr==1.0.7
 pyyaml==6.0.2
 numba==0.61.2

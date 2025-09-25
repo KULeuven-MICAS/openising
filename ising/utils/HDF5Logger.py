@@ -116,7 +116,10 @@ class HDF5Logger:
 
         # Write metadata as attributes of the HDF5 file (root group).
         for key, value in kwargs.items():
-            self.file.attrs[key] = value
+            if value is None:
+                self.file.attrs[key] = "None"
+            else:
+                self.file.attrs[key] = value
 
 
     def log(self, **kwargs):
