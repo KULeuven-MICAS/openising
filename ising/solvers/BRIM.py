@@ -126,18 +126,19 @@ class BRIM(SolverBase):
 
         with HDF5Logger(file, schema) as log:
             # Log the initial metadata
-            self.log_metadata(
-                logger=log,
-                initial_state=np.sign(v),
-                model=model,
-                num_iterations=num_iterations,
-                C=capacitance,
-                time_step=dtBRIM,
-                seed=seed,
-                temperature=initial_temp_cont,
-                stop_criterion=stop_criterion,
-                coupling_annealing=coupling_annealing
-            )
+            if log.filename is not None:
+                self.log_metadata(
+                    logger=log,
+                    initial_state=np.sign(v),
+                    model=model,
+                    num_iterations=num_iterations,
+                    C=capacitance,
+                    time_step=dtBRIM,
+                    seed=seed,
+                    temperature=initial_temp_cont,
+                    stop_criterion=stop_criterion,
+                    coupling_annealing=coupling_annealing
+                )
 
             # Initialize the simulation variables
             i = 0
@@ -149,9 +150,10 @@ class BRIM(SolverBase):
             )
 
             # Initial logging
-            sample = np.sign(v[:N])
-            energy = model.evaluate(sample)
-            log.log(time_clock=0.0, energy=energy, state=sample, voltages=v[:N])
+            if log.filename is not None:
+                sample = np.sign(v[:N])
+                energy = model.evaluate(sample)
+                log.log(time_clock=0.0, energy=energy, state=sample, voltages=v[:N])
 
             while i < (num_iterations) and max_change > stop_criterion:
                 tk = t_eval[i]
@@ -179,9 +181,10 @@ class BRIM(SolverBase):
                 Temp *= cooling_rate
 
                 # Log everything
-                sample = np.sign(new_voltages[:N])
-                energy = model.evaluate(sample)
-                log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
+                if log.filename is not None:
+                    sample = np.sign(new_voltages[:N])
+                    energy = model.evaluate(sample)
+                    log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
 
                 # Update criterion changes
                 if i > 0:
@@ -192,10 +195,12 @@ class BRIM(SolverBase):
                 i += 1
 
             # Make sure to log to the last iteration if the stop criterion is reached
-            if max_change < stop_criterion:
+            if max_change < stop_criterion and log.filename is not None:
                 for j in range(i, num_iterations):
                     tk = t_eval[j]
                     log.log(time_clock=tk, energy=energy, state=sample, voltages=new_voltages[:N])
-
-            log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
-        return sample, energy
+            if log.filename is not None:
+                log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
+            else:
+                energy = model.evaluate(np.sign(new_voltages[:N]))
+        return sample, energy, tend

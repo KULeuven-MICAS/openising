@@ -1,5 +1,6 @@
 import numpy as np
 import pathlib
+import time
 from abc import abstractmethod
 
 from ising.stages.model.ising import IsingModel
@@ -80,7 +81,7 @@ class ballisticSB(SB):
         h             = np.array(model.h)
         initial_state = np.array(initial_state)
         x             = np.zeros_like(initial_state, dtype=np.float32)
-        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ))
+        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ), dtype=np.float32)
 
         schema = {
             "energy"    : float,
@@ -89,20 +90,23 @@ class ballisticSB(SB):
         }
 
         with HDF5Logger(file, schema) as log:
-            self.log_metadata(
-                logger         = log,
-                initial_state  = np.sign(x),
-                model          = model,
-                num_iterations = num_iterations,
-                time_step      = dtSB,
-                a0             = a0,
-                c0             = c0,
-            )
+            if log.filename is not None:
+                self.log_metadata(
+                    logger         = log,
+                    initial_state  = np.sign(x),
+                    model          = model,
+                    num_iterations = num_iterations,
+                    time_step      = dtSB,
+                    a0             = a0,
+                    c0             = c0,
+                )
+            start_time = time.time()
 
-            sample = np.sign(x)
-            energy = model.evaluate(sample)
             tk   = 0.0
-            log.log(energy=energy, state=sample, positions=x)
+            if log.filename is not None:
+                sample = np.sign(x)
+                energy = model.evaluate(sample)
+                log.log(energy=energy, state=sample, positions=x)
             for _ in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
@@ -112,16 +116,22 @@ class ballisticSB(SB):
                 y = np.where(np.abs(x) >= 1, 0, y)
                 x = np.where(np.abs(x) >= 1, np.sign(x), x)
 
-                sample = np.sign(x)
-                energy = model.evaluate(sample)
                 tk    += dtSB
-                log.log(energy=energy, state=sample, positions=x)
+                if log.filename is not None:
+                    sample = np.sign(x)
+                    energy = model.evaluate(sample)
+                    log.log(energy=energy, state=sample, positions=x)
+            end_time = time.time()
 
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
-            log.write_metadata(
-                solution_state=sample, solution_energy=energy, total_operations=nb_operations
-            )
-        return sample, energy
+            if log.filename is not None:
+                log.write_metadata(
+                    solution_state=sample, solution_energy=energy, total_operations=nb_operations
+                )
+            else:
+                sample = np.sign(x)
+                energy = model.evaluate(sample)
+        return sample, energy, end_time - start_time
 
 
 class discreteSB(SB):
@@ -174,18 +184,20 @@ class discreteSB(SB):
         }
 
         with HDF5Logger(file, schema) as log:
-            self.log_metadata(
-                logger=log,
-                initial_state=np.sign(x),
-                model=model,
-                num_iterations=num_iterations,
-                time_step=dtSB,
-                a0=a0,
-                c0=c0,
-            )
-            sample = np.sign(x)
-            energy = model.evaluate(sample)
-            log.log(energy=energy, state=sample, positions=x)
+            if log.filename is not None:
+                self.log_metadata(
+                    logger=log,
+                    initial_state=np.sign(x),
+                    model=model,
+                    num_iterations=num_iterations,
+                    time_step=dtSB,
+                    a0=a0,
+                    c0=c0,
+                )
+                sample = np.sign(x)
+                energy = model.evaluate(sample)
+                log.log(energy=energy, state=sample, positions=x)
+            start_time = time.time()
             for i in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
@@ -196,13 +208,19 @@ class discreteSB(SB):
                     if np.abs(x[j]) > 1:
                         self.update_rule(x, y, j)
 
-                sample = np.sign(x)
-                energy = model.evaluate(sample)
-                tk += dtSB
-                log.log(energy=energy, state=sample, positions=x)
+                if log.filename is not None:
+                    sample = np.sign(x)
+                    energy = model.evaluate(sample)
+                    log.log(energy=energy, state=sample, positions=x)
 
+                tk += dtSB
+            end_time = time.time()
             nb_operations = num_iterations * (2 * N**2 + 10 * N + 3)
-            log.write_metadata(
-                solution_state=sample, solution_energy=energy, total_operations=nb_operations
-            )
-        return sample, energy
+            if log.filename is not None:
+                log.write_metadata(
+                    solution_state=sample, solution_energy=energy, total_operations=nb_operations
+                )
+            else:
+                sample = np.sign(x)
+                energy = model.evaluate(np.sign(x))
+        return sample, energy, end_time - start_time

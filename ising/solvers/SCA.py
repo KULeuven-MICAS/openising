@@ -50,7 +50,7 @@ class SCA(SolverBase):
             sample, energy (tuple[np.ndarray, float]): final state and energy of the optimisation process.
         """
         if q== 0.0:
-            q= return_q(self.ising_model)
+            q= return_q(model)
             r_q = 1.0
 
 
@@ -67,17 +67,20 @@ class SCA(SolverBase):
         schema = {"energy": np.float32, "state": (np.int8, (N,))}
 
         with HDF5Logger(file, schema) as log:
-            self.log_metadata(
-                logger=log,
-                initial_state=state,
-                model=model,
-                num_iterations=num_iterations,
-                initial_temp=initial_temp,
-                cooling_rate=cooling_rate,
-                initial_penalty=q,
-                penalty_increase=r_q,
-                seed=seed,
-            )
+            if log.filename is not None:
+                self.log_metadata(
+                    logger=log,
+                    initial_state=state,
+                    model=model,
+                    num_iterations=num_iterations,
+                    initial_temp=initial_temp,
+                    cooling_rate=cooling_rate,
+                    initial_penalty=q,
+                    penalty_increase=r_q,
+                    seed=seed,
+                )
+
+            start_time = time.time()
             T = initial_temp
             for _ in range(num_iterations):
                 hs = np.matmul(J, state) + model.h
@@ -89,22 +92,27 @@ class SCA(SolverBase):
 
                 tau[flipped_states] = -state[flipped_states]
                 state = np.copy(tau)
-                energy = model.evaluate(state)
 
-                log.log(energy=energy, state=state)
+                if log.filename is not None:
+                    energy = model.evaluate(state)
+                    log.log(energy=energy, state=state)
 
                 T = self.change_hyperparam(T, cooling_rate)
                 q = self.change_hyperparam(q, r_q)
                 flipped_states = []
+            end_time = time.time()
 
             nb_operations = num_iterations * (2 * N**2 + 8 * N + N / 2 + 2)
-            log.write_metadata(
-                solution_state=state,
-                solution_energy=energy,
-                total_operations=nb_operations,
-            )
+            if log.filename is not None:
+                log.write_metadata(
+                    solution_state=state,
+                    solution_energy=energy,
+                    total_operations=nb_operations,
+                )
+            else:
+                energy = model.evaluate(state.astype(np.float32))
 
-        return initial_state, energy
+        return state, energy, end_time - start_time
 
     def get_prob(self, hs: np.ndarray, sample: np.ndarray, q: float, T: float) -> np.ndarray:
         """Calculates the probability of changing the value of the spins

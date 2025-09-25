@@ -164,6 +164,7 @@ class Multiplicative(SolverBase):
         # Ensure the mean and variance of J are reasonable
         alpha = 1.0
         coupling = alpha * triu_to_symm(new_model.J) * 1 / resistance
+        self.num_variables = model.num_variables
 
         # Set the parameters for easy calling
         init_size = int(init_cluster_size * model.num_variables)
@@ -181,7 +182,7 @@ class Multiplicative(SolverBase):
 
         # make sure the correct random seed is used
         if pseudo_length is not None:
-            degree = np.log2(pseudo_length + 1)
+            degree = int(np.log2(pseudo_length + 1))
             if degree not in range(1, 13):
                 raise ValueError("pseudo_length should be of the form 2^n-1 with n an integer between 1 and 12.")
             fpoly = [degree]
@@ -200,7 +201,7 @@ class Multiplicative(SolverBase):
             else:
                 fpoly.append(1)
             self.generator = LFSR(fpoly=fpoly, initstate="random").runKCycle
-            nb_bits = int(np.log2(model.num_variables)+1)
+            nb_bits = int(np.log2(self.num_variables)+1)
         else:
             np.random.seed(seed)
             self.generator = np.random.choice
@@ -298,7 +299,7 @@ class Multiplicative(SolverBase):
                     solution_energy=energy,
                     total_time=dtMult * num_iterations,
                 )
-        return best_sample, best_energy
+        return best_sample, best_energy, dtMult * num_iterations * nb_flipping
 
     def size_function(
         self,
@@ -318,7 +319,7 @@ class Multiplicative(SolverBase):
         sigma = additional_information["current_state"]
         threshold = additional_information["cluster_threshold"]
 
-        gradient = coupling @ np.block([sigma, 1])
+        gradient = (coupling @ np.block([sigma, 1]))[:len(sigma)]
         gradient /= np.max(gradient)
         available_nodes = np.where(gradient >= threshold, np.arange(len(sigma)), -1)  # Chosen nodes based on threshold
         if len(available_nodes[available_nodes >= 0]) < cluster_size:  # Case when not enough nodes are available
@@ -338,7 +339,7 @@ class Multiplicative(SolverBase):
             cluster_size (int): the size of the cluster to find.
         """
         if additional_information["pseudo_length"] == -1:
-            cluster = self.generator(np.arange(0, self.coupling_d.shape[0]), size=(cluster_size,), replace=False)
+            cluster = self.generator(np.arange(self.num_variables), size=(cluster_size,), replace=False)
         else:
             cluster = set()
             while len(cluster) < cluster_size:
@@ -349,7 +350,7 @@ class Multiplicative(SolverBase):
                 for row in seq:
                     str_bin = np.array2string(row, separator="")[1:-1]
                     node = int(str_bin, 2)
-                    if node < self.coupling_d.shape[0]:
+                    if node < self.num_variables:
                         cluster.add(node)
             cluster = np.array(list(cluster))
 
@@ -358,7 +359,7 @@ class Multiplicative(SolverBase):
     def find_cluster_weighted_mean(self, cluster_size: int, **additional_information)-> np.ndarray:
         optimal_points = additional_information["optimal_points"]
         choice = additional_information["choice"]
-        weight_nodes = np.zeros_like(optimal_points[0], dtype=float)
+        weight_nodes = np.zeros_like(optimal_points[0][0], dtype=float)
         for point, en in optimal_points:
             weight_nodes += 1 / en * point  # the smaller the energy, the larger the weight
         if np.linalg.norm(weight_nodes) == 0:

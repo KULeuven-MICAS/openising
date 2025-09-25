@@ -52,6 +52,10 @@ class CIMSolver(SolverBase):
         coupling = (new_model.J + new_model.J.T).astype(np.float32)
         zeta = np.float32(zeta)
         dtCIM = np.float32(dtCIM)
+        x = (0.1*initial_state).astype(np.float32)
+
+        if use_bias:
+            x = np.block([x, np.float32(1)])
 
         # Set up schema and metadata for logging
         schema = {
@@ -62,23 +66,20 @@ class CIMSolver(SolverBase):
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
-            logger.write_metadata(
-                initial_state=initial_state,
-                model_name=self.name,
-                problem_size=model.num_variables,
-                num_iterations=num_iterations,
-                zeta=zeta,
-                dtCIM=dtCIM,
-                seed=seed,
-            )
-
-            # Setup initial state and energy
-            state = initial_state.astype(np.float32)
-            energy = model.evaluate(state)
-            x = np.float32(0.1) * state if not use_bias else np.block([np.float32(0.1) * state, np.float32(1)])
             if logger.filename is not None:
-                logger.log(energy=energy, state=state, x=x)
+                logger.write_metadata(
+                    initial_state=initial_state,
+                    model_name=self.name,
+                    problem_size=model.num_variables,
+                    num_iterations=num_iterations,
+                    zeta=zeta,
+                    dtCIM=dtCIM,
+                    seed=seed,
+                )
+                energy = model.evaluate(np.sign(x[:model.num_variables]))
+                logger.log(energy=energy, state=np.sign(x[:model.num_variables]), x=x)
 
+            start_time = time.time()
             for _ in range(num_iterations):
                 x += dtCIM * (
                     self.pump_loss_law(_, num_iterations) * x
@@ -95,9 +96,13 @@ class CIMSolver(SolverBase):
                     energy = model.evaluate(np.sign(x[: model.num_variables]))
                     logger.log(energy=energy, state=np.sign(x[: model.num_variables]), x=x)
 
-            logger.write_metadata(solution_state=state, solution_energy=energy)
+            end_time = time.time()
+            if logger.filename is not None:
+                logger.write_metadata(solution_state=np.sign(x[: model.num_variables]), solution_energy=energy)
+            else:
+                energy = model.evaluate(np.sign(x[: model.num_variables]))
 
-        return state, energy
+        return np.sign(x[: model.num_variables]), energy, end_time-start_time
 
     def pump_loss_law(self, it: int, num_iterations: int):
         return np.float32(16 / (1 + np.exp(np.log(1 / 961) / num_iterations * it + np.log(31))) - 15.5)

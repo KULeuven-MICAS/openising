@@ -53,15 +53,18 @@ class SASolver(SolverBase):
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
-            self.log_metadata(
-                logger=logger,
-                initial_state=initial_state,
-                model=model,
-                num_iterations=num_iterations,
-                initial_temp=initial_temp,
-                cooling_rate=cooling_rate,
-                seed=seed,
-            )
+            if logger.filename is not None:
+                self.log_metadata(
+                    logger=logger,
+                    initial_state=initial_state,
+                    model=model,
+                    num_iterations=num_iterations,
+                    initial_temp=initial_temp,
+                    cooling_rate=cooling_rate,
+                    seed=seed,
+                )
+
+            start_time = time.time()
 
             # Setup initial state and energy
             T = initial_temp
@@ -83,7 +86,8 @@ class SASolver(SolverBase):
                 change_state = delta < 0 or random.random() < np.exp(-delta / T)
 
                 # Log current iteration data
-                logger.log(energy=energy_new, state=state, change_state=change_state)
+                if logger.filename is not None:
+                    logger.log(energy=energy_new, state=state, change_state=change_state)
 
                 # Update the state and energy if the new state is accepted
                 if change_state:
@@ -94,8 +98,10 @@ class SASolver(SolverBase):
                 # Decrease the temperature
                 T = cooling_rate * T
 
+            end_time = time.time()
             # Log the final result
-            # logger.log(energy=energy_new, state=state, change_state=change_state, time_clock=current_time)
+            if logger.filename is not None:
+                logger.log(energy=energy_new, state=state, change_state=change_state)
             nb_operations = (
                 num_iterations * (3 * model.num_variables**2 + 2 * model.num_variables + 8)
                 + 3 * model.num_variables**2
@@ -103,4 +109,4 @@ class SASolver(SolverBase):
             )
             logger.write_metadata(solution_state=state, solution_energy=energy, total_operations=nb_operations)
 
-        return state, energy
+        return state, energy, end_time - start_time

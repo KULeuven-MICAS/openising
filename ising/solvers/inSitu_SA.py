@@ -57,16 +57,19 @@ class InSituSASolver(SolverBase):
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
-            logger.write_metadata(
-                initial_state=initial_state,
-                model_name=self.name,
-                problem_size=model.num_variables,
-                num_iterations=num_iterations,
-                initial_temp=initial_temp,
-                cooling_rate=cooling_rate,
-                nb_flips=nb_flips,
-                seed=seed,
-            )
+            if logger.filename is not None:
+                logger.write_metadata(
+                    initial_state=initial_state,
+                    model_name=self.name,
+                    problem_size=model.num_variables,
+                    num_iterations=num_iterations,
+                    initial_temp=initial_temp,
+                    cooling_rate=cooling_rate,
+                    nb_flips=nb_flips,
+                    seed=seed,
+                )
+
+            start_time = time.time()
 
             # Setup initial state and energy
             Temp = initial_temp
@@ -100,10 +103,13 @@ class InSituSASolver(SolverBase):
                 # Decrease the temperature
                 Temp *= cooling_rate
 
+            end_time = time.time()
             nb_operations = num_iterations * (nb_flips + 6 * model.num_variables + 3 * nb_flips**2 + 1)
             if logger.filename is not None:
                 logger.write_metadata(
                     solution_state=state, solution_energy=model.evaluate(state), total_operations=nb_operations
                 )
+            else:
+                energy = model.evaluate(state)
 
-        return state, model.evaluate(state)
+        return state, energy, end_time - start_time

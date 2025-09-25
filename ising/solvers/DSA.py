@@ -61,15 +61,18 @@ class DSASolver(SolverBase):
 
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
-            self.log_metadata(
-                logger=logger,
-                initial_state=initial_state,
-                model=model,
-                num_iterations=num_iterations,
-                initial_temp=initial_temp,
-                cooling_rate=cooling_rate,
-                seed=seed,
-            )
+            if logger.filename is not None:
+                self.log_metadata(
+                    logger=logger,
+                    initial_state=initial_state,
+                    model=model,
+                    num_iterations=num_iterations,
+                    initial_temp=initial_temp,
+                    cooling_rate=cooling_rate,
+                    seed=seed,
+                )
+
+            start_time = time.time()
 
             # Setup initial state and energy
             T = initial_temp
@@ -91,7 +94,6 @@ class DSASolver(SolverBase):
                     # Determine whether to accept the new state
                     delta = energy_new - energy
                     change_state = delta < 0 or random.random() < np.exp(-delta / T)
-                    # Log current iteration data
 
                     cycle_started = False
 
@@ -105,6 +107,17 @@ class DSASolver(SolverBase):
                 T = cooling_rate * T
 
                 # log information
+                if logger.filename is not None:
+                    logger.log(
+                        energy=energy_new,
+                        state=state,
+                        change_state=change_state,
+                        cycle_started=cycle_started,
+                    )
+
+            end_time = time.time()
+            # Log the final result
+            if logger.filename is not None:
                 logger.log(
                     energy=energy_new,
                     state=state,
@@ -112,17 +125,9 @@ class DSASolver(SolverBase):
                     cycle_started=cycle_started,
                 )
 
-            # Log the final result
-            logger.log(
-                energy=energy_new,
-                state=state,
-                change_state=change_state,
-                cycle_started=cycle_started,
-            )
             N = model.num_variables
-            nb_operations = num_iterations * (3 * N**3 + 2 * N**2 + 8 * N + 1) + 3 * N ** 2 + 2 * N
-            logger.write_metadata(
-                solution_state=state, solution_energy=energy, total_operations=nb_operations
-            )
+            nb_operations = num_iterations * (3 * N**3 + 2 * N**2 + 8 * N + 1) + 3 * N**2 + 2 * N
+            if logger.filename is not None:
+                logger.write_metadata(solution_state=state, solution_energy=energy, total_operations=nb_operations)
 
-        return state, energy
+        return state, energy, end_time - start_time
