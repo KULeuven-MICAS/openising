@@ -40,7 +40,7 @@ class SimulationStage(Stage):
         self.ising_model = ising_model
         self.best_found = best_found if best_found is not None else float("inf")
         self.benchmark_abbreviation = self.config.benchmark.split("/")[-1].split(".")[0]
-        if self.config.logfile_discrimination is not None:
+        if self.config.logfile_discrimination != "None":
             self.logfile_discrimination = self.config.logfile_discrimination
         else:
             self.logfile_discrimination = ""
