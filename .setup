@@ -10,8 +10,8 @@ export PYTHONPATH="$TOP"
 [[ -e $TOP/.venv/bin/python ]]
 VIRTUAL_ENV_DISABLE_PROMPT=1; 
 source $TOP/.venv/bin/activate
-export PYTHON=$TOP/.venv/bin/python3.12
+export PYTHON=$TOP/.venv/bin/python3
 
 # Load requirements.txt (should usually not update anything)
-pip --python $PYTHON install --quiet -r ./requirements.txt
+$PYTHON -m pip install --quiet -r ./requirements.txt
 PYDEVD_WARN_EVALUATION_TIMEOUT=10
