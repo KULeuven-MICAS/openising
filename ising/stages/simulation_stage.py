@@ -234,7 +234,7 @@ class SimulationStage(Stage):
             chosen_hyperparameters = {key: hyperparameters[key] for key in params if key in hyperparameters}
             optim_state: np.ndarray
             optim_energy: float | None
-            optim_state, optim_energy, computation_time = func(
+            optim_state, optim_energy, computation_time, operation_count = func(
                 model=model,
                 initial_state=s_init,
                 num_iterations=num_iter,
@@ -244,7 +244,7 @@ class SimulationStage(Stage):
         else:
             LOGGER.error(f"Solver {solver} is not implemented.")
             raise NotImplementedError(f"Solver {solver} is not implemented.")
-        return optim_state, optim_energy, computation_time
+        return optim_state, optim_energy, computation_time, operation_count
 
 
 class Ans(metaclass=ABCMeta):
