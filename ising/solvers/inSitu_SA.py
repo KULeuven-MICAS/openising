@@ -112,4 +112,4 @@ class InSituSASolver(SolverBase):
             else:
                 energy = model.evaluate(state)
 
-        return state, energy, end_time - start_time
+        return state, energy, end_time - start_time, nb_operations

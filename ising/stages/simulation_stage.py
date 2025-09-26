@@ -70,6 +70,7 @@ class SimulationStage(Stage):
         optim_state_collect = {solver: [] for solver in self.config.solvers}
         optim_energy_collect = {solver: [] for solver in self.config.solvers}
         comp_time_collect = {solver: [] for solver in self.config.solvers}
+        operation_count = {solver: -1 for solver in self.config.solvers}
         logfile_collect = []
         if self.config.use_multiprocessing:
             runs_over = nb_runs - runs_per_thread * nb_cores
@@ -98,7 +99,8 @@ class SimulationStage(Stage):
                 optim_state_collect[solver] += res[0][solver]
                 optim_energy_collect[solver] += res[1][solver]
                 comp_time_collect[solver] += res[2][solver]
-            logfile_collect += res[3]
+                operation_count[solver] = res[3][solver]
+            logfile_collect += res[4]
 
         ans = Ans(
             benchmark=self.benchmark_abbreviation,
@@ -108,6 +110,7 @@ class SimulationStage(Stage):
             states=optim_state_collect,
             energies=optim_energy_collect,
             computation_time=comp_time_collect,
+            operation_count=operation_count,
             logfiles=logfile_collect,
         )
         debug_info = Ans()  # Placeholder for debug information, if needed
@@ -123,6 +126,7 @@ class SimulationStage(Stage):
         optim_state_collect = {solver:[] for solver in self.config.solvers}
         optim_energy_collect = {solver:[] for solver in self.config.solvers}
         comp_time_collect = {solver:[] for solver in self.config.solvers}
+        nb_operations_collect = {solver: -1 for solver in self.config.solvers}
         logfile_collect = []
         pbar = tqdm.tqdm(range(nb_runs), ascii="░▒█", desc=f"Running trials of thread {os.getpid()}")
         for trail_id in pbar:
@@ -148,13 +152,14 @@ class SimulationStage(Stage):
                 else:
                     logfile = None
 
-                optim_state, optim_energy, computation_time = self.run_solver(
+                optim_state, optim_energy, computation_time, nb_operations = self.run_solver(
                     solver, num_iter, initial_state, self.ising_model, logfile, **hyperparameters
                 )
 
                 optim_state_collect[solver].append(optim_state)
                 optim_energy_collect[solver].append(optim_energy)
                 comp_time_collect[solver].append(computation_time)
+                nb_operations_collect[solver] = nb_operations
                 logfile_collect.append(logfile)
             pbar.set_description(
                 f"Running trails of thread {os.getpid()} [#{trail_id + 1}, energy: {optim_energy:.2f}]"
@@ -162,7 +167,7 @@ class SimulationStage(Stage):
         end_time = datetime.datetime.now()
         LOGGER.info(f"Simulation of thread {os.getpid()} finished at {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         LOGGER.info(f"Thread {os.getpid()} simulation time: {end_time - start_time}")
-        return optim_state_collect, optim_energy_collect, comp_time_collect, logfile_collect
+        return optim_state_collect, optim_energy_collect, comp_time_collect, nb_operations_collect, logfile_collect
 
     def run_solver(
         self,

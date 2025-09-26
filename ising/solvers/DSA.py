@@ -130,4 +130,4 @@ class DSASolver(SolverBase):
             if logger.filename is not None:
                 logger.write_metadata(solution_state=state, solution_energy=energy, total_operations=nb_operations)
 
-        return state, energy, end_time - start_time
+        return state, energy, end_time - start_time, nb_operations

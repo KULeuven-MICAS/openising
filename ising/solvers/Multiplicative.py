@@ -299,7 +299,7 @@ class Multiplicative(SolverBase):
                     solution_energy=energy,
                     total_time=dtMult * num_iterations,
                 )
-        return best_sample, best_energy, dtMult * num_iterations * nb_flipping
+        return best_sample, best_energy, dtMult * num_iterations * nb_flipping, -1
 
     def size_function(
         self,

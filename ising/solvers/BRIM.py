@@ -203,4 +203,4 @@ class BRIM(SolverBase):
                 log.write_metadata(solution_state=sample, solution_energy=energy, total_time=t_eval[-1])
             else:
                 energy = model.evaluate(np.sign(new_voltages[:N]))
-        return sample, energy, tend
+        return sample, energy, tend, -1

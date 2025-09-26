@@ -112,7 +112,7 @@ class SCA(SolverBase):
             else:
                 energy = model.evaluate(state.astype(np.float32))
 
-        return state, energy, end_time - start_time
+        return state, energy, end_time - start_time, nb_operations
 
     def get_prob(self, hs: np.ndarray, sample: np.ndarray, q: float, T: float) -> np.ndarray:
         """Calculates the probability of changing the value of the spins

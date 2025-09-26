@@ -26,6 +26,7 @@ class ConfigParserStage(Stage):
         LOGGER.debug(f"Parsing configuration file: {self.config_path}")
         with Path(self.config_path).open(encoding="utf-8") as file:
             config: dict = yaml.safe_load(file)
+
         os.sched_setaffinity(0, range(config['nb_cores']))
         config["problem_type"] = self.problem_type
 

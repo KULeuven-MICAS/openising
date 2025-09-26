@@ -131,7 +131,7 @@ class ballisticSB(SB):
             else:
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
-        return sample, energy, end_time - start_time
+        return sample, energy, end_time - start_time, nb_operations
 
 
 class discreteSB(SB):
@@ -223,4 +223,4 @@ class discreteSB(SB):
             else:
                 sample = np.sign(x)
                 energy = model.evaluate(np.sign(x))
-        return sample, energy, end_time - start_time
+        return sample, energy, end_time - start_time, nb_operations

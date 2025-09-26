@@ -97,12 +97,13 @@ class CIMSolver(SolverBase):
                     logger.log(energy=energy, state=np.sign(x[: model.num_variables]), x=x)
 
             end_time = time.time()
+            nb_operations = num_iterations * (4*model.num_variables + model.num_variables**2)
             if logger.filename is not None:
                 logger.write_metadata(solution_state=np.sign(x[: model.num_variables]), solution_energy=energy)
             else:
                 energy = model.evaluate(np.sign(x[: model.num_variables]))
 
-        return np.sign(x[: model.num_variables]), energy, end_time-start_time
+        return np.sign(x[: model.num_variables]), energy, end_time-start_time, nb_operations
 
     def pump_loss_law(self, it: int, num_iterations: int):
         return np.float32(16 / (1 + np.exp(np.log(1 / 961) / num_iterations * it + np.log(31))) - 15.5)
