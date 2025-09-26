@@ -81,7 +81,7 @@ class ballisticSB(SB):
         h             = np.array(model.h)
         initial_state = np.array(initial_state)
         x             = np.zeros_like(initial_state, dtype=np.float32)
-        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ), dtype=np.float32)
+        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, )).astype(np.float32)
 
         schema = {
             "energy"    : float,
@@ -177,7 +177,7 @@ class discreteSB(SB):
         h             = np.array(model.h)
         initial_state = np.array(initial_state)
         x             = np.zeros_like(initial_state, dtype=np.float32)
-        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ), dtype=np.float32)
+        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, )).astype(np.float32)
 
         schema = {
             "energy": np.float32,
