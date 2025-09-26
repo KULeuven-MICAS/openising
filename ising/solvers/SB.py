@@ -172,10 +172,12 @@ class discreteSB(SB):
         if c0 == 0.0:
             c0 = return_c0(model)
 
-        J = triu_to_symm(model.J)
-
-        x = 0.01 * initial_state
-        y = np.zeros_like(x)
+        # Set up the model and initial states with the correct data type
+        J             = np.array(triu_to_symm(model.J), dtype=np.float32)
+        h             = np.array(model.h)
+        initial_state = np.array(initial_state)
+        x             = np.zeros_like(initial_state, dtype=np.float32)
+        y             = np.random.uniform(-0.1, 0.1, (model.num_variables, ), dtype=np.float32)
 
         schema = {
             "energy": np.float32,
@@ -201,7 +203,7 @@ class discreteSB(SB):
             for i in range(num_iterations):
                 atk = self.at(tk, a0, dtSB, num_iterations)
 
-                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * model.h) * dtSB
+                y += (-(a0 - atk) * x + c0 * np.matmul(J, np.sign(x)) + c0 * h) * dtSB
                 x += self.update_x(y, dtSB, a0)
 
                 for j in range(N):
