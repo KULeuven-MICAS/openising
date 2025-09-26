@@ -179,7 +179,7 @@ class Multiplicative(SolverBase):
             end_temp_cont,
             coupling,
         )
-
+        np.random.seed(seed)
         # make sure the correct random seed is used
         if pseudo_length is not None:
             degree = int(np.log2(pseudo_length + 1))
@@ -200,10 +200,10 @@ class Multiplicative(SolverBase):
                 fpoly += [6, 4, 1]
             else:
                 fpoly.append(1)
-            self.generator = LFSR(fpoly=fpoly, initstate="random").runKCycle
+            initstate = np.random.choice([0,1], size=(degree,))
+            self.generator = LFSR(fpoly=fpoly, initstate=initstate).runKCycle
             nb_bits = int(np.log2(self.num_variables)+1)
         else:
-            np.random.seed(seed)
             self.generator = np.random.choice
             nb_bits = -1
             pseudo_length = -1
@@ -347,6 +347,7 @@ class Multiplicative(SolverBase):
                 seq = np.array(self.generator(nb_bits)).reshape(
                     (cluster_size - len(cluster), additional_information["nb_bits"])
                 )
+                # LOGGER.info(cluster)
                 for row in seq:
                     str_bin = np.array2string(row, separator="")[1:-1]
                     node = int(str_bin, 2)

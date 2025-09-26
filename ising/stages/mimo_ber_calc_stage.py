@@ -28,15 +28,15 @@ class MIMOBerCalcStage(Stage):
 
         # Compute the calculated symbols
         T = np.block([[2 ** (r - i) * np.eye(N) for i in range(1, r + 1)]])
-        min_en = np.inf
-        best_found = 0
         for ans, debug_info in sub_stage.run():
             ans.difference = {solver: None for solver in self.config.solvers}
             ans.lowest_energy = {solver: None for solver in self.config.solvers}
             ans.lowest_energy_state = {solver: None for solver in self.config.solvers}
             for solver in self.config.solvers:
+                min_en = np.inf
+                best_found = 0
                 for i in range(len(ans.states[solver])):
-                    energy = ans.energies[i]
+                    energy = ans.energies[solver][i]
                     if energy < min_en:
                         min_en = energy
                         best_found = i

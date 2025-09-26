@@ -74,7 +74,10 @@ class MIMOParserStage(Stage):
         for solver in self.config.solvers:
             ans_all.ber_of_trials[solver] = np.sum(np.abs(diff[solver]) / 2, axis=0) / (np.sqrt(M)*ant_num)
             ans_all.BER[solver] = np.mean(ans_all.ber_of_trials[solver])
+            ans_all.operation_count = ans.operation_count
         ans_all.SNR = snr
+        ans_all.benchmark = ans.benchmark
+        ans_all.config = self.config
         LOGGER.info("BER/case: %s, mean: %s", ans_all.ber_of_trials, ans_all.BER)
 
         yield ans_all, debug_info

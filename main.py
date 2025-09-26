@@ -18,7 +18,7 @@ logging_format = "%(asctime)s - %(filename)s - %(funcName)s +%(lineno)s - %(leve
 logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdout)
 
 # Input file directory
-problem_type = "TSP"  # Specify the problem type
+problem_type = "MIMO"  # Specify the problem type
 config_path = "ising/inputs/config/config_pseudo_random.yaml"
 
 # Run the Ising model simulation
