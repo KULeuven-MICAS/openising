@@ -95,7 +95,7 @@ class MIMOParserStage(Stage):
         ans_all.SNR = snr
         ans_all.benchmark = ans.benchmark
         ans_all.config = self.config
-        LOGGER.info("BER/case: %s, BER/user: %s, mean: %s", ans_all.ber_of_trails, ans_all.ber_of_users, ans_all.BER)
+        LOGGER.info("BER/case: %s, BER/user: %s, mean: %s", ans_all.ber_of_trials, ans_all.ber_of_users, ans_all.BER)
 
         yield ans_all, debug_info
 
