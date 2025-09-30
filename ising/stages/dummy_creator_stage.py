@@ -219,12 +219,11 @@ class DummyCreatorStage(Stage):
                 ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
             )
 
-        phi_u     = 120 * (np.random.random((10, user_num)) - 0.5)
-        phi_u.sort()
-        mean_phi  = np.mean(phi_u, axis=0)
-        sigma_phi = np.random.normal(0, 1, (user_num,))
+        mean_phi     = 120*np.pi/180 * (np.random.random((user_num, )) - 0.5)
+        mean_phi.sort()
+        sigma_phi = np.array([10*np.pi/180]*user_num)
 
-        # H = np.random.random((ant_num, user_num)) + 1j*np.random.random((ant_num, user_num))
+        # H = np.random.random((ant_num, user_num)) + 1j*np.random.random((ant_num, user_num*np.pi/180))
         H = np.zeros((ant_num, user_num), dtype='complex_')
         for i in range(user_num):
             C     = np.zeros((ant_num, ant_num), dtype="complex_")
@@ -234,7 +233,7 @@ class DummyCreatorStage(Stage):
                 for n in range(ant_num):
                     d = np.abs(m-n)
                     C[m, n] = np.exp(2*np.pi*1j*d*np.sin(phi))* np.exp(
-                        -(sigma**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
+                        -((sigma)**2) / 2 * (2 * np.pi * d * np.cos(phi)) ** 2
                     )
             D, V = np.linalg.eig(C)
             hu = V @ np.diag(D)**0.5 @ V.conj().T @ (
