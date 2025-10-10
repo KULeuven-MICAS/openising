@@ -1,4 +1,5 @@
 import logging
+import os
 from api import plot_results_in_bar_chart
 
 
@@ -32,7 +33,7 @@ def validation_to_sachi():
             "latency_model": 0,
             "energy_model": 0,
         },  # note the num_js is not halved as SACHI stores J twice
-        "MD_1K": {
+        "MC_1K": {
             "num_spins": 1000,
             "num_js": 8 * 1000,
             "num_iterations": 1,
@@ -42,7 +43,7 @@ def validation_to_sachi():
             "latency_model": 0,
             "energy_model": 0,
         },
-        "MD_500": {
+        "MC_500": {
             "num_spins": 500,
             "num_js": 8 * 500,
             "num_iterations": 1,
@@ -52,7 +53,7 @@ def validation_to_sachi():
             "latency_model": 0,
             "energy_model": 0,
         },
-        "MD_100K": {
+        "MC_100K": {
             "num_spins": 100 * 1000,
             "num_js": 8 * 100 * 1000,
             "num_iterations": 1,
@@ -62,7 +63,7 @@ def validation_to_sachi():
             "latency_model": 0,
             "energy_model": 0,
         },
-        "MD_200K": {
+        "MC_200K": {
             "num_spins": 200 * 1000,
             "num_js": 8 * 200 * 1000,
             "num_iterations": 1,
@@ -72,7 +73,7 @@ def validation_to_sachi():
             "latency_model": 0,
             "energy_model": 0,
         },
-        "MD_300K": {
+        "MC_300K": {
             "num_spins": 300 * 1000,
             "num_js": 8 * 300 * 1000,
             "num_iterations": 1,
@@ -82,7 +83,7 @@ def validation_to_sachi():
             "latency_model": 0,
             "energy_model": 0,
         },
-        "MD_1M": {
+        "MC_1M": {
             "num_spins": 1000 * 1000,
             "num_js": 8 * 1000 * 1000,
             "num_iterations": 1,
@@ -107,7 +108,7 @@ def validation_to_sachi():
         if num_spins > num_cores * compute_memory_depth:
             parallelism = (
                 num_cores / 2
-            )  # half of the cores are used, I suppose the reason is they need to store the spins twice in the memory
+            )  # half of the cores are used, I think the reason is they need to store the spins twice in the memory
         else:
             parallelism = 0  # not used
         # calculating the energy
@@ -136,6 +137,8 @@ if __name__ == "__main__":
         "%(asctime)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
     )
     logging.basicConfig(level=logging_level, format=logging_format)
+    if os.path.exists("output") is False:
+        os.makedirs("output")
     plot_results_in_bar_chart(
         validation_to_sachi(), output_file="output/sachi.png", text_type="absolute"
     )

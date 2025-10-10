@@ -1,6 +1,6 @@
 import logging
 import math
-from api import plot_results_in_bar_chart
+from api import plot_results_in_bar_chart, plot_results_in_bar_chart_with_breakdown
 
 
 def validation_to_fpga_asb_v2():
@@ -219,20 +219,20 @@ def validation_to_fpga_asb_v2():
             mode = "B"
         else:  # core-to-core communication bounded region
             mode = "C"
+
         if mode == "A":
             num_phases = num_spins / num_pe_rows
-            latency_model = num_phases * latency_compelem + latency_comp
+            latency_weight_comm = num_phases * latency_compelem
+            latency_model = latency_weight_comm + latency_comp
         elif mode == "B":
             num_phases = num_spins / num_pe_rows
-            latency_model = (
-                (num_phases - 1) * latency_compelem + latency_comm + latency_comp
-            )
+            latency_weight_comm = (num_phases - 1) * latency_compelem + latency_comm
+            latency_model = latency_weight_comm + latency_comp
         else:
             n_hop = math.ceil((num_cores - 1) / 2)
             n_last_telem = 1 if num_cores % 2 == 0 else 2
-            latency_model = (
-                n_hop * latency_comm + n_last_telem * latency_compelem + latency_comp
-            )
+            latency_weight_comm = n_hop * latency_comm + n_last_telem * latency_compelem
+            latency_model = latency_weight_comm + latency_comp
         # calculating the energy
         energy_model = nj_per_pe * j_matrix_size  # nJ
         logging.info(
@@ -242,6 +242,7 @@ def validation_to_fpga_asb_v2():
         )
         benchmark_dict[benchmark]["energy_model"] = energy_model
         benchmark_dict[benchmark]["latency_model"] = latency_model
+        benchmark_dict[benchmark]["latency_breakdown"] = {"sram": latency_weight_comm, "spin update": latency_comp}
     return benchmark_dict
 
     pass
@@ -256,8 +257,10 @@ if __name__ == "__main__":
         "%(asctime)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
     )
     logging.basicConfig(level=logging_level, format=logging_format)
-    plot_results_in_bar_chart(
+    plot_results_in_bar_chart_with_breakdown(
         validation_to_fpga_asb_v2(),
         output_file="output/fpga_asb_v2.png",
         text_type="absolute",
+        with_latency_breakdown=True,
+        latency_normalize=False
     )

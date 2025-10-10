@@ -1,5 +1,5 @@
 import logging
-from api import plot_results_in_bar_chart
+from api import plot_results_in_bar_chart, plot_results_in_bar_chart_with_breakdown
 
 
 def validation_to_fpga_asb():
@@ -54,11 +54,8 @@ def validation_to_fpga_asb():
         latency = info["latency"]
         # calculating the latency
         num_phases = num_spins / (num_pe_rows * num_cores)
-        latency_model = (
-            num_spins / num_pe_cols
-            + num_phases * max(num_spins / num_pe_cols, num_pe_rows)
-            + global_mem_access_latency
-        )
+        latency_compute = num_spins / num_pe_cols + num_phases * max(num_spins / num_pe_cols, num_pe_rows)
+        latency_model = latency_compute + global_mem_access_latency
         # calculating the energy
         energy_model = nj_per_pe * j_matrix_size  # nJ
         logging.info(
@@ -67,6 +64,7 @@ def validation_to_fpga_asb():
         )
         benchmark_dict[benchmark]["energy_model"] = energy_model
         benchmark_dict[benchmark]["latency_model"] = latency_model
+        benchmark_dict[benchmark]["latency_breakdown"] = {"sram": global_mem_access_latency, "spin update": latency_compute}
     return benchmark_dict
 
 
@@ -79,8 +77,10 @@ if __name__ == "__main__":
         "%(asctime)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
     )
     logging.basicConfig(level=logging_level, format=logging_format)
-    plot_results_in_bar_chart(
+    plot_results_in_bar_chart_with_breakdown(
         validation_to_fpga_asb(),
         output_file="output/fpga_asb.png",
         text_type="absolute",
+        with_latency_breakdown=True,
+        latency_normalize=False
     )
