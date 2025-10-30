@@ -23,10 +23,15 @@ def sachi_hw_model(
     """
     """ The energy of updating adjacent matrixs IS considered in this model """
     """ There is no energy of annealing (random flipping, threshold comparison), as SACHI uses HNN """
+    encoding_scheme = hw_model["operational_array"].get("encoding", "full-matrix")
+    if encoding_scheme not in ["full-matrix", "triangular", "coordinate", "neighbor"]:
+        raise ValueError(f"Unsupported encoding scheme: {encoding_scheme}")
     # scale the num_cores, as the sachi needs to store each spin twice
     num_cores_hw = hw_model["operational_array"]["sizes"][2]
-    num_cores_hw = num_cores_hw // 2
-    hw_model["operational_array"]["sizes"][2] = num_cores_hw
+    if encoding_scheme == "neighbor":
+        assert num_cores_hw > 1, "The number of cores must be larger than 1 for the neighbor encoding."
+        num_cores_hw = num_cores_hw // 2
+        hw_model["operational_array"]["sizes"][2] = num_cores_hw
 
     # extract the hardware dimension size
     hw_dim_sizes = {}
@@ -46,9 +51,7 @@ def sachi_hw_model(
         workload_dim_sizes[dim] = size
     workload_dim_sizes["T"] = workload["num_trails"]
     workload_dim_sizes["IT"] = workload["num_iterations"]
-    encoding_scheme = hw_model["operational_array"].get("encoding", "full-matrix")
-    if encoding_scheme not in ["full-matrix", "triangular", "coordinate", "neighbor"]:
-        raise ValueError(f"Unsupported encoding scheme: {encoding_scheme}")
+
     if encoding_scheme not in ["full-matrix", "triangular"]:
         workload_dim_sizes["J"] = workload["average_degree"]
 
@@ -298,7 +301,7 @@ def sachi_hw_model(
         spin_bit_total = workload["operand_precision"]["I"] * workload_dim_sizes["I"] * workload_dim_sizes["J"]
     else:
         spin_bit_total = workload["operand_precision"]["I"] * workload_dim_sizes["I"]
-    if workload["problem_specific_weight"] is True:
+    if workload["problem_specific_weight"] is False:
         weight_bit_total = 0 # weights are the same for different problems, so no on-loading
     onloading_bit_total = (bias_bit_total + weight_bit_total + spin_bit_total)
     onloading_latency_collect: dict = {}
