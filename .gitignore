@@ -4,7 +4,7 @@
 **/log
 **/tmp
 *.out
-*/outputs/
+**/outputs/
 **/no_backup
 *.pkl
 
