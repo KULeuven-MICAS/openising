@@ -1,0 +1,12 @@
+name: default
+
+spatial_mapping_hint:
+  D1: I
+  D2: J
+  D3: I
+
+memory_operand_links:
+  O: O
+  I: I1
+  W: I2
+  H: I3
