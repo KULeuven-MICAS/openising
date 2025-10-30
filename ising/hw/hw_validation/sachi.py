@@ -1,6 +1,6 @@
 import logging
 import os
-from api import plot_results_in_bar_chart
+from api import plot_results_in_bar_chart, plot_results_in_bar_chart_with_breakdown
 
 
 def validation_to_sachi():
@@ -16,9 +16,11 @@ def validation_to_sachi():
     num_cores = 16
     compute_memory_depth = 80
     # tclk = 5  # ns (not used)
-    energy_per_spin_per_degree_per_bit = (
-        5 / 4
-    )  # pJ/bit@FreePDK45nm, Vdd=1V (extracted from the paper)
+    energy_per_gate = 5/4/7  # pJ/gate@FreePDK45nm, Vdd=1V (extracted from the paper)
+    mac_energy_per_spin_per_degree_per_bit = (
+        energy_per_gate * 7
+    )
+    compare_energy_per_bit = energy_per_gate
     # Benchmark settings
     benchmark_dict = {
         # latency [cycle]: reported latency per iteration, energy [nJ]: reported energy per iteration,
@@ -112,9 +114,11 @@ def validation_to_sachi():
         else:
             parallelism = 0  # not used
         # calculating the energy
+        mac_energy = mac_energy_per_spin_per_degree_per_bit * w_pres * num_js * num_iterations / 1000  # pJ -> nJ
+        compare_energy = compare_energy_per_bit * w_pres * num_spins * num_iterations / 1000  # pJ -> nJ
         energy_model = (
-            energy_per_spin_per_degree_per_bit * w_pres * num_js * num_iterations / 1000
-        )  # pJ -> nJ
+            mac_energy + compare_energy
+        )  # nJ
         # calculating the latency
         latency_model = (
             compute_memory_depth if parallelism == 0 else num_spins / parallelism
@@ -125,6 +129,7 @@ def validation_to_sachi():
         )
         benchmark_dict[benchmark]["energy_model"] = energy_model
         benchmark_dict[benchmark]["latency_model"] = latency_model
+        benchmark_dict[benchmark]["energy_breakdown"] = {"mac": mac_energy, "compare": compare_energy}
     return benchmark_dict
 
 
@@ -139,6 +144,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging_level, format=logging_format)
     if os.path.exists("output") is False:
         os.makedirs("output")
-    plot_results_in_bar_chart(
-        validation_to_sachi(), output_file="output/sachi.png", text_type="absolute"
+    # plot_results_in_bar_chart(
+    #     validation_to_sachi(), output_file="output/sachi.png", text_type="absolute"
+    # )
+    plot_results_in_bar_chart_with_breakdown(
+        validation_to_sachi(),
+        output_file="output/sachi_breakdown.png",
+        text_type="absolute",
+        with_latency_breakdown=False,
+        latency_normalize=False,
+        with_energy_breakdown=True,
     )
