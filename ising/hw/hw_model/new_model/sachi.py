@@ -115,10 +115,10 @@ def sachi_hw_model(
             if dim not in served_dims:
                 repeat_count *= size
         mem_sizes_bit[component] = spec["size"] * repeat_count
-    temfor_sw: dict = [[key, value] for key, value in left_workload_dim_size.items()]
+    temfor_sw: list = [[key, value] for key, value in left_workload_dim_size.items()]
     temfor_hw: dict = {key: [] for key in mem_sizes_bit.keys()}
 
-    unallocated_loops_sw = copy.deepcopy(temfor_sw[:2])  # exclude T and IT
+    unallocated_loops_sw = copy.deepcopy([v for v in temfor_sw if v[0] in ["I", "J"]])  # exclude T and IT
     allocated_loops_total = []
     if encoding_scheme == "full-matrix":  # dense, without compression
         bit_per_weight = workload["operand_precision"]["W"]
@@ -162,7 +162,7 @@ def sachi_hw_model(
                     ] + allocated_loops
                     unallocated_loops_sw[idx] = (
                         unallocated_loops_sw[idx][0],
-                        math.ceil(unallocated_loops_sw[idx][1] / int(allowed_loop_size)),
+                        unallocated_loops_sw[idx][1] / int(allowed_loop_size),
                     )
                     unallocated_loops_sw = unallocated_loops_sw[: idx + 1]
                     break
