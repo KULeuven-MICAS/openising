@@ -226,6 +226,7 @@ if __name__ == "__main__":
     with_bias = True
     problem_specific_weight = True
     sram_size_in_KB = 160
+    num_macros = 16
 
     for aver_density in [1, 0.015]:
         cycles_in_list = [[],[],[]]
@@ -233,6 +234,9 @@ if __name__ == "__main__":
         cycle_breakdown_in_list = [[],[],[]]
         energy_breakdown_in_list = [[],[],[]]
         req_sram_size_in_list = [[],[],[]]
+        tops_in_list = [[],[],[]]
+        topsw_in_list = [[],[],[]]
+        topsmm2_in_list = [[],[],[]]
         title = f"density_{aver_density:.0%}_precision_{weight_shared_precision}b"
         for pb_size in pb_size_pool:
             for encoding_idx in range(len(label_in_list)):
@@ -248,6 +252,7 @@ if __name__ == "__main__":
                 workload["problem_specific_weight"] = problem_specific_weight
                 hw_model["operational_array"]["encoding"] = encoding
                 hw_model["memories"]["sram_160KB"]["size"] = sram_size_in_KB * 1024 * 8  # in bits
+                hw_model["operational_array"]["sizes"] = [1, 100, num_macros]
                 cme = sachi_hw_model(hw_model, workload, mapping)
                 cycles_to_solution = cme["cycles_to_solution"]
                 energy_to_solution = cme["energy_to_solution"]
@@ -256,6 +261,10 @@ if __name__ == "__main__":
                 cycle_breakdown_in_list[encoding_idx].append(cme["latency_breakdown_plot"])
                 energy_breakdown_in_list[encoding_idx].append(cme["energy_breakdown_plot"])
                 req_sram_size_in_list[encoding_idx].append(cme["req_sram_size_bit"]/8/1024)  # in KB
+                tops_in_list[encoding_idx].append(cme["tops"])
+                topsw_in_list[encoding_idx].append(cme["topsw"])
+                topsmm2_in_list[encoding_idx].append(cme["topsmm2"])
+        # plot the results
         plot_results_breakdown_in_bar_chart(
             cycles_in_list=cycles_in_list,
             cycles_breakdown_in_list=cycle_breakdown_in_list,
