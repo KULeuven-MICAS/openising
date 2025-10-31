@@ -63,6 +63,8 @@ def sachi_hw_model(
         for dim, size in hw_dim_sizes.items():
             if dim not in served_dims:
                 repeat_count *= size
+                if dim == "D3" and encoding_scheme == "neighbor":
+                    repeat_count = repeat_count * 2  # this dim is halved beforehand in neighbor encoding
         area_collect[component] = spec["area"] * repeat_count
     area_collect["mac"] = hw_model["operational_array"]["mac_area"] * mac_count
     if workload.get("with_bias", False):
@@ -70,6 +72,10 @@ def sachi_hw_model(
     else:
         area_collect["add"] = 0
     area_collect["compare"] = hw_model["operational_array"]["compare_area"] * mac_count
+    if encoding_scheme == "neighbor":
+        area_collect["mac"] *= 2
+        area_collect["add"] *= 2
+        area_collect["compare"] *= 2
     total_area = sum([area for area in area_collect.values()])
 
     # extract spatial mapping hint
@@ -364,14 +370,6 @@ def sachi_hw_model(
             mem_energy_per_rd = hw_model["memories"][mem_list[mem_idx]]["r_cost"]
             spin_updating_energy_wr = mem_energy_per_wr * access_spin_updating["wr"]
             spin_updating_energy_rd = mem_energy_per_rd * access_spin_updating["rd"]
-            if mem_list[mem_idx] in energy_collect:
-                energy_collect[mem_list[mem_idx]]["wr"] += spin_updating_energy_wr
-                energy_collect[mem_list[mem_idx]]["rd"] += spin_updating_energy_rd
-            else:
-                energy_collect[mem_list[mem_idx]] = {
-                    "wr": spin_updating_energy_wr,
-                    "rd": spin_updating_energy_rd,
-                }
     else:
         # spin is saved in the register file
         for mem, spec in hw_model["memories"].items():
@@ -410,7 +408,7 @@ def sachi_hw_model(
     # calculate metrics
     time_to_solution = latency_system * hw_model["operational_array"]["tclk"]  # ns
     energy_to_solution = energy_system  # pJ
-    num_op = np.prod([size for size in workload_dim_sizes.values()]) * 2  # consider add and mac
+    num_op = workload["num_trails"] * workload["num_iterations"] * np.prod(workload["loop_sizes"]) * 2  # consider add and mac
     tops = num_op / time_to_solution / 1e3  # tera operations per second
     topsw = num_op / energy_to_solution  # operations per joule
     topsmm2 = tops / total_area  # tera operations per second per mm^2
