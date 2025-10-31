@@ -50,10 +50,10 @@ def plot_results_in_bar_chart(
         [i + width * idx for i in x], energy_in_list[idx], width, label=label_in_list[idx], color=colors[idx], edgecolor="black"
         )
     # set the x, y label
-    ax[0].set_xlabel("Problem Size", fontsize=12, weight="normal")
-    ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=12, weight="normal")
-    ax[1].set_xlabel("Problem Size", fontsize=12, weight="normal")
-    ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=12, weight="normal")
+    ax[0].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=15, weight="normal")
+    ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=15, weight="normal")
     # set the title
     if title is not None:
         ax[0].set_title(title)
@@ -124,7 +124,7 @@ def plot_results_breakdown_in_bar_chart(
     fig, ax = plt.subplots(1, 2, figsize=(15, 5))
 
     x = list(range(len(cycles_breakdown_in_list[0])))
-    width = 0.15
+    width = 0.25
     for idx in range(len(cycles_breakdown_in_list)):
         details = cycles_breakdown_in_list[idx]
         base = np.zeros(len(details))
@@ -174,22 +174,64 @@ def plot_results_breakdown_in_bar_chart(
         )
 
     # set the x, y label
-    ax[0].set_xlabel("Problem Size", fontsize=12, weight="normal")
-    ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=12, weight="normal")
-    ax[1].set_xlabel("Problem Size", fontsize=12, weight="normal")
-    ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=12, weight="normal")
-    ax0_right.set_ylabel("TOP/s/mm$^2$", fontsize=12, weight="normal", color="#B32828")
-    ax1_right.set_ylabel("TOP/s/W", fontsize=12, weight="normal", color="#B32828")
+    ax[0].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=15, weight="normal")
+    ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=15, weight="normal")
+    ax0_right.set_ylabel("TOP/s/mm$^2$", fontsize=15, weight="normal", color="#B32828")
+    ax1_right.set_ylabel("TOP/s/W", fontsize=15, weight="normal", color="#B32828")
     ax0_right.tick_params(axis="y", colors="#B32828")
     ax1_right.tick_params(axis="y", colors="#B32828")
+
+    # annotate the topsmm2 and topsw values
+    # first normalize the topsmm2 and topsw
+    topsmm2_copy = copy.deepcopy(topsmm2_in_list)
+    topsw_copy = copy.deepcopy(topsw_in_list)
+    for idx in range(len(topsmm2_in_list[0])):
+        topsmm2_encoding_1 = topsmm2_in_list[0][idx]
+        topsmm2_encoding_2 = topsmm2_in_list[1][idx]
+        topsmm2_encoding_3 = topsmm2_in_list[2][idx]
+        topsmm2_min = min(topsmm2_encoding_1, topsmm2_encoding_2, topsmm2_encoding_3)
+        topsmm2_copy[0][idx] /= topsmm2_min
+        topsmm2_copy[1][idx] /= topsmm2_min
+        topsmm2_copy[2][idx] /= topsmm2_min
+        topsw_encoding_1 = topsw_in_list[0][idx]
+        topsw_encoding_2 = topsw_in_list[1][idx]
+        topsw_encoding_3 = topsw_in_list[2][idx]
+        topsw_min = min(topsw_encoding_1, topsw_encoding_2, topsw_encoding_3)
+        topsw_copy[0][idx] /= topsw_min
+        topsw_copy[1][idx] /= topsw_min
+        topsw_copy[2][idx] /= topsw_min
+
+    for idx in range(len(topsmm2_in_list)):
+        for i in range(len(topsmm2_in_list[idx])):
+            ax0_right.annotate(
+                f"{topsmm2_copy[idx][i]:.0f}x",
+                (i + width * idx, topsmm2_in_list[idx][i]),
+                textcoords="offset points",
+                xytext=(0, 5),
+                ha="center",
+                fontsize=10,
+                color="black"
+            )
+            ax1_right.annotate(
+                f"{topsw_copy[idx][i]:.0f}x",
+                (i + width * idx, topsw_in_list[idx][i]),
+                textcoords="offset points",
+                xytext=(0, 5),
+                ha="center",
+                fontsize=10,
+                color="black"
+            )
+
     # set the title
     if title is not None:
         ax[0].set_title(title)
         ax[1].set_title(title)
     # set the x tick labels
-    ax[0].set_xticks([i + width / 2 for i in x])
+    ax[0].set_xticks([i + width for i in x])
     ax[0].set_xticklabels(benchmark_name_in_list)
-    ax[1].set_xticks([i + width / 2 for i in x])
+    ax[1].set_xticks([i + width for i in x])
     ax[1].set_xticklabels(benchmark_name_in_list)
     # create custom legend handles: one for component colors and one for encoding hatch styles
     comp_labels = component_tag_list if component_tag_list else component_list
@@ -204,30 +246,43 @@ def plot_results_breakdown_in_bar_chart(
         hatch_handles.append(Rectangle((0, 0), 1, 1, facecolor='white', edgecolor='black', hatch=h, label=lab))
 
     # Add legends to the left subplot (ax[0]). Use two separate legend objects.
-    legend_comp = ax[0].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1))
-    ax[0].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1))
+    legend_comp = ax[0].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1), fontsize=15, title_fontsize=15, ncol=2)
+    ax[0].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
     # keep the first legend visible
     ax[0].add_artist(legend_comp)
 
     # Mirror legends on the right subplot (ax[1]) for consistency
-    legend_comp_r = ax[1].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1))
-    ax[1].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1))
+    legend_comp_r = ax[1].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1), fontsize=15, title_fontsize=15, ncol=2)
+    ax[1].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
     ax[1].add_artist(legend_comp_r)
     # set the y scale to log scale
     if log_scale:
         ax[0].set_yscale("log")
         ax[1].set_yscale("log")
+        ax0_right.set_yscale("log")
+        ax1_right.set_yscale("log")
+
+    # increase x/y tick font size
+    plt.setp(ax[0].get_xticklabels(), fontsize=15)
+    plt.setp(ax[1].get_xticklabels(), fontsize=15)
+    plt.setp(ax[0].get_yticklabels(), fontsize=15)
+    plt.setp(ax[1].get_yticklabels(), fontsize=15)
+    plt.setp(ax0_right.get_yticklabels(), fontsize=15)
+    plt.setp(ax1_right.get_yticklabels(), fontsize=15)
+
     # set the y range
     ax[0].set_ylim(1e5, 1e11)
     ax[1].set_ylim(1e5, 1e13)
+    ax0_right.set_ylim(1e-4, 1e3)
+    ax1_right.set_ylim(1e-3, 1e6)
     # rotate the x ticklabels
     plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     # add grid and put grid below axis
-    ax[0].grid()
-    ax[0].set_axisbelow(True)
-    ax[1].grid()
-    ax[1].set_axisbelow(True)
+    # ax[0].grid()
+    # ax[0].set_axisbelow(True)
+    # ax[1].grid()
+    # ax[1].set_axisbelow(True)
     plt.tight_layout()
     plt.savefig(f"./outputs/expr1_bd_{title}.png", dpi=300)
     logging.warning(f"Saved breakdown figure to ./outputs/expr1_bd_{title}.png")
@@ -244,14 +299,14 @@ if __name__ == "__main__":
     # experiment: sweep different problem sizes and encoding methods
     pb_pool = [
         # pb_size, degree density, weight precision, with bias, problem specific weight
-        [1000, 0.015, 1, False, True], # MaxCut
+        [200, 0.015, 1, False, True], # MaxCut
         [4000, 0.015, 1, False, True], # MaxCut
         [200, 2*((200**0.5)-1)/199, 16, True, True], # TSP
         [8000, 2*((8000**0.5)-1)/7999, 16, True, True], # TSP
-        [100, 28/100, 3, True, False], # Sudoku
+        [200, 28/100, 3, True, False], # Sudoku
         [729, 28/729, 3, True, False], # Sudoku
         [64, 1, 16, True, False], # MIMO
-        [256, 1, 16, True, False], # MIMO
+        [200, 1, 16, True, False], # MIMO
     ]
     label_in_list = ["coordinate", "neighbor", "full-matrix"]
     benchmark_name_in_list = [f"{pb_spec[0]}" for pb_spec in pb_pool]
@@ -287,6 +342,7 @@ if __name__ == "__main__":
             workload["problem_specific_weight"] = problem_specific_weight
             hw_model["operational_array"]["encoding"] = encoding
             hw_model["memories"]["sram_160KB"]["size"] = sram_size_in_KB * 1024 * 8  # in bits
+            hw_model["memories"]["sram_160KB"]["area"] *= sram_size_in_KB / 160
             hw_model["operational_array"]["sizes"] = [1, 100, num_macros]
             # simulation
             cme = sachi_hw_model(hw_model, workload, mapping)
