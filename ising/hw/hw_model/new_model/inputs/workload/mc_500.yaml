@@ -3,7 +3,7 @@ equation: O[i]=I[i]*W[i][j]*I[j]+H[i]
 loop_dims: [I, J]
 loop_sizes: [5000, 5000]
 average_degree: 8
-num_iterations: 10
+num_iterations: 2000  # from sachi paper, average in Fig. 19 c)
 num_trails: 1
 problem_specific_weight: True
 with_bias: True
