@@ -60,6 +60,6 @@ operational_array:
   compare_area: 0.000005 # mm^2
   dimensions: [D1, D2, D3]
   sizes: [1, 100, 16]
-  tclk: 2 # ns
+  tclk: 40 # ns
   encoding: coordinate # [full-matrix, triangular, coordinate, neighbor]
   memory_double_buffering: true
