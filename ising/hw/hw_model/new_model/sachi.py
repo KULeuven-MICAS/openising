@@ -139,6 +139,7 @@ def sachi_hw_model(
 
     # derive the mapping: temporal
     mem_sizes_bit: dict = {}
+    mem_repeat_count: dict = {}
     for component, spec in hw_model["memories"].items():
         served_operands = spec["operands"]
         if "I2" not in served_operands:
@@ -149,6 +150,7 @@ def sachi_hw_model(
             if dim not in served_dims:
                 repeat_count *= size
         mem_sizes_bit[component] = spec["size"] * repeat_count
+        mem_repeat_count[component] = repeat_count
     temfor_sw: list = [[key, value] for key, value in left_workload_dim_size.items()]
     temfor_hw: dict = {key: [] for key in mem_sizes_bit.keys()}
 
@@ -207,7 +209,7 @@ def sachi_hw_model(
             break
 
     # calculate the latency
-    # there are two steps in each iteration: computation and spin updating
+    # there are three steps in each iteration: computation, spin updating, on-loading
     # (i.e., packet updating/adjacent matrix updating)
     # latency of step one: comptutation
     ideal_latency = math.prod([value for key, value in temfor_sw])
@@ -278,8 +280,8 @@ def sachi_hw_model(
             )
         # calculate the access count
         access_collect[mem_list[mem_idx]] = {
-            "wr": cycles_wr_from_high + cycles_wr_from_low,
-            "rd": cycles_rd_to_low + cycles_rd_to_high,
+            "wr": (cycles_wr_from_high + cycles_wr_from_low) * mem_repeat_count[mem_list[mem_idx]],
+            "rd": (cycles_rd_to_low + cycles_rd_to_high) * mem_repeat_count[mem_list[mem_idx]],
         }
 
     # latency of step two: spin updating
