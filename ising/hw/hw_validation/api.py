@@ -294,11 +294,11 @@ def plot_results_in_bar_chart_with_breakdown(
             latency_breakdown_sram = [latency / min_latency_reported for latency in latency_breakdown_sram]
             latency_breakdown_spin_update = [latency / min_latency_reported for latency in latency_breakdown_spin_update]
 
-        ax[0].bar(x, latency_breakdown_spin_update, width, label="MACs", color=colors["mac"], edgecolor="black")
+        ax[0].bar(x, latency_breakdown_spin_update, width, label="MAC", color=colors["mac"], edgecolor="black")
         ax[0].bar(x, latency_breakdown_sram, width, bottom=latency_breakdown_spin_update, label="SRAM", color=colors["sram"], edgecolor="black")
     else:
         ax[0].bar(
-        x, latency_model, width, label="OpenIsingHD", color=colors["mac"], edgecolor="black"
+        x, latency_model, width, label="MAC", color=colors["mac"], edgecolor="black"
         )
     ax[0].bar(
         [i + width for i in x],
@@ -309,12 +309,12 @@ def plot_results_in_bar_chart_with_breakdown(
         edgecolor="black",
     )
     if latency_normalize:
-        ax[0].set_ylabel("Latency [Normalized]", weight="bold")
+        ax[0].set_ylabel("Latency [Normalized]", weight="normal", fontsize=15)
     else:
-        ax[0].set_ylabel("Latency [cycles]", weight="bold")
+        ax[0].set_ylabel("Latency [cycles]", weight="normal", fontsize=15)
     # create a right y-axis for the latency mismatch plot
     ax0_right = ax[0].twinx()
-    ax0_right.set_ylabel("Mismatch [%]", weight="bold", color="#B32828")
+    ax0_right.set_ylabel("Mismatch [%]", weight="normal", color="#B32828", fontsize=15)
     ax0_right.plot(
         [i + width / 2 for i in x],
         latency_mismatch,
@@ -328,8 +328,11 @@ def plot_results_in_bar_chart_with_breakdown(
     ax0_right.set_ylim(-10, 10)
     # ax[0].set_title("Latency Validation")
     ax[0].set_xticks([i + width / 2 for i in x])
-    ax[0].set_xticklabels(benchmark_names)
-    ax[0].legend(loc="lower right")
+    ax[0].tick_params(axis="x", labelsize=12)
+    ax[0].tick_params(axis="y", labelsize=12)
+    ax0_right.tick_params(axis="y", labelsize=12)
+    ax[0].set_xticklabels(benchmark_names, fontsize=15)
+    ax[0].legend(loc="lower right", fontsize=15)
     if with_energy_breakdown:
         energy_breakdown: list[dict] = [
             benchmark_dict[benchmark].get("energy_breakdown", None)
@@ -347,10 +350,10 @@ def plot_results_in_bar_chart_with_breakdown(
         ]
         energy_breakdown_compare.append(np.prod(energy_breakdown_compare, dtype=np.float64) ** (1 / len(energy_breakdown_compare)))
 
-        ax[1].bar(x, energy_breakdown_mac, width, label="MACs", color=colors["mac"], edgecolor="black")
-        ax[1].bar(x, energy_breakdown_compare, width, bottom=energy_breakdown_mac, label="COMPs", color=colors["comp"], edgecolor="black")
+        ax[1].bar(x, energy_breakdown_mac, width, label="MAC", color=colors["mac"], edgecolor="black")
+        ax[1].bar(x, energy_breakdown_compare, width, bottom=energy_breakdown_mac, label="COMP", color=colors["comp"], edgecolor="black")
     else:
-        ax[1].bar(x, energy_model, width, label="Compute", color=colors["mac"], edgecolor="black")
+        ax[1].bar(x, energy_model, width, label="MAC", color=colors["mac"], edgecolor="black")
     ax[1].bar(
         [i + width for i in x],
         energy_reported,
@@ -360,11 +363,11 @@ def plot_results_in_bar_chart_with_breakdown(
         edgecolor="black",
     )
     if latency_normalize:
-        ax[1].set_ylabel("Energy [Normalized]", weight="bold")
+        ax[1].set_ylabel("Energy [Normalized]", weight="normal", fontsize=15)
     else:
-        ax[1].set_ylabel("Energy [nJ]", weight="bold")
+        ax[1].set_ylabel("Energy [nJ]", weight="normal", fontsize=15)
     ax1_right = ax[1].twinx()
-    ax1_right.set_ylabel("Mismatch [%]", weight="bold", color="#B32828")
+    ax1_right.set_ylabel("Mismatch [%]", weight="normal", color="#B32828", fontsize=15)
     ax1_right.plot(
         [i + width / 2 for i in x],
         energy_mismatch,
@@ -378,8 +381,11 @@ def plot_results_in_bar_chart_with_breakdown(
     ax1_right.set_ylim(-10, 10)
     # ax[1].set_title("Energy Validation")
     ax[1].set_xticks([i + width / 2 for i in x])
-    ax[1].set_xticklabels(benchmark_names)
-    ax[1].legend(loc="upper left")
+    ax[1].tick_params(axis="x", labelsize=12)
+    ax[1].tick_params(axis="y", labelsize=12)
+    ax1_right.tick_params(axis="y", labelsize=12)
+    ax[1].set_xticklabels(benchmark_names, fontsize=15)
+    ax[1].legend(loc="upper left", fontsize=15)
     # add text labels to mismatch
     for i in range(len(benchmark_names)):
         ax0_right.text(
@@ -389,6 +395,7 @@ def plot_results_in_bar_chart_with_breakdown(
             ha="center",
             weight="normal",
             color="#B32828",
+            fontsize=15
         )
         ax1_right.text(
             i + width / 2,
@@ -397,6 +404,7 @@ def plot_results_in_bar_chart_with_breakdown(
             ha="center",
             weight="normal",
             color="#B32828",
+            fontsize=15
         )
 
     # if text_type == "absolute":
@@ -446,7 +454,7 @@ def plot_results_in_bar_chart_with_breakdown(
     #         )
 
     # set the y scale to log scale
-    # ax[0].set_yscale("log")
+    ax[0].set_yscale("log")
     ax[1].set_yscale("log")
     # rotate the x ticklabels
     plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
