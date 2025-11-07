@@ -28,10 +28,10 @@ def sachi_hw_model(
         raise ValueError(f"Unsupported encoding scheme: {encoding_scheme}")
     # scale the num_cores, as the sachi needs to store each spin twice
     num_cores_hw = hw_model["operational_array"]["sizes"][2]
-    if encoding_scheme == "neighbor":
-        assert num_cores_hw > 1, "The number of cores must be larger than 1 for the neighbor encoding."
-        num_cores_hw = num_cores_hw // 2
-        hw_model["operational_array"]["sizes"][2] = num_cores_hw
+    # if encoding_scheme == "neighbor":
+    #     assert num_cores_hw > 1, "The number of cores must be larger than 1 for the neighbor encoding."
+    #     num_cores_hw = num_cores_hw // 2
+    #     hw_model["operational_array"]["sizes"][2] = num_cores_hw
 
     # extract the hardware dimension size
     hw_dim_sizes = {}
@@ -54,6 +54,15 @@ def sachi_hw_model(
 
     if encoding_scheme not in ["full-matrix", "triangular"]:
         workload_dim_sizes["J"] = workload["average_degree"]
+
+    if encoding_scheme == "full-matrix":  # dense, without compression
+        bit_per_weight = workload["operand_precision"]["W"]
+    elif encoding_scheme == "triangular":  # triangular, without compression
+        bit_per_weight = workload["operand_precision"]["W"] // 2
+    elif encoding_scheme == "coordinate":  # csr
+        bit_per_weight = workload["operand_precision"]["W"] + math.ceil(math.log2(workload_dim_sizes["J"]))
+    elif encoding_scheme == "neighbor":  # sachi's custom encoding
+        bit_per_weight = workload["operand_precision"]["W"] + workload["operand_precision"]["I"]
 
     # calculate the total area
     area_collect = {}
@@ -90,11 +99,30 @@ def sachi_hw_model(
     cim_memory_size: int = hw_model["memories"]["cim_memory"]["size"]
     cim_memory_bandwidth: int = hw_model["memories"]["cim_memory"]["bandwidth"]
     cim_memory_depth = cim_memory_size / cim_memory_bandwidth
+    # constrain the parfor size by hardware/workload dimension sizes
     for d, item in spatial_mapping_hint.items():
         if (d == "D3"):
-            parfor_hw[d] = min(hw_dim_sizes[d], workload_dim_sizes[item]/parfor_sw[item]/cim_memory_depth)
+            parfor_hw[d] = min(hw_dim_sizes[d], workload_dim_sizes[item]/parfor_sw[item])
+        elif (d == "D1"):
+            parfor_hw[d] = 1  # fix D1 to 1 to match SACHI's design
         else:
             parfor_hw[d] = min(hw_dim_sizes[d], workload_dim_sizes[item]/parfor_sw[item])
+        parfor_hw[d] = max(1, parfor_hw[d]) # ensure at least 1
+    # constrain the parfor size by the lowest memory bandwidth
+    for dim_hw in ["D2", "D1"]:
+        parfor_size_hw = parfor_hw[dim_hw]
+        if dim_hw == "D2":
+            allowed_parfor_by_memory = max(1, cim_memory_bandwidth / bit_per_weight)
+        else:
+            allowed_parfor_by_memory = max(1, cim_memory_bandwidth / bit_per_weight / parfor_hw["D2"])
+        if parfor_size_hw > allowed_parfor_by_memory:
+            parfor_hw[dim_hw] = allowed_parfor_by_memory
+
+    # finalize the parfor sizes
+    for dim_hw in parfor_hw.keys():
+        parfor_hw[dim_hw] = int(parfor_hw[dim_hw])
+
+    for d in spatial_mapping_hint.keys():        
         for key in parfor_sw.keys():
             if key == spatial_mapping_hint[d]:
                 parfor_sw[key] *= parfor_hw[d]
@@ -126,14 +154,6 @@ def sachi_hw_model(
 
     unallocated_loops_sw = copy.deepcopy([v for v in temfor_sw if v[0] in ["I", "J"]])  # exclude T and IT
     allocated_loops_total = []
-    if encoding_scheme == "full-matrix":  # dense, without compression
-        bit_per_weight = workload["operand_precision"]["W"]
-    elif encoding_scheme == "triangular":  # triangular, without compression
-        bit_per_weight = workload["operand_precision"]["W"] // 2
-    elif encoding_scheme == "coordinate":  # csr
-        bit_per_weight = workload["operand_precision"]["W"] + math.log2(workload_dim_sizes["J"])
-    elif encoding_scheme == "neighbor":  # sachi's custom encoding
-        bit_per_weight = workload["operand_precision"]["W"] + workload["operand_precision"]["I"]
     for mem, size_bit in mem_sizes_bit.items():
         if unallocated_loops_sw == []:
             break
@@ -464,6 +484,16 @@ def sachi_hw_model(
         "area_breakdown": area_collect,
         "latency_breakdown_plot": latency_system_breakdown_plot,
         "energy_breakdown_plot": energy_system_breakdown_plot,
+        "parfor_hw": parfor_hw,
+        "parfor_sw": parfor_sw,
+        "temfor_hw": temfor_hw,
+        "temfor_sw": temfor_sw,
+        "workload_dim_sizes": workload_dim_sizes,
+        "hw_dim_sizes": hw_dim_sizes,
+        "bit_per_weight": bit_per_weight,
+        "workload": workload,
+        "hw_model": hw_model,
+        "mapping": mapping,
     }
 
     return cme
