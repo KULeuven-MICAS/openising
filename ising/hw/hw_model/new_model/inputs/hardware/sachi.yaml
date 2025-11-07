@@ -52,9 +52,9 @@ memories:
     served_dimensions: [D1, D2, D3]
 
 operational_array:
-  mac_energy: 0.0295 # pJ
-  add_energy: 0.0045 # pJ
-  compare_energy: 0.0045 # pJ
+  mac_energy: 0.5 # pJ
+  add_energy: 0.35 # pJ
+  compare_energy: 0.07 # pJ
   mac_area: 0.000077 # mm^2
   add_area: 0.000005 # mm^2
   compare_area: 0.000005 # mm^2
