@@ -5,82 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch, Rectangle
 import copy
-
-def plot_results_in_bar_chart(
-    cycles_in_list: list,
-    label_in_list: list,
-    benchmark_name_in_list: list,
-    energy_in_list: list,
-    title: str | None = None,
-    component_list: list = [],
-    component_tag_list: list = [],
-    cycles_breakdown_in_list: list = [],
-    energy_breakdown_in_list: list = [],
-    log_scale: bool = True
-    ):
-    """
-    plot the results in bar chart
-    :param cycles_in_list: cycles [ns] in list, each element is a list
-    :param label_in_list: label for each data
-    :param benchmark_name_in_list: benchmark name shown on x axis
-    :param energy_in_list: energy [pJ] in list, each element is a list
-    :param title: figure title
-    :param component_list: list of components for breakdown [not used here]
-    :param component_tag_list: list of component tags for breakdown [not used here]
-    :param cycles_breakdown_in_list: cycles breakdown [ns] in list, each element is a list [not used here]
-    :param energy_breakdown_in_list: energy breakdown [pJ] in list, each element is a list [not used here]
-    :param log_scale: whether to use log scale for y axis
-    """
-    colors = [
-        '#4cccc5',
-        '#f7de6e',
-        '#fc9f79',
-        '#97d2c2'
-    ]
-    # plotting the results
-    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
-
-    x = list(range(len(cycles_in_list[0])))
-    width = 0.15
-    for idx in range(len(cycles_in_list)):
-        ax[0].bar(
-        [i + width * idx for i in x], cycles_in_list[idx], width, label=label_in_list[idx], color=colors[idx], edgecolor="black"
-        )
-        ax[1].bar(
-        [i + width * idx for i in x], energy_in_list[idx], width, label=label_in_list[idx], color=colors[idx], edgecolor="black"
-        )
-    # set the x, y label
-    ax[0].set_xlabel("Problem Size", fontsize=15, weight="normal")
-    ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=15, weight="normal")
-    ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
-    ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=15, weight="normal")
-    # set the title
-    if title is not None:
-        ax[0].set_title(title)
-        ax[1].set_title(title)
-    # set the x tick labels
-    ax[0].set_xticks([i + width / 2 for i in x])
-    ax[0].set_xticklabels(benchmark_name_in_list)
-    ax[1].set_xticks([i + width / 2 for i in x])
-    ax[1].set_xticklabels(benchmark_name_in_list)
-    # set the legend
-    ax[0].legend()
-    ax[1].legend()
-    # set the y scale to log scale
-    if log_scale:
-        ax[0].set_yscale("log")
-        ax[1].set_yscale("log")
-    # rotate the x ticklabels
-    plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-    plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-    # add grid and put grid below axis
-    ax[0].grid()
-    ax[0].set_axisbelow(True)
-    ax[1].grid()
-    ax[1].set_axisbelow(True)
-    plt.tight_layout()
-    plt.savefig(f"./outputs/expr1_{title}.png", dpi=300)
-    logging.warning(f"Saved breakdown figure to ./outputs/expr1_{title}.png")
+import math
+from get_cacti_cost import get_cacti_cost
 
 def plot_results_breakdown_in_bar_chart(
     cycles_breakdown_in_list: list,
@@ -95,6 +21,7 @@ def plot_results_breakdown_in_bar_chart(
     log_scale: bool = True,
     topsmm2_in_list: list = [],
     topsw_in_list: list = [],
+    disable_right_axis: bool = False,
     ):
     """
     plot the results breakdown in bar chart
@@ -110,6 +37,7 @@ def plot_results_breakdown_in_bar_chart(
     :param log_scale: whether to use log scale for y axis
     :param topsmm2_in_list: list of TOPS (MM2) for each data
     :param topsw_in_list: list of TOPS (W) for each data
+    :param disable_right_axis: whether to disable the right y axis
     """
     colors = {
         "mac": '#45B7D1',  # MAC (MACs)
@@ -154,80 +82,80 @@ def plot_results_breakdown_in_bar_chart(
             )
             base += breakdown
 
-    ax0_right = ax[0].twinx()
-    ax1_right = ax[1].twinx()
-    markers = ["o", "s", "D", "^", "v", "<", ">", "p"]
-    for idx in range(len(topsmm2_in_list)):
-        ax0_right.scatter(
-            [i + width * idx for i in x],
-            topsmm2_in_list[idx],
-            edgecolors="#B32828",
-            facecolors="black",
-            marker=markers[idx],
-        )
-        ax1_right.scatter(
-            [i + width * idx for i in x],
-            topsw_in_list[idx],
-            edgecolors="#B32828",
-            facecolors="black",
-            marker=markers[idx],
-        )
+    if not disable_right_axis:
+        # plot the topsmm2 and topsw on the right y axis
+        ax0_right = ax[0].twinx()
+        ax1_right = ax[1].twinx()
+        markers = ["o", "s", "D", "^", "v", "<", ">", "p"]
+        for idx in range(len(topsmm2_in_list)):
+            ax0_right.scatter(
+                [i + width * idx for i in x],
+                topsmm2_in_list[idx],
+                edgecolors="#B32828",
+                facecolors="black",
+                marker=markers[idx],
+            )
+            ax1_right.scatter(
+                [i + width * idx for i in x],
+                topsw_in_list[idx],
+                edgecolors="#B32828",
+                facecolors="black",
+                marker=markers[idx],
+            )
 
     # set the x, y label
     ax[0].set_xlabel("Problem Size", fontsize=15, weight="normal")
     ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=15, weight="normal")
     ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
     ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=15, weight="normal")
-    ax0_right.set_ylabel("TOP/s/mm$^2$", fontsize=15, weight="normal", color="#B32828")
-    ax1_right.set_ylabel("TOP/s/W", fontsize=15, weight="normal", color="#B32828")
-    ax0_right.tick_params(axis="y", colors="#B32828")
-    ax1_right.tick_params(axis="y", colors="#B32828")
+    if not disable_right_axis:
+        ax0_right.set_ylabel("TOP/s/mm$^2$", fontsize=15, weight="normal", color="#B32828")
+        ax1_right.set_ylabel("TOP/s/W", fontsize=15, weight="normal", color="#B32828")
+        ax0_right.tick_params(axis="y", colors="#B32828")
+        ax1_right.tick_params(axis="y", colors="#B32828")
 
-    # annotate the topsmm2 and topsw values
-    # first normalize the topsmm2 and topsw
-    topsmm2_copy = copy.deepcopy(topsmm2_in_list)
-    topsw_copy = copy.deepcopy(topsw_in_list)
-    for idx in range(len(topsmm2_in_list[0])):
-        topsmm2_encoding_1 = topsmm2_in_list[0][idx]
-        topsmm2_encoding_2 = topsmm2_in_list[1][idx]
-        topsmm2_encoding_3 = topsmm2_in_list[2][idx]
-        topsmm2_min = min(topsmm2_encoding_1, topsmm2_encoding_2, topsmm2_encoding_3)
-        topsmm2_copy[0][idx] /= topsmm2_min
-        topsmm2_copy[1][idx] /= topsmm2_min
-        topsmm2_copy[2][idx] /= topsmm2_min
-        topsw_encoding_1 = topsw_in_list[0][idx]
-        topsw_encoding_2 = topsw_in_list[1][idx]
-        topsw_encoding_3 = topsw_in_list[2][idx]
-        topsw_min = min(topsw_encoding_1, topsw_encoding_2, topsw_encoding_3)
-        topsw_copy[0][idx] /= topsw_min
-        topsw_copy[1][idx] /= topsw_min
-        topsw_copy[2][idx] /= topsw_min
+    if not disable_right_axis:
+        # annotate the topsmm2 and topsw values
+        # first normalize the topsmm2 and topsw
+        topsmm2_copy = copy.deepcopy(topsmm2_in_list)
+        topsw_copy = copy.deepcopy(topsw_in_list)
+        for idx in range(len(topsmm2_in_list[0])):
+            topsmm2_encoding_1 = topsmm2_in_list[0][idx]
+            topsmm2_encoding_2 = topsmm2_in_list[1][idx]
+            topsmm2_encoding_3 = topsmm2_in_list[2][idx]
+            topsmm2_min = min(topsmm2_encoding_1, topsmm2_encoding_2, topsmm2_encoding_3)
+            topsmm2_copy[0][idx] /= topsmm2_min
+            topsmm2_copy[1][idx] /= topsmm2_min
+            topsmm2_copy[2][idx] /= topsmm2_min
+            topsw_encoding_1 = topsw_in_list[0][idx]
+            topsw_encoding_2 = topsw_in_list[1][idx]
+            topsw_encoding_3 = topsw_in_list[2][idx]
+            topsw_min = min(topsw_encoding_1, topsw_encoding_2, topsw_encoding_3)
+            topsw_copy[0][idx] /= topsw_min
+            topsw_copy[1][idx] /= topsw_min
+            topsw_copy[2][idx] /= topsw_min
 
-    for idx in range(len(topsmm2_in_list)):
-        for i in range(len(topsmm2_in_list[idx])):
-            ax0_right.annotate(
-                f"{topsmm2_copy[idx][i]:.0f}x",
-                (i + width * idx, topsmm2_in_list[idx][i]),
-                textcoords="offset points",
-                xytext=(0, 5),
-                ha="center",
-                fontsize=10,
-                color="black"
-            )
-            ax1_right.annotate(
-                f"{topsw_copy[idx][i]:.0f}x",
-                (i + width * idx, topsw_in_list[idx][i]),
-                textcoords="offset points",
-                xytext=(0, 5),
-                ha="center",
-                fontsize=10,
-                color="black"
-            )
+        for idx in range(len(topsmm2_in_list)):
+            for i in range(len(topsmm2_in_list[idx])):
+                ax0_right.annotate(
+                    f"{topsmm2_copy[idx][i]:.0f}x",
+                    (i + width * idx, topsmm2_in_list[idx][i]),
+                    textcoords="offset points",
+                    xytext=(0, 5),
+                    ha="center",
+                    fontsize=15,
+                    color="black"
+                )
+                ax1_right.annotate(
+                    f"{topsw_copy[idx][i]:.0f}x",
+                    (i + width * idx, topsw_in_list[idx][i]),
+                    textcoords="offset points",
+                    xytext=(0, 5),
+                    ha="center",
+                    fontsize=15,
+                    color="black"
+                )
 
-    # set the title
-    if title is not None:
-        ax[0].set_title(title)
-        ax[1].set_title(title)
     # set the x tick labels
     ax[0].set_xticks([i + width for i in x])
     ax[0].set_xticklabels(benchmark_name_in_list)
@@ -259,33 +187,37 @@ def plot_results_breakdown_in_bar_chart(
     if log_scale:
         ax[0].set_yscale("log")
         ax[1].set_yscale("log")
-        ax0_right.set_yscale("log")
-        ax1_right.set_yscale("log")
+        if not disable_right_axis:
+            ax0_right.set_yscale("log")
+            ax1_right.set_yscale("log")
 
     # increase x/y tick font size
     plt.setp(ax[0].get_xticklabels(), fontsize=15)
     plt.setp(ax[1].get_xticklabels(), fontsize=15)
     plt.setp(ax[0].get_yticklabels(), fontsize=15)
     plt.setp(ax[1].get_yticklabels(), fontsize=15)
-    plt.setp(ax0_right.get_yticklabels(), fontsize=15)
-    plt.setp(ax1_right.get_yticklabels(), fontsize=15)
+    if not disable_right_axis:
+        plt.setp(ax0_right.get_yticklabels(), fontsize=15)
+        plt.setp(ax1_right.get_yticklabels(), fontsize=15)
 
     # set the y range
-    ax[0].set_ylim(1e5, 1e11)
-    ax[1].set_ylim(1e5, 1e13)
-    ax0_right.set_ylim(1e-4, 1e3)
-    ax1_right.set_ylim(1e-3, 1e6)
+    ax[0].set_ylim(1e3, 1e11)
+    ax[1].set_ylim(1e4, 1e13)
+    if not disable_right_axis:
+        ax0_right.set_ylim(1e-4, 1e3)
+        ax1_right.set_ylim(1e-3, 1e6)
     # rotate the x ticklabels
     plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     # add grid and put grid below axis
-    # ax[0].grid()
-    # ax[0].set_axisbelow(True)
-    # ax[1].grid()
-    # ax[1].set_axisbelow(True)
+    ax[0].grid(which="both")
+    ax[0].set_axisbelow(True)
+    ax[1].grid(which="both")
+    ax[1].set_axisbelow(True)
     plt.tight_layout()
-    plt.savefig(f"./outputs/expr1_bd_{title}.png", dpi=300)
-    logging.warning(f"Saved breakdown figure to ./outputs/expr1_bd_{title}.png")
+    plt.savefig(f"./outputs/expr_2_{title}.png", dpi=300)
+    plt.savefig(f"./outputs/expr_2_{title}.svg", dpi=300)
+    logging.warning(f"Saved breakdown figure to ./outputs/expr_2_{title}.png")
 
 
 if __name__ == "__main__":
@@ -295,7 +227,7 @@ if __name__ == "__main__":
     workload_org = yaml.safe_load(open("./inputs/workload/mc_500.yaml", 'r'))
     mapping_org = yaml.safe_load(open("./inputs/mapping/sachi.yaml", 'r'))
     component_list = ["mac", "spin_updating", "sram", "dram"]
-    component_tag_list = ["MAC", "SU", "SRAM", "DRAM"]
+    component_tag_list = ["MAC", "L1", "L2", "DRAM"]
     # experiment: sweep different problem sizes and encoding methods
     pb_pool = [
         # pb_size, degree density, weight precision, with bias, problem specific weight
@@ -314,6 +246,8 @@ if __name__ == "__main__":
     # general settings
     sram_size_in_KB = 160
     num_macros = 16
+    d2 = 100
+    cim_depth = 80
 
 
     cycles_in_list = [[],[],[]]
@@ -333,6 +267,12 @@ if __name__ == "__main__":
             workload = copy.deepcopy(workload_org)
             mapping = copy.deepcopy(mapping_org)
             pb_size, aver_density, weight_shared_precision, with_bias, problem_specific_weight = pb_spec
+            if encoding == "coordinate":
+                bit_per_weight = weight_shared_precision + math.log2(pb_size)
+            elif encoding == "neighbor":
+                bit_per_weight = weight_shared_precision + 1
+            else:  # full-matrix
+                bit_per_weight = weight_shared_precision
             # setup workload and hw_model
             workload["loop_sizes"] = [pb_size, pb_size]
             workload["operand_precision"]["W"] = weight_shared_precision
@@ -343,7 +283,12 @@ if __name__ == "__main__":
             hw_model["operational_array"]["encoding"] = encoding
             hw_model["memories"]["sram_160KB"]["size"] = sram_size_in_KB * 1024 * 8  # in bits
             hw_model["memories"]["sram_160KB"]["area"] *= sram_size_in_KB / 160
-            hw_model["operational_array"]["sizes"] = [1, 100, num_macros]
+            hw_model["operational_array"]["sizes"] = [1, d2, num_macros]
+            hw_model["memories"]["cim_memory"]["bandwidth"] = d2 * bit_per_weight
+            hw_model["memories"]["cim_memory"]["size"] = cim_depth * hw_model["memories"]["cim_memory"]["bandwidth"]  # in bits
+            _, _, hw_model["memories"]["cim_memory"]["r_cost"], hw_model["memories"]["cim_memory"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
+                                                                            mem_type='sram', mem_size_in_byte=hw_model["memories"]["cim_memory"]["size"]/8,
+                                                                            bw=hw_model["memories"]["cim_memory"]["bandwidth"])
             # simulation
             cme = sachi_hw_model(hw_model, workload, mapping)
             # collect results
@@ -367,11 +312,12 @@ if __name__ == "__main__":
         energy_breakdown_in_list=energy_breakdown_in_list,
         label_in_list=label_in_list,
         benchmark_name_in_list=benchmark_name_in_list,
-        title=title,
+        title=f"expr_2_{title}",
         component_list=component_list,
         component_tag_list=component_tag_list,
         topsmm2_in_list=topsmm2_in_list,
         topsw_in_list=topsw_in_list,
-        log_scale=True
+        log_scale=True,
+        disable_right_axis=True,
     )
 
