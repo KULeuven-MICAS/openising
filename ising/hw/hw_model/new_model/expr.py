@@ -5,6 +5,84 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch, Rectangle
 import copy
+import math
+from get_cacti_cost import get_cacti_cost
+
+def plot_results_in_bar_chart(
+    cycles_in_list: list,
+    label_in_list: list,
+    benchmark_name_in_list: list,
+    energy_in_list: list,
+    title: str | None = None,
+    component_list: list = [],
+    component_tag_list: list = [],
+    cycles_breakdown_in_list: list = [],
+    energy_breakdown_in_list: list = [],
+    log_scale: bool = True
+    ):
+    """
+    plot the results in bar chart
+    :param cycles_in_list: cycles [ns] in list, each element is a list
+    :param label_in_list: label for each data
+    :param benchmark_name_in_list: benchmark name shown on x axis
+    :param energy_in_list: energy [pJ] in list, each element is a list
+    :param title: figure title
+    :param component_list: list of components for breakdown [not used here]
+    :param component_tag_list: list of component tags for breakdown [not used here]
+    :param cycles_breakdown_in_list: cycles breakdown [ns] in list, each element is a list [not used here]
+    :param energy_breakdown_in_list: energy breakdown [pJ] in list, each element is a list [not used here]
+    :param log_scale: whether to use log scale for y axis
+    """
+    colors = [
+        '#4cccc5',
+        '#f7de6e',
+        '#fc9f79',
+        '#97d2c2'
+    ]
+    # plotting the results
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+
+    x = list(range(len(cycles_in_list[0])))
+    width = 0.15
+    for idx in range(len(cycles_in_list)):
+        ax[0].bar(
+        [i + width * idx for i in x], cycles_in_list[idx], width, label=label_in_list[idx], color=colors[idx], edgecolor="black"
+        )
+        ax[1].bar(
+        [i + width * idx for i in x], energy_in_list[idx], width, label=label_in_list[idx], color=colors[idx], edgecolor="black"
+        )
+    # set the x, y label
+    ax[0].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[0].set_ylabel("Cycles to Solution [cc]", fontsize=15, weight="normal")
+    ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=15, weight="normal")
+    # set the title
+    if title is not None:
+        ax[0].set_title(title)
+        ax[1].set_title(title)
+    # set the x tick labels
+    ax[0].set_xticks([i + width / 2 for i in x])
+    ax[0].set_xticklabels(benchmark_name_in_list)
+    ax[1].set_xticks([i + width / 2 for i in x])
+    ax[1].set_xticklabels(benchmark_name_in_list)
+    # set the legend
+    ax[0].legend()
+    ax[1].legend()
+    # set the y scale to log scale
+    if log_scale:
+        ax[0].set_yscale("log")
+        ax[1].set_yscale("log")
+    # rotate the x ticklabels
+    plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    # add grid and put grid below axis
+    ax[0].grid()
+    ax[0].set_axisbelow(True)
+    ax[1].grid()
+    ax[1].set_axisbelow(True)
+    plt.tight_layout()
+    plt.savefig(f"./outputs/expr1_{title}.png", dpi=300)
+    logging.warning(f"Saved breakdown figure to ./outputs/expr1_{title}.png")
 
 def plot_results_breakdown_in_bar_chart(
     cycles_breakdown_in_list: list,
@@ -136,20 +214,22 @@ if __name__ == "__main__":
     workload_org = yaml.safe_load(open("./inputs/workload/mc_500.yaml", 'r'))
     mapping_org = yaml.safe_load(open("./inputs/mapping/sachi.yaml", 'r'))
     component_list = ["mac", "spin_updating", "sram", "dram"]
-    component_tag_list = ["MAC", "SU", "SRAM", "DRAM"]
+    component_tag_list = ["MAC", "CIM", "SRAM", "DRAM"]
     # experiment: sweep different problem sizes and encoding methods
-    pb_size_pool = [100, 400, 800, 2000, 4000]
+    pb_size_pool = [8000]
     label_in_list = ["coordinate", "neighbor", "full-matrix"]
     benchmark_name_in_list = [f"{pb_size}" for pb_size in pb_size_pool]
 
     # general settings
     weight_shared_precision = 16
-    with_bias = False
+    with_bias = True
     problem_specific_weight = True
-    sram_size_in_KB = 160
-    num_macros = 16
+    sram_size_in_KB = 1
+    d2 = 100
+    num_macros = 64
+    cim_depth = 320
 
-    for aver_density in [0.015]:
+    for aver_density in [2*((8000**0.5)-1)/7999]:
         cycles_in_list = [[],[],[]]
         energy_in_list = [[],[],[]]
         cycle_breakdown_in_list = [[],[],[]]
@@ -174,8 +254,21 @@ if __name__ == "__main__":
                 workload["problem_specific_weight"] = problem_specific_weight
                 hw_model["operational_array"]["encoding"] = encoding
                 hw_model["memories"]["sram_160KB"]["size"] = sram_size_in_KB * 1024 * 8  # in bits
-                hw_model["memories"]["sram_160KB"]["area"] *= sram_size_in_KB / 160
-                hw_model["operational_array"]["sizes"] = [1, 100, num_macros]
+                _, hw_model["memories"]["sram_160KB"]["area"], hw_model["memories"]["sram_160KB"]["r_cost"], hw_model["memories"]["sram_160KB"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
+                                                                    mem_type='sram', mem_size_in_byte=hw_model["memories"]["sram_160KB"]["size"]/8,
+                                                                    bw=hw_model["memories"]["sram_160KB"]["bandwidth"])
+                hw_model["operational_array"]["sizes"] = [1, d2, num_macros]
+                if encoding == "coordinate":
+                    bit_per_weight = weight_shared_precision + math.log2(pb_size)
+                elif encoding == "neighbor":
+                    bit_per_weight = weight_shared_precision + 1
+                else:  # full-matrix
+                    bit_per_weight = weight_shared_precision
+                hw_model["memories"]["cim_memory"]["bandwidth"] = d2 * bit_per_weight
+                hw_model["memories"]["cim_memory"]["size"] = cim_depth * hw_model["memories"]["cim_memory"]["bandwidth"]  # in bits
+                _, hw_model["memories"]["cim_memory"]["area"], hw_model["memories"]["cim_memory"]["r_cost"], hw_model["memories"]["cim_memory"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
+                                                                            mem_type='sram', mem_size_in_byte=hw_model["memories"]["cim_memory"]["size"]/8,
+                                                                            bw=hw_model["memories"]["cim_memory"]["bandwidth"])
                 # simulation
                 cme = sachi_hw_model(hw_model, workload, mapping)
                 # collect results
