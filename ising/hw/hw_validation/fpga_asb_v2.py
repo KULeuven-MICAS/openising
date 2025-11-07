@@ -259,7 +259,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging_level, format=logging_format)
     plot_results_in_bar_chart_with_breakdown(
         validation_to_fpga_asb_v2(),
-        output_file="output/fpga_asb_v2.png",
+        output_file="outputs/fpga_asb_v2.png",
         text_type="absolute",
         with_latency_breakdown=True,
         latency_normalize=False
