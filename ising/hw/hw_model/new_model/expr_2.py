@@ -6,7 +6,109 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch, Rectangle
 import copy
 import math
+import tqdm
 from get_cacti_cost import get_cacti_cost
+
+def plot_perf_ratio_in_curve(
+    latency_mismatch_in_list: list,
+    energy_mismatch_in_list: list,
+    targeted_annotation_idx: int,
+    benchmark_name_in_list: list,
+    title: str | None = None,
+    log_scale: bool = True,
+    ):
+    """
+    plot the performance ratio in curve
+    :param latency_mismatch_in_list: latency mismatch [%] in list, each element is a list
+    :param energy_mismatch_in_list: energy mismatch [%] in list, each element is a list
+    :param targeted_annotation_idx: only annotate the data at this index
+    :param benchmark_name_in_list: label for each data
+    :param title: figure title
+    :param log_scale: whether to use log scale for y axis
+    """
+    # plotting the results
+    fig, ax = plt.subplots(1, 2, figsize=(15, 3))
+
+    x = list(range(len(latency_mismatch_in_list[0])))
+    markers = ["o", "s", "D", "^", "v", "<", ">", "p"]
+    for idx in range(len(latency_mismatch_in_list)):
+        ax[0].plot(
+            [i for i in x],
+            latency_mismatch_in_list[idx],
+            marker=markers[idx],
+            label=label_in_list[idx],
+            markersize=15,
+            markeredgecolor="white",
+            markeredgewidth=1.5,
+        )
+        ax[1].plot(
+            [i for i in x],
+            energy_mismatch_in_list[idx],
+            marker=markers[idx],
+            label=label_in_list[idx],
+            markersize=15,
+            markeredgecolor="white",
+            markeredgewidth=1.5,
+        )
+        # if idx == targeted_annotation_idx:
+        if True:
+            # add annotation for each point
+            for i in range(len(x)):
+                ax[0].annotate(
+                    f"{latency_mismatch_in_list[idx][i]:.0f}x",
+                    (i, latency_mismatch_in_list[idx][i]),
+                    textcoords="offset points",
+                    xytext=(0, 5),
+                    ha="center",
+                    fontsize=12,
+                    color="black"
+                )
+                ax[1].annotate(
+                    f"{energy_mismatch_in_list[idx][i]:.0f}x",
+                    (i, energy_mismatch_in_list[idx][i]),
+                    textcoords="offset points",
+                    xytext=(0, 5),
+                    ha="center",
+                    fontsize=12,
+                    color="black"
+                )
+
+    # set the x tick labels
+    ax[0].set_xticks([i for i in x])
+    ax[0].set_xticklabels(benchmark_name_in_list)
+    ax[1].set_xticks([i for i in x])
+    ax[1].set_xticklabels(benchmark_name_in_list)
+
+    # set the y scale to log scale
+    if log_scale:
+        ax[0].set_yscale("log")
+        ax[1].set_yscale("log")
+
+    # increase x/y tick font size
+    plt.setp(ax[0].get_xticklabels(), fontsize=15)
+    plt.setp(ax[0].get_yticklabels(), fontsize=15)
+    plt.setp(ax[1].get_xticklabels(), fontsize=15)
+    plt.setp(ax[1].get_yticklabels(), fontsize=15)
+
+    # add the x, y labels
+    ax[0].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[0].set_ylabel("System/Macro\nLatency Ratio", fontsize=15, weight="normal")
+    ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
+    ax[1].set_ylabel("System/Macro\nEnergy Ratio", fontsize=15, weight="normal")
+
+    # add legend
+    ax[0].legend(fontsize=15, loc="upper right")
+    ax[1].legend(fontsize=15, loc="upper right")
+
+    # add grid and put grid below axis
+    ax[0].grid(which="both")
+    ax[0].set_axisbelow(True)
+    ax[1].grid(which="both")
+    ax[1].set_axisbelow(True)
+    plt.tight_layout()
+    plt.savefig(f"./outputs/expr_2_perf_ratio_{title}.png", dpi=300)
+    plt.savefig(f"./outputs/expr_2_perf_ratio_{title}.svg", dpi=300)
+    logging.warning(f"Saved performance ratio figure to ./outputs/expr_2_perf_ratio_{title}.png")
 
 def plot_results_breakdown_in_bar_chart(
     cycles_breakdown_in_list: list,
@@ -22,6 +124,7 @@ def plot_results_breakdown_in_bar_chart(
     topsmm2_in_list: list = [],
     topsw_in_list: list = [],
     disable_right_axis: bool = False,
+    showing_legend: bool = True,
     ):
     """
     plot the results breakdown in bar chart
@@ -38,6 +141,7 @@ def plot_results_breakdown_in_bar_chart(
     :param topsmm2_in_list: list of TOPS (MM2) for each data
     :param topsw_in_list: list of TOPS (W) for each data
     :param disable_right_axis: whether to disable the right y axis
+    :param showing_legend: whether to show the legend
     """
     colors = {
         "mac": '#45B7D1',  # MAC (MACs)
@@ -161,28 +265,31 @@ def plot_results_breakdown_in_bar_chart(
     ax[0].set_xticklabels(benchmark_name_in_list)
     ax[1].set_xticks([i + width for i in x])
     ax[1].set_xticklabels(benchmark_name_in_list)
-    # create custom legend handles: one for component colors and one for encoding hatch styles
-    comp_labels = component_tag_list if component_tag_list else component_list
-    # color handles (components)
-    color_handles = [Patch(facecolor=colors[comp], edgecolor='black', label=comp_labels[idx])
-                     for idx, comp in enumerate(component_list)]
-    # hatch handles (encodings / labels)
-    hatch_handles = []
-    for idx, lab in enumerate(label_in_list):
-        h = hatchs[idx % len(hatchs)]
-        # Rectangle with hatch to show hatch style; use white facecolor so hatch is visible
-        hatch_handles.append(Rectangle((0, 0), 1, 1, facecolor='white', edgecolor='black', hatch=h, label=lab))
 
-    # Add legends to the left subplot (ax[0]). Use two separate legend objects.
-    legend_comp = ax[0].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1), fontsize=15, title_fontsize=15, ncol=2)
-    ax[0].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
-    # keep the first legend visible
-    ax[0].add_artist(legend_comp)
+    if showing_legend:
+        # create custom legend handles: one for component colors and one for encoding hatch styles
+        comp_labels = component_tag_list if component_tag_list else component_list
+        # color handles (components)
+        color_handles = [Patch(facecolor=colors[comp], edgecolor='black', label=comp_labels[idx])
+                        for idx, comp in enumerate(component_list)]
+        # hatch handles (encodings / labels)
+        hatch_handles = []
+        for idx, lab in enumerate(label_in_list):
+            h = hatchs[idx % len(hatchs)]
+            # Rectangle with hatch to show hatch style; use white facecolor so hatch is visible
+            hatch_handles.append(Rectangle((0, 0), 1, 1, facecolor='white', edgecolor='black', hatch=h, label=lab))
 
-    # Mirror legends on the right subplot (ax[1]) for consistency
-    legend_comp_r = ax[1].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1), fontsize=15, title_fontsize=15, ncol=2)
-    ax[1].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
-    ax[1].add_artist(legend_comp_r)
+        # Add legends to the left subplot (ax[0]). Use two separate legend objects.
+        legend_comp = ax[0].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1), fontsize=15, title_fontsize=15, ncol=2)
+        ax[0].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
+        # keep the first legend visible
+        ax[0].add_artist(legend_comp)
+
+        # Mirror legends on the right subplot (ax[1]) for consistency
+        legend_comp_r = ax[1].legend(handles=color_handles, title='Component', loc='upper left', bbox_to_anchor=(0, 1), fontsize=15, title_fontsize=15, ncol=2)
+        ax[1].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
+        ax[1].add_artist(legend_comp_r)
+
     # set the y scale to log scale
     if log_scale:
         ax[0].set_yscale("log")
@@ -203,12 +310,11 @@ def plot_results_breakdown_in_bar_chart(
     # set the y range
     ax[0].set_ylim(1e3, 1e11)
     ax[1].set_ylim(1e4, 1e13)
-    if not disable_right_axis:
-        ax0_right.set_ylim(1e-4, 1e3)
-        ax1_right.set_ylim(1e-3, 1e6)
+
     # rotate the x ticklabels
-    plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-    plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    # plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    # plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
     # add grid and put grid below axis
     ax[0].grid(which="both")
     ax[0].set_axisbelow(True)
@@ -238,7 +344,7 @@ if __name__ == "__main__":
         [200, 28/100, 3, True, False], # Sudoku
         [729, 28/729, 3, True, False], # Sudoku
         [64, 1, 16, True, False], # MIMO
-        [200, 1, 16, True, False], # MIMO
+        [256, 1, 16, True, False], # MIMO
     ]
     label_in_list = ["coordinate", "neighbor", "full-matrix"]
     benchmark_name_in_list = [f"{pb_spec[0]}" for pb_spec in pb_pool]
@@ -258,8 +364,10 @@ if __name__ == "__main__":
     tops_in_list = [[],[],[]]
     topsw_in_list = [[],[],[]]
     topsmm2_in_list = [[],[],[]]
-    mismatch_in_list = [[], [], []]
+    latency_mismatch_in_list = [[], [], []]
+    energy_mismatch_in_list = [[], [], []]
     title = f"encoding_comparison"
+    pbar = tqdm.tqdm(total=len(pb_pool)*len(label_in_list))
     for pb_spec in pb_pool:
         for encoding_idx in range(len(label_in_list)):
             encoding = label_in_list[encoding_idx]
@@ -289,6 +397,16 @@ if __name__ == "__main__":
             _, _, hw_model["memories"]["cim_memory"]["r_cost"], hw_model["memories"]["cim_memory"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
                                                                             mem_type='sram', mem_size_in_byte=hw_model["memories"]["cim_memory"]["size"]/8,
                                                                             bw=hw_model["memories"]["cim_memory"]["bandwidth"])
+            # linearly scale the mac/add/compare energy according to weight precision, linearly is because it is 1-bit*n-bit a mac logic
+            hw_model["operational_array"]["mac_energy"] = hw_model["operational_array"]["mac_energy"] / 8 * weight_shared_precision
+            hw_model["operational_array"]["add_energy"] = hw_model["operational_array"]["add_energy"] / 8 * weight_shared_precision
+            hw_model["operational_array"]["compare_energy"] = hw_model["operational_array"]["compare_energy"] / 8 * weight_shared_precision
+            if encoding == "full-matrix":
+                # full-matrix has 0.24x energy due to no decoding, the ratio is extracted from PRIM-CAEFA paper, Fig. 7
+                hw_model["operational_array"]["mac_energy"] *= 0.24
+                hw_model["operational_array"]["add_energy"] *= 0.24
+                hw_model["operational_array"]["compare_energy"] *= 0.24
+                hw_model["operational_array"]["mac_area"] *= 0.24
             # simulation
             cme = sachi_hw_model(hw_model, workload, mapping)
             # collect results
@@ -302,8 +420,12 @@ if __name__ == "__main__":
             tops_in_list[encoding_idx].append(cme["tops"])
             topsw_in_list[encoding_idx].append(cme["topsw"])
             topsmm2_in_list[encoding_idx].append(cme["topsmm2"])
-            mismatch = cycles_to_solution / cme["latency_breakdown_plot"]["mac"]
-            mismatch_in_list[encoding_idx].append(mismatch)
+            latency_mismatch = cycles_to_solution / cme["latency_breakdown_plot"]["mac"]
+            latency_mismatch_in_list[encoding_idx].append(latency_mismatch)
+            energy_mismatch = energy_to_solution / cme["energy_breakdown_plot"]["mac"]
+            energy_mismatch_in_list[encoding_idx].append(energy_mismatch)
+            pbar.update(1)
+    pbar.close()
     # plot the results
     plot_results_breakdown_in_bar_chart(
         cycles_in_list=cycles_in_list,
@@ -312,12 +434,21 @@ if __name__ == "__main__":
         energy_breakdown_in_list=energy_breakdown_in_list,
         label_in_list=label_in_list,
         benchmark_name_in_list=benchmark_name_in_list,
-        title=f"expr_2_{title}",
+        title=f"{title}",
         component_list=component_list,
         component_tag_list=component_tag_list,
         topsmm2_in_list=topsmm2_in_list,
         topsw_in_list=topsw_in_list,
         log_scale=True,
         disable_right_axis=True,
+        showing_legend=False,
+    )
+    plot_perf_ratio_in_curve(
+        latency_mismatch_in_list=latency_mismatch_in_list,
+        energy_mismatch_in_list=energy_mismatch_in_list,
+        targeted_annotation_idx=1, # only annotate neighbor encoding
+        benchmark_name_in_list=benchmark_name_in_list,
+        title=f"{title}",
+        log_scale=False,
     )
 
