@@ -206,6 +206,7 @@ def plot_results_in_bar_chart_with_breakdown(
     with_latency_breakdown: bool = False,
     latency_normalize: bool = True,
     with_energy_breakdown: bool = False,
+    log_scale: bool = True,
 ):
     """
     plot the modeling results in bar chart
@@ -215,6 +216,7 @@ def plot_results_in_bar_chart_with_breakdown(
     :param with_latency_breakdown: whether to include latency breakdown in the bar chart
     :param latency_normalize: whether to normalize the latency to the minimum reported value
     :param with_energy_breakdown: whether to include energy breakdown in the bar chart
+    :param log_scale: whether to use log scale for the y-axis
     """
     assert text_type in ["absolute", "relative"]
     colors = {
@@ -454,8 +456,9 @@ def plot_results_in_bar_chart_with_breakdown(
     #         )
 
     # set the y scale to log scale
-    ax[0].set_yscale("log")
-    ax[1].set_yscale("log")
+    if log_scale:
+        ax[0].set_yscale("log")
+        ax[1].set_yscale("log")
     # rotate the x ticklabels
     plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")

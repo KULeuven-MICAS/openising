@@ -179,5 +179,5 @@ if __name__ == "__main__":
     logging_level = logging.INFO  # logging level
     logging_format = "%(asctime)s - %(funcName)s +%(lineno)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging_level, format=logging_format)
-    plot_results_in_bar_chart_with_breakdown(benchmark_dict=validation_to_prim_caefa(), output_file="output/PRIM-CAEFA.svg", text_type="absolute",
-                                             with_latency_breakdown=True, latency_normalize=True)
+    plot_results_in_bar_chart_with_breakdown(benchmark_dict=validation_to_prim_caefa(), output_file="outputs/PRIM-CAEFA.svg", text_type="absolute",
+                                             with_latency_breakdown=True, latency_normalize=True, log_scale=False)

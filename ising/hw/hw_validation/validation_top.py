@@ -29,7 +29,8 @@ if __name__ == "__main__":
             benchmark_dict = validation_to_sachi()
             plot_results_in_bar_chart_with_breakdown(
                 benchmark_dict, output_file="outputs/sachi.svg", text_type="absolute",
-                latency_normalize=False
+                latency_normalize=False,
+                log_scale=True,
             )
         elif validation == "prim_caefa":
             benchmark_dict = validation_to_prim_caefa()
@@ -38,7 +39,8 @@ if __name__ == "__main__":
                 output_file="outputs/prim_caefa.svg",
                 text_type="relative",
                 with_latency_breakdown=True,
-                latency_normalize=True
+                latency_normalize=True,
+                log_scale=False,
             )
         elif validation == "fpga_asb_v2":
             benchmark_dict = validation_to_fpga_asb_v2()
@@ -47,7 +49,8 @@ if __name__ == "__main__":
                 output_file="outputs/fpga_asb_v2.svg",
                 text_type="absolute",
                 with_latency_breakdown=True,
-                latency_normalize=False
+                latency_normalize=False,
+                log_scale=True,
             )
         elif validation == "fpga_asb_v1":
             benchmark_dict = validation_to_fpga_asb()
@@ -56,7 +59,8 @@ if __name__ == "__main__":
                 output_file="outputs/fpga_asb_v1.svg",
                 text_type="absolute",
                 with_latency_breakdown=True,
-                latency_normalize=False
+                latency_normalize=False,
+                log_scale=True,
             )
         else:
             raise ValueError(f"Unknown validation method: {validation}")
