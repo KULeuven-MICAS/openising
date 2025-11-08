@@ -72,8 +72,6 @@ def sachi_hw_model(
         for dim, size in hw_dim_sizes.items():
             if dim not in served_dims:
                 repeat_count *= size
-                if dim == "D3" and encoding_scheme == "neighbor":
-                    repeat_count = repeat_count * 2  # this dim is halved beforehand in neighbor encoding
         area_collect[component] = spec["area"] * repeat_count
     area_collect["mac"] = hw_model["operational_array"]["mac_area"] * mac_count
     if workload.get("with_bias", False):
@@ -119,8 +117,8 @@ def sachi_hw_model(
             parfor_hw[dim_hw] = allowed_parfor_by_memory
 
     # finalize the parfor sizes
-    for dim_hw in parfor_hw.keys():
-        parfor_hw[dim_hw] = int(parfor_hw[dim_hw])
+    # for dim_hw in parfor_hw.keys():
+    #     parfor_hw[dim_hw] = int(parfor_hw[dim_hw])
 
     for d in spatial_mapping_hint.keys():        
         for key in parfor_sw.keys():
@@ -466,14 +464,20 @@ def sachi_hw_model(
         energy_dram_wo_onloading = 0
     energy_system_breakdown_plot = {
         "mac": energy_system_breakdown["computation"],
-        "spin_updating": energy_system_breakdown["spin_updating"],
-        "sram": energy_system_breakdown["memory"] - energy_dram_wo_onloading,
+        "spin_updating": energy_system_breakdown["spin_updating"], # L1 SRAM (just labeled as spin_updating here)
+        "sram": energy_system_breakdown["memory"] - energy_dram_wo_onloading, # L2 SRAM
         "dram": energy_dram_wo_onloading + energy_system_breakdown["on_loading"],
     }
+    area_breakdown_plot = {
+        "mac": area_collect["mac"] + area_collect["add"] + area_collect["compare"],
+        "spin_updating": area_collect["cim_memory"],
+        "sram": area_collect["sram_160KB"],
+    } # h reg and output reg are not included due to small area
 
     cme = {
         "req_sram_size_bit": req_sram_size,
         "total_area_mm2": total_area,
+        "area_breakdown_plot": area_breakdown_plot,
         "time_to_solution": time_to_solution,
         "cycles_to_solution": latency_system,
         "energy_to_solution": energy_to_solution,
@@ -496,6 +500,7 @@ def sachi_hw_model(
         "workload": workload,
         "hw_model": hw_model,
         "mapping": mapping,
+        "encoding_scheme": encoding_scheme,
     }
 
     return cme
