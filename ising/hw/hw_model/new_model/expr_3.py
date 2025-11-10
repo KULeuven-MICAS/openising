@@ -51,7 +51,7 @@ def plot_perf_ratio_in_curve(
             markeredgewidth=1.5,
         )
         # if idx == targeted_annotation_idx:
-        if True:
+        if False:
             # add annotation for each point
             for i in range(len(x)):
                 ax[0].annotate(
@@ -158,7 +158,7 @@ def plot_results_breakdown_in_bar_chart(
     fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
     x = list(range(len(cycles_breakdown_in_list[0])))
-    width = 0.1
+    width = 0.125
     for idx in range(len(cycles_breakdown_in_list)):
         details = cycles_breakdown_in_list[idx]
         base = np.zeros(len(details))
@@ -170,7 +170,7 @@ def plot_results_breakdown_in_bar_chart(
             breakdown = [case[component] for case in details]
             
             ax[0].bar(
-                [i + width * idx for i in x], breakdown, bottom=base, width=width, color=colors[component], edgecolor="black", hatch=hatchs[idx]
+                [i + width * idx for i in x], breakdown, bottom=base, width=width, color=colors[component], edgecolor="black",
             )
             base += breakdown
 
@@ -184,7 +184,7 @@ def plot_results_breakdown_in_bar_chart(
                     case[component] = 0
             breakdown = [case[component] for case in details]
             ax[1].bar(
-                [i + width * idx for i in x], breakdown, bottom=base, width=width, color=colors[component], edgecolor="black", hatch=hatchs[idx]
+                [i + width * idx for i in x], breakdown, bottom=base, width=width, color=colors[component], edgecolor="black",
             )
             base += breakdown
 
@@ -198,9 +198,24 @@ def plot_results_breakdown_in_bar_chart(
                     case[component] = 0
             breakdown = [case[component] for case in details]
             ax[2].bar(
-                [i + width * idx for i in x], breakdown, bottom=base, width=width, color=colors[component], edgecolor="black", hatch=hatchs[idx]
+                [i + width * idx for i in x], breakdown, bottom=base, width=width, color=colors[component], edgecolor="black",
             )
             base += breakdown
+
+    # area_x = list(range(len(label_in_list)))
+    # base = np.zeros(len(label_in_list))
+    # for idx in range(len(component_list)):
+    #     component = component_list[idx]
+    #     if component == "dram":
+    #         continue  # skip DRAM for area breakdown
+    #     try:
+    #         breakdown = [case[0][component] for case in area_breakdown_in_list]
+    #     except KeyError:
+    #         breakpoint()
+    #     ax[2].bar(
+    #             area_x, breakdown, bottom=base, width=0.5, color=colors[component], edgecolor="black", label=component_tag_list[component_idx]
+    #         )
+    #     base += breakdown
 
     if not disable_right_axis:
         # plot the topsmm2 and topsw on the right y axis
@@ -229,7 +244,7 @@ def plot_results_breakdown_in_bar_chart(
     ax[1].set_xlabel("Problem Size", fontsize=15, weight="normal")
     ax[1].set_ylabel("Energy to Solution [pJ]", fontsize=15, weight="normal")
     ax[2].set_xlabel("Problem Size", fontsize=15, weight="normal")
-    ax[2].set_ylabel("Accelerator Area [mm$^2$]", fontsize=15, weight="normal")
+    ax[2].set_ylabel("Area [mm$^2$]", fontsize=15, weight="normal")
     if not disable_right_axis:
         ax0_right.set_ylabel("TOP/s/mm$^2$", fontsize=15, weight="normal", color="#B32828")
         ax1_right.set_ylabel("TOP/s/W", fontsize=15, weight="normal", color="#B32828")
@@ -279,11 +294,13 @@ def plot_results_breakdown_in_bar_chart(
                 )
 
     # set the x tick labels
-    ax[0].set_xticks([i + width for i in x])
+    ax[0].set_xticks([i + width * (len(cycles_breakdown_in_list)-1)/2 for i in x])
     ax[0].set_xticklabels(benchmark_name_in_list)
-    ax[1].set_xticks([i + width for i in x])
+    ax[1].set_xticks([i + width * (len(cycles_breakdown_in_list)-1)/2 for i in x])
     ax[1].set_xticklabels(benchmark_name_in_list)
-    ax[2].set_xticks([i + width for i in x])
+    # ax[2].set_xticks([i for i in area_x])
+    # ax[2].set_xticklabels([label[5:] for label in label_in_list])
+    ax[2].set_xticks([i + width * (len(cycles_breakdown_in_list)-1)/2 for i in x])
     ax[2].set_xticklabels(benchmark_name_in_list)
 
     if showing_legend:
@@ -310,11 +327,14 @@ def plot_results_breakdown_in_bar_chart(
         ax[1].legend(handles=hatch_handles, title='Encoding', loc='upper right', bbox_to_anchor=(1, 1), fontsize=15, title_fontsize=15)
         ax[1].add_artist(legend_comp_r)
 
+        # add legends to the area subplot (ax[2])
+        ax[2].legend(handles=color_handles, title='Component', loc='upper right', fontsize=15, title_fontsize=15, ncol=2)
+
     # set the y scale to log scale
     if log_scale:
         ax[0].set_yscale("log")
         ax[1].set_yscale("log")
-        ax[2].set_yscale("log")
+        # ax[2].set_yscale("log")
         if not disable_right_axis:
             ax0_right.set_yscale("log")
             ax1_right.set_yscale("log")
@@ -332,17 +352,21 @@ def plot_results_breakdown_in_bar_chart(
 
     # set the y range
     # ax[0].set_ylim(1e3, 1e11)
-    # ax[1].set_ylim(1e4, 1e13)
+    ax[1].set_ylim(1e4, 1e12)
+    ax[2].set_ylim(0, 12)
 
     # rotate the x ticklabels
-    # plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-    # plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    plt.setp(ax[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    plt.setp(ax[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    plt.setp(ax[2].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     # add grid and put grid below axis
     ax[0].grid(which="both")
     ax[0].set_axisbelow(True)
     ax[1].grid(which="both")
     ax[1].set_axisbelow(True)
+    ax[2].grid(which="both")
+    ax[2].set_axisbelow(True)
     plt.tight_layout()
     plt.savefig(f"./outputs/expr_3_{title}.png", dpi=300)
     plt.savefig(f"./outputs/expr_3_{title}.svg", dpi=300)
@@ -361,17 +385,17 @@ if __name__ == "__main__":
     pb_pool = [
         # pb_size, degree density, weight precision, with bias, problem specific weight
         [200, 0.015, 1, False, True], # MaxCut
-        # [4000, 0.015, 1, False, True], # MaxCut
+        [4000, 0.015, 1, False, True], # MaxCut
         [200, 2*((200**0.5)-1)/199, 16, True, True], # TSP
-        # [8000, 2*((8000**0.5)-1)/7999, 16, True, True], # TSP
+        [8000, 2*((8000**0.5)-1)/7999, 16, True, True], # TSP
         [200, 28/100, 3, True, False], # Sudoku
         [729, 28/729, 3, True, False], # Sudoku
         [64, 1, 16, True, False], # MIMO
         [256, 1, 16, True, False], # MIMO
     ]
     benchmark_name_in_list = [f"{pb_spec[0]}" for pb_spec in pb_pool]
-    d2_in_list = [1, 2, 8, 32, 64, 100, 256, 512]
-    # d2_in_list = [64, 100, 256]
+    d2_in_list = [1, 8, 32, 64, 100, 256, 512]
+    # d2_in_list = [100, 256]
     
     # general settings
     sram_size_in_KB = 160
@@ -390,6 +414,9 @@ if __name__ == "__main__":
     tops_in_list = [[] for _ in range(len(d2_in_list))]
     topsw_in_list = [[] for _ in range(len(d2_in_list))]
     topsmm2_in_list = [[] for _ in range(len(d2_in_list))]
+    tops_macro_in_list = [[] for _ in range(len(d2_in_list))]
+    topsw_macro_in_list = [[] for _ in range(len(d2_in_list))]
+    topsmm2_macro_in_list = [[] for _ in range(len(d2_in_list))]
     latency_mismatch_in_list = [[] for _ in range(len(d2_in_list))]
     energy_mismatch_in_list = [[] for _ in range(len(d2_in_list))]
     title = f"MAC_experiment_{encoding}_encoding"
@@ -414,15 +441,19 @@ if __name__ == "__main__":
             workload["average_degree"] = aver_density * pb_size
             workload["with_bias"] = with_bias
             workload["problem_specific_weight"] = problem_specific_weight
-            hw_model["operational_array"]["encoding"] = encoding
             hw_model["memories"]["sram_160KB"]["size"] = sram_size_in_KB * 1024 * 8  # in bits
-            hw_model["memories"]["sram_160KB"]["area"] *= sram_size_in_KB / 160
-            hw_model["operational_array"]["sizes"] = [1, d2, num_macros]
+            _, hw_model["memories"]["sram_160KB"]["area"], hw_model["memories"]["sram_160KB"]["r_cost"], hw_model["memories"]["sram_160KB"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
+                                                                            mem_type='sram', mem_size_in_byte=sram_size_in_KB * 1024,
+                                                                            bw=hw_model["memories"]["sram_160KB"]["bandwidth"])
+
+            # hw_model["memories"]["cim_memory"]["bandwidth"] = 1024
             hw_model["memories"]["cim_memory"]["bandwidth"] = d2 * bit_per_weight
             hw_model["memories"]["cim_memory"]["size"] = cim_depth * hw_model["memories"]["cim_memory"]["bandwidth"]  # in bits
-            _, _, hw_model["memories"]["cim_memory"]["r_cost"], hw_model["memories"]["cim_memory"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
+            _, hw_model["memories"]["cim_memory"]["area"], hw_model["memories"]["cim_memory"]["r_cost"], hw_model["memories"]["cim_memory"]["w_cost"] = get_cacti_cost(cacti_path='./cacti/cacti_master', tech_node=0.028,
                                                                             mem_type='sram', mem_size_in_byte=hw_model["memories"]["cim_memory"]["size"]/8,
                                                                             bw=hw_model["memories"]["cim_memory"]["bandwidth"])
+            hw_model["operational_array"]["encoding"] = encoding
+            hw_model["operational_array"]["sizes"] = [1, d2, num_macros]
             # linearly scale the mac/add/compare energy according to weight precision, linearly is because it is 1-bit*n-bit a mac logic
             hw_model["operational_array"]["mac_energy"] = hw_model["operational_array"]["mac_energy"] / 8 * weight_shared_precision
             hw_model["operational_array"]["add_energy"] = hw_model["operational_array"]["add_energy"] / 8 * weight_shared_precision
@@ -442,11 +473,15 @@ if __name__ == "__main__":
             energy_in_list[d2_idx].append(energy_to_solution)
             cycle_breakdown_in_list[d2_idx].append(cme["latency_breakdown_plot"])
             energy_breakdown_in_list[d2_idx].append(cme["energy_breakdown_plot"])
-            area_breakdown_in_list[d2_idx].append(cme["area_breakdown"])
+            area_breakdown_in_list[d2_idx].append(cme["area_breakdown_plot"])
             req_sram_size_in_list[d2_idx].append(cme["req_sram_size_bit"]/8/1024)  # in KB
             tops_in_list[d2_idx].append(cme["tops"])
             topsw_in_list[d2_idx].append(cme["topsw"])
             topsmm2_in_list[d2_idx].append(cme["topsmm2"])
+            tops_macro_in_list[d2_idx].append(cme["tops_macro"])
+            topsw_macro_in_list[d2_idx].append(cme["topsw_macro"])
+            topsmm2_macro_in_list[d2_idx].append(cme["topsmm2_macro"])
+            # calculate the latency and energy mismatch compared to macro level
             latency_mismatch = cycles_to_solution / cme["latency_breakdown_plot"]["mac"]
             latency_mismatch_in_list[d2_idx].append(latency_mismatch)
             energy_mismatch = energy_to_solution / cme["energy_breakdown_plot"]["mac"]
@@ -469,14 +504,14 @@ if __name__ == "__main__":
         topsw_in_list=topsw_in_list,
         log_scale=True,
         disable_right_axis=True,
-        showing_legend=True,
+        showing_legend=False,
     )
-    # plot_perf_ratio_in_curve(
-    #     latency_mismatch_in_list=latency_mismatch_in_list,
-    #     energy_mismatch_in_list=energy_mismatch_in_list,
-    #     targeted_annotation_idx=1, # only annotate neighbor encoding
-    #     benchmark_name_in_list=benchmark_name_in_list,
-    #     title=f"{title}",
-    #     log_scale=False,
-    # )
+    plot_perf_ratio_in_curve(
+        latency_mismatch_in_list=topsmm2_in_list,
+        energy_mismatch_in_list=topsw_in_list,
+        targeted_annotation_idx=1, # only annotate neighbor encoding
+        benchmark_name_in_list=benchmark_name_in_list,
+        title=f"{title}",
+        log_scale=True,
+    )
 

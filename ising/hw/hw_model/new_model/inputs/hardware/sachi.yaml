@@ -1,4 +1,4 @@
-name: sachi
+name: sachi@28nm
 
 memories:
   cim_memory:
@@ -35,7 +35,7 @@ memories:
     size: 1310720
     r_cost: 60.1088
     w_cost: 51.06688
-    area: 0.04975
+    area: 0.4975
     latency: 1
     operands: [I1, I2, I3, O]
     bandwidth: 1024
@@ -52,12 +52,12 @@ memories:
     served_dimensions: [D1, D2, D3]
 
 operational_array:
-  mac_energy: 0.5 # pJ
-  add_energy: 0.35 # pJ
-  compare_energy: 0.07 # pJ
-  mac_area: 0.000077 # mm^2
-  add_area: 0.000005 # mm^2
-  compare_area: 0.000005 # mm^2
+  mac_energy: 0.029 # pJ@8bit@28nm
+  add_energy: 0.027 # pJ@8bit@28nm
+  compare_energy: 0.0002 # pJ@8bit@28nm
+  mac_area: 0.000180 # mm^2, 0.614*8.8*8/0.24@28nm
+  add_area: 0.000159 # mm^2, 0.614*7.8*8/0.24@28nm
+  compare_area: 0.000020 # mm^2, 0.614*8/0.24@28nm
   dimensions: [D1, D2, D3]
   sizes: [1, 100, 16]
   tclk: 40 # ns

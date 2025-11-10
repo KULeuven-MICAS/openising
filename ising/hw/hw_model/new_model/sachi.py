@@ -427,11 +427,15 @@ def sachi_hw_model(
 
     # calculate metrics
     time_to_solution = latency_system * hw_model["operational_array"]["tclk"]  # ns
+    time_to_solution_macro = ideal_latency * hw_model["operational_array"]["tclk"]  # ns
     energy_to_solution = energy_system  # pJ
     num_op = workload["num_trails"] * workload["num_iterations"] * np.prod(workload["loop_sizes"]) * 2  # consider add and mac
     tops = num_op / time_to_solution / 1e3  # tera operations per second
     topsw = num_op / energy_to_solution  # operations per joule
     topsmm2 = tops / total_area  # tera operations per second per mm^2
+    topsw_macro = num_op / energy_system_breakdown["computation"]  # operations per joule for mac
+    tops_macro = num_op / time_to_solution_macro / 1e3  # tera operations per second for mac
+    topsmm2_macro = tops / (area_collect["mac"] + area_collect["add"] + area_collect["compare"])
 
     logging.info(f"Total Area (mm^2): {total_area:.2f}")
     logging.info(f"Time to Solution (ns): {time_to_solution:.2f}")
@@ -484,6 +488,9 @@ def sachi_hw_model(
         "tops": tops,
         "topsw": topsw,
         "topsmm2": topsmm2,
+        "tops_macro": tops_macro,
+        "topsw_macro": topsw_macro,
+        "topsmm2_macro": topsmm2_macro,
         "latency_breakdown": latency_system_breakdown,
         "latency_breakdown_further": latency_collect,
         "energy_breakdown": energy_system_breakdown,
@@ -502,6 +509,7 @@ def sachi_hw_model(
         "mapping": mapping,
         "encoding_scheme": encoding_scheme,
     }
+    # breakpoint()
 
     return cme
 
