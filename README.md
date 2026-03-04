@@ -14,7 +14,7 @@ and strategies in software and hardware.
  
 ```bash
 git clone git@github.com:KULeuven-MICAS/openising.git
-cd ising
+cd openising
 source .setup
 ```
 
