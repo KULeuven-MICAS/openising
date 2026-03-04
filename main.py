@@ -43,7 +43,7 @@ if problem_type == "MIMO":
         with Path.open(output_file, "a") as f:
             f.write("\n")
             f.write("=====================\n")
-            f.write(f"results of running {ans.benchmark} with {config_path.split('/')[-1]}:\n")
+            f.write(f"results of running {ans.benchmark} with {config_path.rsplit('/', maxsplit=1)[-1]}:\n")
             f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
             f.write("=====================\n")
             f.write("MIMO results:\n")
@@ -87,7 +87,7 @@ elif not ans.config.dummy_creator:
     with Path.open(output_file, "a") as f:
         f.write("\n")
         f.write("=====================\n")
-        f.write(f"results of running {ans.benchmark} with {config_path.split('/')[-1]}:\n")
+        f.write(f"results of running {ans.benchmark} with {config_path.rsplit('/', maxsplit=1)[-1]}:\n")
         f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
         f.write(f"reference energy {best_found}\n")
         f.write("=====================\n")

@@ -16,7 +16,7 @@ class ConfigParserStage(Stage):
                  config_path: str,
                  **kwargs: Any):
         super().__init__(list_of_callables, **kwargs)
-        assert config_path.split(".")[-1] == "yaml", "Config file must be a YAML file"
+        assert config_path.rsplit(".", maxsplit=1)[-1] == "yaml", "Config file must be a YAML file"
         self.config_path = TOP / config_path
         self.problem_type = problem_type
 
