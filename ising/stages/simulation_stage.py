@@ -280,6 +280,10 @@ class Ans(metaclass=ABCMeta):
 
     def __getattr__(self, name: str) -> Any:
         """! Gets an attribute of the answer."""
-        if name in self._attributes:
-            return self._attributes[name]
+        try:
+            attrs = object.__getattribute__(self, "_attributes")
+        except AttributeError:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        if name in attrs:
+            return attrs[name]
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
