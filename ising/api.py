@@ -21,7 +21,6 @@ from ising.stages.combine_nodes_stage import CombineNodesStage
 # from ising.stages.npmos_stage import NpmosStage
 
 def get_hamiltonian_energy(
-    create_dummy_problem: bool = False,
     problem_type: str = "TSP",
     config_path: str = "./ising/inputs/config/config_tsp.yaml",
     logging_level: int = logging.INFO,
@@ -36,10 +35,7 @@ def get_hamiltonian_energy(
     logging.getLogger().setLevel(logging_level)
 
     # Decide on the parser stage
-    if create_dummy_problem:
-        parser_stage = DummyCreatorStage
-        logging.info("Using DummyCreatorStage to create a dummy problem.")
-    elif problem_type == "Maxcut":
+    if problem_type == "Maxcut":
         parser_stage = MaxcutParserStage
     elif problem_type == "TSP":
         parser_stage = TSPParserStage

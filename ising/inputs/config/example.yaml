@@ -31,6 +31,8 @@ logfile_discrimination: None
 #################################
 ## Solvers hyperparameters
 #################################
+# For all digital solvers
+stop_criterion_iterations: False
 
 # Parameters for SA
 num_iterations_SA: 1

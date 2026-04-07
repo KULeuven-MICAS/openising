@@ -24,6 +24,9 @@ The config file is written in YAML. It must has the following parameters:
 *logfile_discrimination:* [str | None] How the logfiles can be further discriminated against each other. If None, no discriminator will be made.
 
 ## Following parameters are optional, depending on the solvers used.
+**For digital solvers**
+
+*stop_criterion_iterations:* [bool] stops the solver when the energy doesn't change for 50 iterations.
 
 **For each solver used**
 

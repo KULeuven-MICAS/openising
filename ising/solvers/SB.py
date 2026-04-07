@@ -52,7 +52,7 @@ class ballisticSB(SB):
         a0: float = 1.0,
         seed: int = 0,
         file: pathlib.Path | None = None,
-        stop_criterion: bool = True,
+        stop_criterion: bool = False,
     ) -> tuple[np.ndarray, float, float, int, int]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
@@ -156,7 +156,6 @@ class ballisticSB(SB):
                 sample = np.sign(x)
                 energy = model.evaluate(sample)
                 elapsed_time = time.time() - start_time
-            LOGGER.info(f"Total amount of iterations performed: {k}")
         return sample, energy, elapsed_time, nb_operations, k
 
 
@@ -174,7 +173,7 @@ class discreteSB(SB):
         dtdSB: float,
         a0: float = 1.0,
         seed: int = 0,
-        stop_criterion: bool = True,
+        stop_criterion: bool = False,
         file: pathlib.Path | None = None,
     ) -> tuple[np.ndarray, float]:
         """Performs the discrete Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).

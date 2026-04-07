@@ -34,6 +34,8 @@ logfile_discrimination: None
 ## Solvers hyperparameters
 #################################
 
+stop_criterion_iterations: False
+
 # Parameters for SA
 num_iterations_SA: 1
 T: 50.0

@@ -22,7 +22,7 @@ class SASolver(SolverBase):
         initial_temp: float,
         cooling_rate_SA: float,
         seed: int | None = None,
-        stop_criterion:bool = True,
+        stop_criterion:bool = False,
         file: pathlib.Path | None = None,
     ) -> tuple[np.ndarray, float]:
         """

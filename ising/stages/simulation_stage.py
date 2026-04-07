@@ -163,7 +163,7 @@ class SimulationStage(Stage):
                 else:
                     logfile = None
                 stop_crit = (
-                    self.config["stop_criterion_iterations"]
+                    self.config.stop_criterion_iterations
                     if hasattr(self.config, "stop_criterion_iterations")
                     else False
                 )

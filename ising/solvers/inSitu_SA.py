@@ -23,7 +23,7 @@ class InSituSASolver(SolverBase):
         cooling_rate_inSituSA: float,
         nb_flips: int = -1,
         seed: int | None = None,
-        stop_criterion:bool=True,
+        stop_criterion:bool=False,
         file: pathlib.Path | None = None,
     ) -> tuple[np.ndarray, float]:
         """
