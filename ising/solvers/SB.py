@@ -20,6 +20,7 @@ class SB(SolverBase):
 
     def __init__(self):
         self.name = "SB"
+        self.max_energy_change = 1e-6
 
     def update_x(self, y, dt, a0):
         return a0 * y * dt
@@ -46,32 +47,36 @@ class ballisticSB(SB):
         model: IsingModel,
         initial_state: np.ndarray,
         num_iterations: int,
-        c0: float,
         dtbSB: float,
+        c0: float = 0.0,
         a0: float = 1.0,
         seed: int = 0,
         file: pathlib.Path | None = None,
         stop_criterion: bool = True,
-    ) -> tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float, float, int, int]:
         """Performs the ballistic Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
         to reduce analog errors.
 
         Args:
-            model (IsingModel): the model of which the optimum needs to be found.
-            x (np.ndarray): the initial position of the nonlinear oscillators.
-            y (np.ndarray): the initial momenta of the nonlinear oscillators.
-            num_iterations (int): amount of iterations that needs to be performed.
-            a0 (float, Optional): hyperparameter. Defaults to 1.
-            at (callable): changing hyperparameter that induces the bifurcation.
-            c0 (float): hyperparameter.
-            dt (float): time step.
-            file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
+        @param model (IsingModel): the model of which the optimum needs to be found.
+        @param x (np.ndarray): the initial position of the nonlinear oscillators.
+        @param y (np.ndarray): the initial momenta of the nonlinear oscillators.
+        @param num_iterations (int): amount of iterations that needs to be performed.
+        @param a0 (float, Optional): hyperparameter. Defaults to 1.
+        @param at (callable): changing hyperparameter that induces the bifurcation.
+        @param c0 (float): hyperparameter.
+        @param dt (float): time step.
+        @param file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
                                                  no logging is performed
-            bit_width (int, optional): The bit width for the position and momenta. Defaults to 16.
-
+        @param stop_criterion (bool, optional): whether to stop the algorithm on stagnation of the energy or not.
+                                             Defaults to True.
         Returns:
-            sample, energy (tuple[np.ndarray, float]): optimal solution and energy
+        @return sample (np.ndarray): optimal solution state
+        @return energy (float): optimal solution energy
+        @return elapsed_time (float): total CPU time to perform the algorithm
+        @return nb_operations (int): amount of operations
+        @return nb_iterations (int): amount of performed iterations
         """
         N = model.num_variables
 
