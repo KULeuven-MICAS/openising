@@ -22,7 +22,7 @@ nb_cores = 16
 os.sched_setaffinity(0, range(nb_cores))
 
 
-# sim_stage = SimulationStage([MainStage], config=Namespace(benchmark="ising/G16.txt"), ising_model=IsingModel(np.zeros((2,2)), np.zeros((2,))))
+sim_stage = SimulationStage([MainStage], config=Namespace(benchmark="ising/G16.txt"), ising_model=IsingModel(np.zeros((2,2)), np.zeros((2,))))
 MaxCutParser = MaxcutParserStage([MainStage], config=Namespace(benchmark=""))
 TSPParser = TSPParserStage([MainStage], config=Namespace(benchmark=""))
 ATSPParser = ATSPParserStage([MainStage], config=Namespace(benchmark=""))

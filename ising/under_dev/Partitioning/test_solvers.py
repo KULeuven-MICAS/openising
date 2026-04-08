@@ -1,14 +1,13 @@
 import numpy as np
 
 from ising.flow import TOP, LOGGER
-from ising.under_dev import MaxCutParser, TSPParser
-from ising.generators.TSP import TSP
+from ising.under_dev import MaxCutParser
 from ising.stages.model.ising import IsingModel
 
 from ising.under_dev.Partitioning.modularity import partitioning_modularity
 from ising.under_dev.Partitioning.SPLIT import SPLIT
-from ising.under_dev.Partitioning.dual_decomposition import dual_decomposition
-from ising.under_dev.Partitioning.apply_partitioning import apply_partitioning
+
+from ising.utils.flow import return_c0
 
 figtop = TOP / "ising/under_dev/Partitioning/figures"
 
@@ -49,24 +48,21 @@ def optimal_state_from_partitioning(optimal_states:dict[int: np.ndarray], model:
     return state, energy
 
 def test_SPLIT():
-    burma14, best_found = TSPParser.TSP_parser(TOP / "ising/benchmarks/TSP/burma14.tsp")
-    model = TSP(burma14, 1.2)
+    g16, best_found = MaxCutParser.G_parser(TOP / "ising/benchmarks/G/G16.txt")
+    model = MaxCutParser.generate_maxcut(g16)
 
     nb_partitions = 4
     partitions, _ = partitioning_modularity(model, nb_partitions)
 
     sigma_init = np.random.choice([-1, 1], size=(model.num_variables,))
-    hyperparameters = {"num_iter":50000, "nb_flipping": 100, "cluster_threshold":0.3, "init_cluster_size": 0.95, "end_cluster_size":0.02}
+    solver = "bSB"
+    c0 = return_c0(model)
+    hyperparameters = {"num_iter": 2000, "a0":1.0, "c0": c0, "dtSB":1.0}
     num_iterations = 100
 
-    # _, energy = SPLIT(partitions,  sigma_init, model, num_iterations,**hyperparameters)
-    # LOGGER.info(f"SPLIT: Obtained energy: {energy:.2f}, Best found: {best_found:.2f}, relative error: {np.abs((energy - best_found) / best_found):.2%}")
-
-    models, constraints, _ = apply_partitioning(model, partitions)
-    init_states = {i: sigma_init[np.where(partitions==i)] for i in range(-int(nb_partitions/2), int(nb_partitions/2)+1)}
-    init_states.pop(0)
-    dual_decomposition(models, constraints, init_states, num_iterations, 0.1, **hyperparameters )
-
+    optimal_states, energy = SPLIT(model, partitions, num_iterations, sigma_init, solver, **hyperparameters)
+    LOGGER.info(f"Obtained energy: {energy:.2f}, Best found: {best_found:.2f}, relative error: {(energy - best_found) / best_found:.2%}")
+    LOGGER.info(f"Optimal state: {optimal_states}")
 
 if __name__ == "__main__":
     test_SPLIT()
