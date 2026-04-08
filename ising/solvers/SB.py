@@ -20,6 +20,7 @@ class SB(SolverBase):
     def __init__(self):
         super().__init__()
         self.name = "SB"
+        self.max_energy_change = 1e-6
 
     def update_x(self, y, dt, a0):
         return a0 * y * dt
