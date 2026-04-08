@@ -15,20 +15,18 @@ def SPLIT(partitions:list[int], sigma_init:np.ndarray, model: IsingModel,  num_i
         local_fields = compute_local_fields(model, sigma, nodes_per_partition)
         for part_id, part_model in partitioned_models.items():
             part_model.h += local_fields[part_id]
-            part_sigma, _, time = Multiplicative().solve(
+            part_sigma, _, time, _, _ = Multiplicative().solve(
                             model=part_model,
-                            init_cluster_size=hyperparameters["cluster_size_init"],
-                            end_cluster_size=hyperparameters["cluster_size_end"],
+                            init_cluster_size=hyperparameters["init_cluster_size"],
+                            end_cluster_size=hyperparameters["end_cluster_size"],
                             initial_state=sigma[nodes_per_partition[part_id]],
-                            cluster_threshold=hyperparameters["threshold"],
+                            cluster_threshold=hyperparameters["cluster_threshold"],
                             nb_flipping=hyperparameters["nb_flipping"],
-                            dtMult=hyperparameters["dt"],
-                            num_iterations=hyperparameters["num_iter"],
-                            initial_temp_cont=0.0)
+                            num_iterations=hyperparameters["num_iter"])
             part_model.h -= local_fields[part_id]
             all_times[part_id] += time
-            sigma[nodes_per_partition[part_id]] = part_sigma
-        energy = model.evaluate(sigma)
+            sigma[nodes_per_partition[part_id]] = part_sigma.astype(np.float32)
+        energy = model.evaluate(sigma.astype(np.float32))
         if energy == energy_old:
             LOGGER.info(f"amount of cores: {len(np.unique(partitions))} - final energy: {energy}")
             return sigma, energy
