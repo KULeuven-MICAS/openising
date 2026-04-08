@@ -13,6 +13,7 @@ from ising.utils.flow import return_q
 
 class SCA(SolverBase):
     def __init__(self):
+        super().__init__()
         self.name = "SCA"
 
     def solve(
@@ -27,25 +28,34 @@ class SCA(SolverBase):
         seed: int | None = None,
         stop_criterion: bool = False,
         file: pathlib.Path | None = None,
-    ):
+    ) -> tuple[np.ndarray, float, float, int, int]:
         """Implementation of the Stochastic Cellular Automata (SCA) annealing algorithm of the
         [STATICA](https://ieeexplore.ieee.org/document/9222223/?arnumber=9222223) paper
 
-        Args:
-            model (IsingModel): instance of the Ising model that needs to be optimised.
-            sample (np.ndarray): initial state of the Ising model.
-            num_iterations (int): total amount of iterations which the solver needs to perform.
-            T (float): temperature needed for the annealing process
-            r_t (float): decrease rate of the temperature
-            q (float): penalty parameter to ensure the copy states are equivalent to the real states.
-            r_q (float): increase rate of the penalty parameter
-            seed (int, None, optional): seed to generate random numbers. Important for reproducibility.
+        @type model: IsingModel
+        @param model: instance of the Ising model that needs to be optimised.
+        @type initial_state: np.ndarray
+        @param initial_state: initial state of the Ising model.
+        @type num_iterations: int
+        @param num_iterations: total amount of iterations which the solver needs to perform.
+        @type initial_temp_SCA: float
+        @param initial_temp_SCA: temperature needed for the annealing process
+        @type cooling_rate_SCA: float
+        @param cooling_rate_SCA: decrease rate of the temperature.
+        @type q: float
+        @param q: penalty parameter to ensure the copy states are equivalent to the real states.
+        @type r_q: float
+        @param r_q: increase rate of the penalty parameter
+        @type seed: int, None, optional
+        @param seed: seed to generate random numbers. Important for reproducibility.\
                                         Defaults to None.
-            file (pathlib.Path, None, optional): absolute path to the logger file for logging the optimisation process.
+        @type stop_criterion: bool, optional
+        @param stop_criterion: whether to stop the solver on convergence of the energy. Defaults to False.
+        @type file: pathlib.Path, None, optional
+        @param file: absolute path to the logger file for logging the optimisation process.\
                                                  If 'None', no logging is performed.
-
-        Returns:
-            sample, energy (tuple[np.ndarray, float]): final state and energy of the optimisation process.
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: optimal state, optimal energy, total simulation time, amount of operations, performed iterations.
         """
         if q == -1.0:
             q = return_q(model)
@@ -124,17 +134,20 @@ class SCA(SolverBase):
         return state, energy, elapsed_time, nb_operations, k
 
     def get_prob(self, hs: np.ndarray, sample: np.ndarray, q: float, T: float) -> np.ndarray:
-        """Calculates the probability of changing the value of the spins
-           according to SCA annealing process.
+        """
+        Calculates the probability of changing the value of the spins according to SCA annealing process.
 
-        Args:
-            hs (np.ndarray): local field influence.
-            sample (np.ndarray): spin of the nodes.
-            q (float): penalty parameter
-            T (float): temperature
+        @type hs: np.ndarray
+        @param hs : local field influence.
+        @type sample: np.ndarray
+        @param sample: spin of the nodes.
+        @type q: float
+        @param q: penalty parameter
+        @type T: float
+        @param T: temperature
+        @rtype: np.ndarray
+        @return: probability of accepting the change of all nodes.
 
-        Returns:
-            probability (np.ndarray): probability of accepting the change of all nodes.
         """
         val = hs * sample + q
         probs = np.zeros_like(val)

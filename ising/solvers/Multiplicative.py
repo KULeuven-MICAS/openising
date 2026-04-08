@@ -235,7 +235,7 @@ class Multiplicative(SolverBase):
         nb_splits: int = 2,
         # sigma_J: float = -1.0,
         file: pathlib.Path | None = None,
-    ) -> tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float, float, int, int]:
         """!Solves the given problem using a multiplicative coupling scheme.
 
         @param model (IsingModel): the model to solve.
@@ -263,6 +263,7 @@ class Multiplicative(SolverBase):
         @return energy (float): best energy of the system.
         @return computation_time (float): total computation time for analog simulation.
         @return operation_count (int): the number of operations performed.
+        @return iteration_count (int): amount of performed iterations until convergence.
         """
 
         # Transform the model to one with no h and mean variance of J
