@@ -9,9 +9,11 @@ from ising.utils.HDF5Logger import HDF5Logger
 
 
 class InSituSASolver(SolverBase):
-    """Ising solver based on the classical simulated annealing algorithm."""
+    """Ising solver based on the classical simulated annealing algorithm. This implementation is based on the paper of\
+          [Qian et al.](https://ieeexplore.ieee.org/document/11133307)"""
 
     def __init__(self):
+        super().__init__()
         self.name = "InSituSA"
 
     def solve(
@@ -23,23 +25,32 @@ class InSituSASolver(SolverBase):
         cooling_rate_inSituSA: float,
         nb_flips: int = -1,
         seed: int | None = None,
-        stop_criterion:bool=False,
+        stop_criterion: bool = False,
         file: pathlib.Path | None = None,
-    ) -> tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float, float, int, int]:
         """
         Perform optimization using the classical simulated annealing algorithm.
 
+        @type model: IsingModel
         @param model: An instance of the IsingModel to be optimized. This defines the energy function.
-        @param initial_state: A 1D numpy array (of 1 and -1's) representing the starting state of the system.
-        @param num_iterations: Number of iterations (steps) for the simulated annealing process.
-        @param initial_temp: Initial temperature for the annealing schedule.
-        @param cooling_rate: Multiplicative factor applied to the temperature after each iteration.
+        @type initial_state: np.ndarray
+        @param initial_state: the starting state of the system.
+        @type num_iterations: int
+        @param num_iterations: Number of iterations for the simulated annealing process.
+        @type initial_temp_inSituSA: float
+        @param initial_temp_inSituSA: Initial temperature for the annealing schedule.
+        @type cooling_rate_inSituSA: float
+        @param cooling_rate_inSituSA: Multiplicative factor applied to the temperature after each iteration.
+        @type nb_flips: int, optional
+        @param nb_flips: total amount of nodes that are flipped each iteration. If -1, the default value of 2 is used.
+        @type seed: int, None, optional
         @param seed: Seed for the random number generator to ensure reproducibility.
-        @param nb_flips: total amount of nodes that are flipped each iteration.
+        @type stop_criterion: bool, optional
+        @param stop_criterion: Whether to stop the solver when the energy converges. Defaults to False.
+        @type file: pathlib.Path, None, optional
         @param file: Path to an HDF5 file for logging the optimization process. If `None`, no logging is performed.
-
-        @return state: The final state of the system.
-        @return energy: optimal energy the solver reaches.
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: optimal state, optimal energy, simulation time, amount of operations, performed iterations.
         """
         if nb_flips == -1:
             nb_flips = 2
@@ -64,15 +75,17 @@ class InSituSASolver(SolverBase):
         # Initialize logger
         with HDF5Logger(file, schema) as logger:
             if logger.filename is not None:
-                self.log_metadata(logger=logger,
-                                  initial_state=initial_state,
-                                  model=model,
-                                  num_iterations=num_iterations,
-                                  initial_temp=initial_temp_inSituSA,
-                                  cooling_rate=cooling_rate_inSituSA,
-                                  nb_flips=nb_flips,
-                                  seed=seed,)
-            k=0
+                self.log_metadata(
+                    logger=logger,
+                    initial_state=initial_state,
+                    model=model,
+                    num_iterations=num_iterations,
+                    initial_temp=initial_temp_inSituSA,
+                    cooling_rate=cooling_rate_inSituSA,
+                    nb_flips=nb_flips,
+                    seed=seed,
+                )
+            k = 0
             current_length = 0
             start_time = time.time()
 

@@ -14,7 +14,10 @@ from ising.utils.numpy import triu_to_symm
 
 
 class BRIM(SolverBase):
+    """Implementation of the Bistable Resistively-coupled Ising Machine (BRIM) algorithm. The implementation is adapted\
+          from the paper of [Afoakwa et al.](https://ieeexplore.ieee.org/document/9407038/)"""
     def __init__(self):
+        super().__init__()
         self.name = "BRIM"
         self.end_prob = 2e-06
         self.sh_it_frac = 2e-04
@@ -25,15 +28,20 @@ class BRIM(SolverBase):
     def Ka(self, time: float, end_time: float) -> float:
         """Returns the coupling annealing term.
 
-        Args:
-            time (float): the time.
-            end_time (float): the end time.
-        Returns:
-            Ka (float): the coupling annealing term.
+        @type time: float
+        @param time: the time.
+        @type end_time: float
+        @param end_time: the end time.
+        @rtype: float
+        @return: Ka, the coupling annealing term.
         """
         return np.float32(1 - np.exp(-time / end_time))
 
     def choose_spinflips(self, voltages: np.ndarray):
+        """ Chooses which spins to flip according to the flipping probability.
+        @type voltages: np.ndarray
+        @param voltages: the current voltages of the system.
+        """
         # Increment count
         self.flip_counts = np.where(self.flip_counts != -1, self.flip_counts + 1, -1)
 
@@ -55,7 +63,20 @@ class BRIM(SolverBase):
 
         self.p += self.prob_change
 
-    def dvdt(self, t, vt, coupling, Ka):
+    def dvdt(self, t, vt, coupling, Ka) -> np.ndarray:
+        """Computes the derivative or change of the voltages at time t.
+
+        @type t: float
+        @param t: the time.
+        @type vt: np.ndarray
+        @param vt: the current voltages of the system.
+        @type coupling: np.ndarray
+        @param coupling: the coupling matrix of the system.
+        @type Ka: float
+        @param Ka: the coupling annealing term.
+        @rtype: np.ndarray
+        @return: the change of the voltages at time t.
+        """
         # Make sure the bias node is 1
         if self.bias:
             vt[-1] = 1.0
@@ -102,22 +123,35 @@ class BRIM(SolverBase):
     ) -> tuple[np.ndarray, float]:
         """Simulates the BRIM dynamics by integrating the Lyapunov equation through time with the RK4 method.
 
-        Args:
-            model (IsingModel): the model of which the optimum needs to be found.
-            initial_state (np.ndarray): initial spins of the nodes
-            num_iterations (int): amount of iterations that need to be simulated
-            dtBRIM (float): time step.
-            capacitance (float): capacitor parameter.
-            probability_start (float, optional): initial flipping probability. Defaults to 0.001799.
-            stop_criterion (float, optional): stop criterion for the maximum allowed change between iterations.
+        @type model: IsingModel
+        @param model: the model of which the optimum needs to be found.
+        @type initial_state: np.ndarray
+        @param initial_state: initial spins of the nodes.
+        @type num_iterations: int
+        @param num_iterations: amount of iterations that need to be simulated
+        @type dtBRIM: float
+        @param dtBRIM: time step.
+        @type capacitance: float
+        @param capacitance: capacitor of system.
+        @type probability_start: float, optional
+        @type resistance: float
+        @param resistance: resistance of the system.
+        @type probability_start: float, optional
+        @param probability_start: initial flipping probability. Defaults to 0.001799.
+        @type stop_criterion: float, optional
+        @param stop_criterion: stop criterion for the maximum allowed change of voltages between iterations.\
                                               Defaults to 1e-8.
-            file (pathlib.Path, None, Optional): absolute path to which data will be logged. If 'None',
+        @type file: pathlib.Path, None, Optional
+        @param file: absolute path to which data will be logged. If 'None',\
                                                  nothing is logged.
-            coupling_annealing (bool, optional): whether to anneal the coupling matrix. Defaults to False.
-            seed (int, optional): seed for the random number generator. Defaults to 0.
-
-        Returns:
-            sample,energy (tuple[np.ndarray, float]): the final state and energy of the system.
+        @type coupling_annealing: bool, optional
+        @param coupling_annealing: whether to anneal the coupling matrix. Defaults to False.
+        @type do_flipping: bool, optional
+        @param do_flipping: whether to perform spin flips. Defaults to False.
+        @type seed: int, optional
+        @param seed: seed for the random number generator. Defaults to 0.
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: optimal state, optimal energy, total simulation time, amount of operations, performed iterations.
         """
 
         # Set the time evaluations

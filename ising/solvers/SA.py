@@ -12,6 +12,7 @@ class SASolver(SolverBase):
     """Ising solver based on the classical simulated annealing algorithm."""
 
     def __init__(self):
+        super().__init__()
         self.name = "SA"
 
     def solve(
@@ -24,20 +25,28 @@ class SASolver(SolverBase):
         seed: int | None = None,
         stop_criterion:bool = False,
         file: pathlib.Path | None = None,
-    ) -> tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float, float, int, int]:
         """
         Perform optimization using the classical simulated annealing algorithm.
 
+        @type model: IsingModel
         @param model: An instance of the IsingModel to be optimized. This defines the energy function.
-        @param initial_state: A 1D numpy array representing the starting state of the system.
+        @type initial_state: np.ndarray
+        @param initial_state: the starting state of the system.
+        @type num_iterations: int
         @param num_iterations: Number of iterations for the simulated annealing process.
+        @type initial_temp: float
         @param initial_temp: Initial temperature for the annealing schedule.
-        @param cooling_rate: Multiplicative factor applied to the temperature after each iteration.
+        @type cooling_rate_SA: float
+        @param cooling_rate_SA: Multiplicative factor applied to the temperature after each iteration.
+        @type seed: int, None, optional
         @param seed: Seed for the random number generator to ensure reproducibility.
+        @type stop_criterion: bool, optional
+        @param stop_criterion: Whether to stop the solver when the energy converges. Defaults to False.
+        @type file: pathlib.Path, None, optional
         @param file: Path to an HDF5 file for logging the optimization process. If `None`, no logging is performed.
-
-        @return state: The optimized state as a 1D numpy array.
-        @return energy: The final energy of the system.
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: optimal state, optimal energy, simulation time, amount of operations, performed iterations.
         """
 
         # seed the random number generator. Use a timestamp-based seed if non is provided.

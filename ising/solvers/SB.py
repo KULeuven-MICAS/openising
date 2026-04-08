@@ -8,7 +8,6 @@ from ising.solvers.base import SolverBase
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
 from ising.utils.flow import return_c0
-from ising.stages import LOGGER
 
 
 class SB(SolverBase):
@@ -19,6 +18,7 @@ class SB(SolverBase):
     """
 
     def __init__(self):
+        super().__init__()
         self.name = "SB"
         self.max_energy_change = 1e-6
 
@@ -58,25 +58,31 @@ class ballisticSB(SB):
         This variation of Simulated Bifurcation introduces perfectly inelastic walls at |x_i| = 1
         to reduce analog errors.
 
-        Args:
-        @param model (IsingModel): the model of which the optimum needs to be found.
-        @param x (np.ndarray): the initial position of the nonlinear oscillators.
-        @param y (np.ndarray): the initial momenta of the nonlinear oscillators.
-        @param num_iterations (int): amount of iterations that needs to be performed.
-        @param a0 (float, Optional): hyperparameter. Defaults to 1.
-        @param at (callable): changing hyperparameter that induces the bifurcation.
-        @param c0 (float): hyperparameter.
-        @param dt (float): time step.
-        @param file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
-                                                 no logging is performed
-        @param stop_criterion (bool, optional): whether to stop the algorithm on stagnation of the energy or not.
-                                             Defaults to True.
-        Returns:
-        @return sample (np.ndarray): optimal solution state
-        @return energy (float): optimal solution energy
-        @return elapsed_time (float): total CPU time to perform the algorithm
-        @return nb_operations (int): amount of operations
-        @return nb_iterations (int): amount of performed iterations
+        @type model: IsingModel
+        @param model: the model of which the optimum needs to be found.
+        @type initial_state: np.ndarray
+        @param initial_state: initial discrete state of the system.
+        @type num_iterations: int
+        @param num_iterations: amount of iterations that needs to be performed.
+        @type dtSB: float
+        @param dtSB: time step of the system.
+        @type c0: float, optional
+        @param c0: Ising energy contribution to the Hamiltonian. Defaults to 0.0, which corresponds\
+              to the optimal value.
+        @type a0: float, optional
+        @param a0: value to which the bifurcation parameter will converge to. Defaults to 1.
+        @type seed: int, optional
+        @param seed: random seed for the  initialization. Defaults to 0 which means a random seed\
+            will be used.
+        @type file: pathlib.Path, None, optional
+        @param file: full path to which data will be logged. If 'None', \
+            no logging is performed.
+        @type stop_criterion: bool, optional
+        @param stop_criterion: whether to stop the algorithm on stagnation of the energy or not.\
+                                             Defaults to False.
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: optimal solution state, optimal solution energy, total CPU time to perform the algorithm,\
+              amount of operations, amount of performed iterations
         """
         N = model.num_variables
 
@@ -169,30 +175,41 @@ class discreteSB(SB):
         model: IsingModel,
         initial_state: np.ndarray,
         num_iterations: int,
-        c0: float,
         dtdSB: float,
+        c0: float = 0.0,
         a0: float = 1.0,
         seed: int = 0,
-        stop_criterion: bool = False,
         file: pathlib.Path | None = None,
-    ) -> tuple[np.ndarray, float]:
+        stop_criterion: bool = False,
+    ) -> tuple[np.ndarray, float, float, int, int]:
         """Performs the discrete Simulated Bifurcation algorithm first proposed by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.abe7953).
         This variation of Simulated Bifurcation discretizes the positions x_i at all times to reduce analog errors.
 
-        Args:
-            model (IsingModel): the model of which the optimum needs to be found.
-            x (np.ndarray): the initial position of the nonlinear oscillators.
-            y (np.ndarray): the initial momenta of the nonlinear oscillators.
-            num_iterations (int): amount of iterations that needs to be performed.
-            a0 (float, Optional): hyperparameter. Defaults to 1.
-            at (callable): changing hyperparameter that induces the bifurcation.
-            c0 (float): hyperparameter.
-            dt (float): time step.
-            file (pathlib.Path, None, Optional): full path to which data will be logged. If 'None',
-                                                 no logging is performed
-
-        Returns:
-            sample, energy (tuple[np.ndarray, float]): optimal solution and energy
+        @type model: IsingModel
+        @param model: the model of which the optimum needs to be found.
+        @type initial_state: np.ndarray
+        @param initial_state: initial discrete state of the system.
+        @type num_iterations: int
+        @param num_iterations: amount of iterations that needs to be performed.
+        @type dtSB: float
+        @param dtSB: time step of the system.
+        @type c0: float, optional
+        @param c0: Ising energy contribution to the Hamiltonian. Defaults to 0.0, which corresponds\
+              to the optimal value.
+        @type a0: float, optional
+        @param a0: value to which the bifurcation parameter will converge to. Defaults to 1.
+        @type seed: int, optional
+        @param seed: random seed for the  initialization. Defaults to 0 which means a random seed\
+            will be used.
+        @type file: pathlib.Path, None, optional
+        @param file: full path to which data will be logged. If 'None', \
+            no logging is performed.
+        @type stop_criterion: bool, optional
+        @param stop_criterion: whether to stop the algorithm on stagnation of the energy or not.\
+                                             Defaults to False.
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: optimal solution state, optimal solution energy, total CPU time to perform the algorithm,\
+              amount of operations, amount of performed iterations
         """
         N = model.num_variables
         tk = 0.0
@@ -270,5 +287,4 @@ class discreteSB(SB):
                 elapsed_time = time.time() - start_time
                 sample = np.sign(x)
                 energy = model.evaluate(np.sign(x))
-            LOGGER.info(f"Total amount of iterations performed: {k}")
         return sample, energy, elapsed_time, nb_operations, k
