@@ -1,11 +1,10 @@
 import numpy as np
 
 from ising.stages.model.ising import IsingModel
-from ising.utils.flow import run_solver
-from ising.utils.numpy import triu_to_symm
+from ising.solvers.Multiplicative import Multiplicative
 
 def dual_decomposition(models: dict[int: IsingModel], constraints: dict[int: np.ndarray], initial_states:dict[int:  np.ndarray],
-                      num_iterations:int, solver: str, step:float, stop_criterion: float = 1e-8, **hyperparameters) ->tuple[dict[int: np.ndarray], np.ndarray]:
+                      num_iterations:int, step:float, stop_criterion: float = 1e-8, **hyperparameters) ->tuple[dict[int: np.ndarray], np.ndarray]:
     
     partitions = list(models.keys())
     lambda_k = np.zeros((constraints[partitions[0]].shape[0],))
@@ -19,7 +18,13 @@ def dual_decomposition(models: dict[int: IsingModel], constraints: dict[int: np.
             lam = lambda_k.T @ constraints[partition]
 
             models[partition].h += lam
-            initial_states[partition], _ = run_solver(solver, num_iterations*10, initial_states[partition], models[partition], **hyperparameters)
+            initial_states[partition], _ = Multiplicative().solve(num_iterations=hyperparameters["num_iter"],
+                                                                  initial_state=initial_states[partition],
+                                                                  model=models[partition],
+                                                                  init_cluster_size=hyperparameters["init_cluster_size"],
+                                                                  end_cluster_size=hyperparameters["end_cluster_size"],
+                                                                  cluster_threshold=hyperparameters["cluster_threshold"],
+                                                                  nb_flipping=hyperparameters["nb_flipping"],)
             models[partition].h -= lam
             lambda_new += step * constraints[partition] @ initial_states[partition] 
             # print(lam)
