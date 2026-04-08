@@ -91,7 +91,7 @@ class ballisticSB(SB):
         if c0 == 0.0:
             c0 = return_c0(model)
         if seed == 0:
-            seed = time.time()
+            seed = int(time.time())
         np.random.seed(seed)
 
         # Set up the model and initial states with the correct data type
@@ -219,7 +219,7 @@ class discreteSB(SB):
         if not stop_criterion:
             self.zero_en_length = num_iterations
         if seed == 0:
-            seed = time.time()
+            seed = int(time.time())
         np.random.seed(seed)
 
         # Set up the model and initial states with the correct data type
