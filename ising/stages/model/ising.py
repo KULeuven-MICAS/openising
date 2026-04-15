@@ -18,7 +18,7 @@ class IsingModel:
         c (float): A constant term in the Hamiltonian.
     """
 
-    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0, name:str=None) -> None:
+    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0, name:str=None, freeze_spins:list[int] = []) -> None:
         """
         Initialize an Ising model with the specified interaction matrix, bias vector, and constant.
 
@@ -40,6 +40,7 @@ class IsingModel:
         self.c = np.float32(c)
         self.benchmark_name = name
         self.transformation_history = []
+        self.freeze_spins = freeze_spins
 
     def __repr__(self) -> str:
         return f"IsingModel(\n J={str(self.J).replace('\n ', '\n    ')},\n h={self.h},\n c={self.c}\n)"
