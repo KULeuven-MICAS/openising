@@ -31,7 +31,9 @@ class DummyCreatorStage(Stage):
             if self.problem_type == "Maxcut":
                 N = self.config.dummy_size
                 LOGGER.info(f"size: {N}, seed: {seed}")
-                dummy_dict = self.generate_dummy_maxcut(N, self.config.quantization_precision, seed)
+                nb_bits = round(self.config.quantization_precision) if hasattr(self.config, "quantization_precision")\
+                    else 2
+                dummy_dict = self.generate_dummy_maxcut(N, nb_bits, seed)
             elif self.problem_type in ["TSP", "ATSP"]:
                 N = self.config.dummy_size
                 weight_constant = (
@@ -95,11 +97,14 @@ class DummyCreatorStage(Stage):
     def generate_dummy_maxcut(N: int, nb_bits: int = 2, seed: int = 0) -> dict:
         """! Generates a random Max Cut Ising model.
 
+        @type N: int
         @param N: Number of nodes in the graph.
-        @param nb_bits (int): number of bits to represent the weights.
-        @param seed (int): Random seed for reproducibility.
-
-        @return dummy_dict: dict containing graph and IsingModel representing the Max Cut problem.
+        @type nb_bits: int
+        @param nb_bits: number of bits to represent the weights.
+        @type seed: int
+        @param seed: Random seed for reproducibility.
+        @rtype: dict
+        @return: dict containing graph and IsingModel representing the Max Cut problem.
         """
 
         np.random.seed(seed)
@@ -131,11 +136,14 @@ class DummyCreatorStage(Stage):
     @staticmethod
     def generate_dummy_tsp(N: int, seed: int = 0, weight_constant: float = 1.0) -> dict:
         """! Generates a random TSP Ising model.
+        @type N: int
         @param N: Number of cities (nodes) in the TSP problem.
+        @type seed: int
         @param seed: Random seed for reproducibility.
+        @type weight_constant: float
         @param weight_constant: Constant to scale the weights in the TSP problem.
-
-        @return dummy_dict: dict containing graph and IsingModel representing the TSP problem.
+        @rtype: dict
+        @return: dict containing graph and IsingModel representing the TSP problem.
         """
 
         np.random.seed(seed)
@@ -166,11 +174,14 @@ class DummyCreatorStage(Stage):
     @staticmethod
     def generate_dummy_atsp(N: int, seed: int = 0, weight_constant: float = 1.0) -> dict:
         """! Generates a random ATSP Ising model.
+        @type N: int
         @param N: Number of cities (nodes) in the ATSP problem.
+        @type seed: int
         @param seed: Random seed for reproducibility.
+        @type weight_constant: float
         @param weight_constant: Constant to scale the weights in the ATSP problem.
-
-        @return dummy_dict: dict containing graph and IsingModel representing the ATSP problem.
+        @rtype: dict
+        @return: dict containing graph and IsingModel representing the ATSP problem.
         """
 
         np.random.seed(seed)
@@ -210,15 +221,22 @@ class DummyCreatorStage(Stage):
         """!Generates a MU-MIMO model using section IV-A of [this paper](https://arxiv.org/pdf/2002.02750).
         This is consecutively transformed into an Ising model.
 
-        @param ant_num (int): The amount of users.
-        @param user_num (int): The amount of antennas at the Base Station.
-        @param M (int): the considered QAM scheme.
-        @param SNR (int): the Signal-to-Noise Ratio.
-        @param antenna_spacing (float, optional): The spacing between antennas in wavelengths. Defaults to 1.0.
-        @param seed (int, optional): The seed for the random number generator. Defaults to 1.
-        @param dummy_case_num (int, optional): The number of dummy trails to generate. Defaults to 10.
-
-        @return dummy_dict: dict containing IsingModel representing the MIMO problem.
+        @type user_num: int
+        @param ant_num: The amount of users.
+        @type ant_num: int
+        @param user_num: The amount of antennas at the Base Station.
+        @type M: int
+        @param M: the considered QAM scheme.
+        @type SNR: int
+        @param SNR: the Signal-to-Noise Ratio.
+        @type antenna_spacing: float, optional
+        @param antenna_spacing: The spacing between antennas in wavelengths. Defaults to 1.0.
+        @type seed: int, optional
+        @param seed: The seed for the random number generator. Defaults to 1.
+        @type dummy_case_num: int, optional
+        @param dummy_case_num: The number of dummy trails to generate. Defaults to 10.
+        @rtype: dict
+        @return: dict containing IsingModel representing the MIMO problem.
         """
         np.random.seed(seed)
 
@@ -282,11 +300,16 @@ class DummyCreatorStage(Stage):
     def generate_dummy_knapsack(size: int, dens: int, penalty_value: float = 1.0, bit_width: int = 16) -> dict:
         """! Generates a dummy knapsack problem instance.
 
-        @param size (int): the number of items.
-        @param dens (int): the density of the problem.
-        @param penalty_value (float, optional): the penalty value for the constraint. Defaults to 1.0.
-
-        @return IsingModel: the corresponding Ising model.
+        @type size: int
+        @param size: the number of items.
+        @type dens: int
+        @param dens: the density of the problem.
+        @type penalty_value: float, optional
+        @param penalty_value: the penalty value for the constraint. Defaults to 1.0.
+        @type bit_width: int, optional
+        @param bit_width: the number of bits to represent the profits and weights. Defaults to 16.
+        @rtype: dict
+        @return: dictionary containing the generated IsingModel and problem parameters.
         """
         max_number = int(2**bit_width)
         profit = np.triu(

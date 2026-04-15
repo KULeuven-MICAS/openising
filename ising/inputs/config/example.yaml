@@ -67,7 +67,6 @@ accumulation_delay: 0.
 broadcast_delay: 0.
 delay_offset: 0.0
 # sigma_J: -1.0
-ode_choice: "FE"
 
 # Parameters for BRIM
 num_iterations_BRIM: 1
@@ -135,10 +134,6 @@ dummy_spacing: 1.0
 dummy_user_num: 16
 dummy_ant_num: 64
 dummy_case_num: 10
-
-# Parameters for dummy MaxCut
-dummy_quadratic: False
-dummy_local_optima: False
 
 # Parameters for dummy MaxCut/TSP/ATSP/Knapsack
 dummy_size: 20

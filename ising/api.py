@@ -13,7 +13,7 @@ from ising.stages.mimo_parser_stage import MIMOParserStage
 from ising.stages.mimo_ber_calc_stage import MIMOBerCalcStage
 from ising.stages.qkp_parser_stage import QKPParserStage
 from ising.stages.tsp_energy_calc_stage import TSPEnergyCalcStage
-from ising.stages.simulation_stage import SimulationStage
+from ising.stages.simulation_stage import SimulationStage, Ans
 from ising.stages.initialization_stage import InitializationStage
 from ising.stages.quantization_stage import QuantizationStage
 from ising.stages.mismatch_stage import MismatchStage
@@ -24,9 +24,17 @@ def get_hamiltonian_energy(
     problem_type: str = "TSP",
     config_path: str = "./ising/inputs/config/config_tsp.yaml",
     logging_level: int = logging.INFO,
-) -> tuple[float, str, Any]:
+) -> tuple[Ans, Ans]:
     """! API: simulate and evaluate the Hamiltonian of an Ising model.
+    @type problem_type: str
+    @param problem_type: the type of the COP that will be solved. Supported types are "Maxcut", "TSP", "ATSP", "MIMO",\
+          "QKP", and "Biqmac".
+    @type config_path: str
     @param config_path: Path to the configuration file.
+    @type logging_level: int
+    @param logging_level: Logging level for the simulation. Default is logging.INFO.
+    @rtype: tuple[Ans, Ans]
+    @return: A tuple containing the answer and debug info from the simulation.
     """
 
     # Initialize the logger

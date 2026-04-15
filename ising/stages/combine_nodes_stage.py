@@ -63,10 +63,14 @@ class CombineNodesStage(Stage):
     def split_nodes(self, J: np.ndarray, h: np.ndarray, nodes_scaling: int) -> tuple[np.ndarray, np.ndarray]:
         """! Split nodes in the Ising model.
 
+        @type J: np.ndarray
         @param J: Coupling matrix of the Ising model.
+        @type h: np.ndarray
         @param h: Local field vector of the Ising model.
+        @type nodes_scaling: int
         @param nodes_scaling: number of nodes to split nodes into.
-        @return: Tuple containing the new coupling matrix and local field vector.
+        @rtype: tuple[np.ndarray, np.ndarray]
+        @return: new coupling matrix and local field vector.
         """
         nb_nodes = J.shape[0]
         new_nb_nodes = nodes_scaling * nb_nodes
@@ -145,6 +149,16 @@ class CombineNodesStage(Stage):
         return new_J, new_h
 
     def translate_state(self, state_split: np.ndarray, nodes_scaling: int) -> np.ndarray:
+        """Translates the states from the split version to the original version. Each spin takes
+        the average value of all its replica spins (majority vote).
+
+        @type state_split: np.ndarray
+        @param state_split: the state of the split model.
+        @type nodes_scaling: int
+        @param nodes_scaling: the amount of splits per original node.
+        @rtype: np.ndarray
+        @return: the state of the original model.
+        """
         result = np.zeros((int(len(state_split) / nodes_scaling),), dtype=np.float32)
         if nodes_scaling == 2:
             for i in range(len(result)):

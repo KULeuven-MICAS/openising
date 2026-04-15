@@ -38,14 +38,13 @@ def parse_hyperparameters(args: Namespace) -> dict[str:]:
         hyperparameters["end_cluster_size"] = float(args.end_cluster_size)
         hyperparameters["cluster_choice"] = args.cluster_choice
         hyperparameters["exponent"] = float(args.exponent)
-        hyperparameters["ode_choice"] = args.ode_choice
         hyperparameters["accumulation_delay"] = float(args.accumulation_delay)
         hyperparameters["broadcast_delay"] = float(args.broadcast_delay)
         hyperparameters["delay_offset"] = float(args.delay_offset)
         hyperparameters["current"] = float(args.current)
         # hyperparameters["sigma_J"] = float(args.sigma_J)
         hyperparameters["combine_nodes"] = bool(args.combine_nodes)
-        hyperparameters["nb_splits"] = int(args.nodes_scaling)
+        hyperparameters["nb_splits"] = int(args.nodes_scaling) if hasattr(args, "nodes_scaling") else 1
 
     # BRIM parameters
     if "BRIM" in args.solvers:

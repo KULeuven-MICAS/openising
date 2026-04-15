@@ -46,10 +46,10 @@ class ATSPParserStage(Stage):
     def ATSP_parser(benchmark:pathlib.Path|str) -> tuple[nx.DiGraph, float]:
         """! Creates a networkx instance fromthe given benchmark.
 
+        @rtype benchmark: str or pathlib.Path
         @param benchmark: full path to the benchmark file.
-
-        @return graph: a directed graph that originated from the given benchmark.
-        @return best_found: the best found energy of the benchmark.
+        @rtype: tuple[nx.DiGraph, float]
+        @return: a directed graph that originated from the given benchmark, and the best found energy of the benchmark.
         """
         if not benchmark.exists():
             LOGGER.error(f"Benchmark does not exist: {benchmark}")
@@ -67,9 +67,10 @@ class ATSPParserStage(Stage):
     def get_optim_value(benchmark:pathlib.Path|str)->float | None:
         """! Returns the best found value of the benchmark if the optimal value is known.
 
+        @type benchmark: str or pathlib.Path
         @param benchmark: the benchmark file.
-
-        @return: best_found: the best found energy of the benchmark.
+        @rtype: float or None
+        @return: the best found energy of the benchmark.
         """
         benchmark = str(benchmark).split("/")[-1].split(".")[0]
         optim_file = TOP / "ising/benchmarks/ATSP/optimal_energy.txt"

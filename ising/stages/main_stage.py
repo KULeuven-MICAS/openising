@@ -1,5 +1,6 @@
 from typing import Any
 from ising.stages.stage import StageCallable
+from ising.stages.simulation_stage import Ans
 
 class MainStage:
     """! Not actually a Stage, as running it does return (not yields!) a list of results instead of a generator
@@ -10,6 +11,11 @@ class MainStage:
         self.kwargs = kwargs
         self.list_of_callables = list_of_callables
 
-    def run(self):
+    def run(self)-> tuple[Ans, Ans]:
+        """Main stage to set up the process of all other stages
+
+        @rtype: tuple[Ans, Ans]
+        @return: A tuple containing the answer and debug info from the simulation.
+        """
         for cme, debug_info in self.list_of_callables[0](self.list_of_callables[1:], **self.kwargs).run():
             return cme, debug_info

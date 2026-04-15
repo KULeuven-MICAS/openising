@@ -13,8 +13,10 @@ class Stage(metaclass=ABCMeta):
         **kwargs: Any,
     ):
         """
-        @param list_of_callables: a list of callables, that must have a signature compatible with this __init__ function
-        and return a Stage instance. This is used to flexibly build iterators upon other iterators.
+        @type list_of_callables: list[StageCallable]
+        @param list_of_callables: a list of callables, that must have a signature compatible with this __init__ \
+            function and return a Stage instance. This is used to flexibly build iterators upon other iterators.
+        @type kwargs: dict[Any]
         @param kwargs: any keyword arguments, irrelevant to the specific class in question but passed on down
         """
         self.kwargs = kwargs
