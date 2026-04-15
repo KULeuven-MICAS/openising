@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 import sys
 from ising.stages.stage import StageCallable
 from ising.stages.main_stage import MainStage
