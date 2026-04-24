@@ -31,8 +31,8 @@ class IsingModel:
             raise ValueError("h must be a vector")
         if not isinstance(J, np.ndarray) or not npu.is_square(J):
             raise ValueError("J must be a square matrix")
-        if not npu.is_triu(J, k=1):
-            raise ValueError("J must be a strictly upper triangular matrix")
+        # if not npu.is_triu(J, k=1):
+        #     raise ValueError("J must be a strictly upper triangular matrix")
         if not len(h) == J.shape[0]:
             raise ValueError(f"h ({h.shape}) and J ({J.shape}) are not compatible")
         self.J = J.astype(np.float32)
@@ -57,6 +57,16 @@ class IsingModel:
             int: the number of variables (nodes).
         """
         return len(self.h)
+
+    @property
+    def num_non_frozen_variables(self) -> int:
+        """
+        The number of non-frozen variables in the Ising model.
+
+        Returns:
+            int: the number of non-frozen variables (nodes).
+        """
+        return self.num_variables - len(self.freeze_spins)
 
     @property
     def num_interactions(self) -> int:

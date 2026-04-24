@@ -131,6 +131,7 @@ class Multiplicative(SolverBase):
                 counter += 1
                 if self.bias:
                     dv[-1] = 0.0
+            dv[self.freeze_nodes] = 0.0
             new_state = np.clip(state + self.dt * dv, -1, 1)
 
             if np.max(np.sign(new_state) != np.sign(state)):
@@ -151,10 +152,8 @@ class Multiplicative(SolverBase):
                     energy=model.evaluate(np.sign(new_state[: model.num_variables]).astype(np.float32)),
                     voltages=new_state[: model.num_variables],
                 )
-        # dv[self.freeze_nodes] = 0.0
-        # print(dv)
         return (
-            np.where(new_state[: model.num_variables] >= 0, 1, -1),
+            np.where(new_state[: model.num_variables] >= 0, 1, -1).astype(np.float32),
             model.evaluate(np.where(new_state[: model.num_variables] >= 0, 1, -1).astype(np.float32)),
         )
 
@@ -230,7 +229,6 @@ class Multiplicative(SolverBase):
         @return: the final state, final energy, total computation time, number of operations, and number of iterations\
               until convergence.
         """
-
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
             new_model = model.transform_to_no_h()
@@ -242,7 +240,7 @@ class Multiplicative(SolverBase):
         self.freeze_nodes = model.freeze_spins
 
         # Ensure the mean and variance of J are reasonable
-        coupling = triu_to_symm(new_model.J)
+        coupling = triu_to_symm(new_model.J) - new_model.J.diagonal() * np.eye(new_model.num_variables)
         # if sigma_J != -1.0:
         #     self.mismatch = True
         #     coupling_pos = coupling * (1 + np.random.normal(0.0, sigma_J, coupling.shape))
@@ -291,8 +289,8 @@ class Multiplicative(SolverBase):
             init_size = int(init_cluster_size * num_var)
             end_size = int(end_cluster_size * num_var)
         else:
-            init_size = int(init_cluster_size * (model.num_variables - len(self.freeze_nodes)))
-            end_size = int(end_cluster_size * (model.num_variables - len(self.freeze_nodes)))
+            init_size = int(init_cluster_size * model.num_non_frozen_variables)
+            end_size = int(end_cluster_size * model.num_non_frozen_variables)
         if end_size < 1:
             end_size = 1
         self.set_params(
@@ -318,7 +316,6 @@ class Multiplicative(SolverBase):
             v[-1] = 1.0
         else:
             v = initial_state.astype(np.float32, copy=True)
-
         # Schema for logging
         if nb_flipping == 1:
             schema = {
@@ -418,10 +415,9 @@ class Multiplicative(SolverBase):
                     **additional_information,
                 )
                 v = best_sample.copy()
-                v[cluster] *= -1
+                v[cluster] *= np.float32(-1.0)
                 if self.bias:
                     v = np.block([v, np.float32(1.0)])
-
                 # Log everything
                 if log.filename is not None and nb_flipping > 1:
                     log.log(
@@ -504,7 +500,9 @@ class Multiplicative(SolverBase):
             cluster = np.array([nb_splits * cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
         else:
             cluster = self.generator(
-                np.arange(self.num_variables), size=(cluster_size,), replace=False
+                np.setdiff1d(np.arange(int(self.num_variables)), self.freeze_nodes),
+                size=(cluster_size,),
+                replace=False,
             )
         return cluster
 
