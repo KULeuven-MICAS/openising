@@ -2,8 +2,6 @@
 
 - **benchmarks/:** the benchmarks for different applications.
 
-- **flow/:** temporal functions used in development.
-
 - **generators/:** temporal functions used in development.
 
 - **hw/:** standalone hardware simulation scripts.
