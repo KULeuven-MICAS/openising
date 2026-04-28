@@ -16,8 +16,6 @@
 
 - **stages/:** execution pipeline stages of the framework.
 
-- **under_dev/:** scripts under development.
-
 - **utils/:** utilities of the framework.
 
 - **api.py:** API of the framework.
