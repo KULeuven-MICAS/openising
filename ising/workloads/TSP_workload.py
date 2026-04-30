@@ -2,7 +2,6 @@ from ising.workloads.run_workload import run_workload
 from ising.stages import TOP
 from ising.postprocessing.run_summary import summarize_workload
 import yaml
-
 """
 Choose type of the Galena solver to be used. Options are "base", "HW", "comb_nodes_HW", "multi_core", and
 "comb_nodes-multi_core".
@@ -20,10 +19,10 @@ Choose type of the Galena solver to be used. Options are "base", "HW", "comb_nod
 - "comb_nodes-multi_core": this option adds both the first and second solver improvements to the solver.
 
 """
-top_benchmark = "./ising/benchmarks/G/"
+top_benchmark = "./ising/benchmarks/TSP/"
 solver_type = "base"
-config_file = "./ising/inputs/config/config_mcWorkload.yaml"
-difficulty = "easy"  # easy - 800 nodes, difficult - 2000 nodes
+config_file = "./ising/inputs/config/config_tspWorkload.yaml"
+difficulty = "easy"  # easy - < 25 cities, medium - 25 <= cities <= 40, difficult - > 40 cities
 
 settings = {
     "current": 1e-6,
@@ -40,11 +39,13 @@ settings = {
 }
 
 if difficulty == "easy":
-    problems = ["G1.txt", "G6.txt", "G11.txt", "G14.txt", "G18.txt"]
+    problems = ["burma14.tsp", "gr17.tsp", "ulysses16.tsp", "gr21.tsp", "gr24.tsp", "ulysses22.tsp"]
+elif difficulty == "medium":
+    problem = ["bayg29.tsp", "bays29.tsp", "fri26.tsp"]
 elif difficulty == "difficult":
-    problem = ["K2000.txt", "G22.txt", "G27.txt", "G32.txt", "G35.txt", "G39.txt"]
+    problem = ["att48.tsp", "berlin52.tsp", "brazil58.tsp", "dantzig42.tsp", "gr48.tsp", "hk48.tsp"]
 else:
-    raise ValueError("Invalid difficulty level. Options are 'easy' or 'difficult'.")
+    raise ValueError("Invalid difficulty level. Options are 'easy', 'medium', or 'difficult'.")
 
 ans_list = []
 for problem in problems:
@@ -53,11 +54,11 @@ for problem in problems:
     config["benchmark"] = top_benchmark + problem
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
-    ans, _ = run_workload(problem_type="Maxcut", solver_type=solver_type, config_file=config_file, **settings)
+    ans, _ = run_workload(problem_type="TSP", solver_type=solver_type, config_file=config_file, **settings)
     ans_list.append(ans)
 summarize_workload(
-    output_file=TOP / f"ising/workloads/maxcut_results_{difficulty}_{solver_type}.txt",
-    problem_type="Max Cut",
+    output_file=TOP / f"ising/workloads/tsp_results_{difficulty}_{solver_type}.txt",
+    problem_type="TSP",
     config_path=TOP / config_file,
     ans_list=ans_list,
 )

@@ -3,7 +3,34 @@ from pathlib import Path
 import numpy as np
 
 from ising.utils.flow import compute_ttt, approximation_to_best_found
+from ising.stages.simulation_stage import Ans
 
+def summarize_workload(output_file: Path, problem_type: str, config_path: Path, ans_list: list[Ans]):
+    accuracies = {solver: [] for solver in ans_list[0].config.solvers}
+    tts_all = {solver: [] for solver in ans_list[0].config.solvers}
+    bers = {solver: [] for solver in ans_list[0].config.solvers}
+    for ans in zip(ans_list):
+        ret = summarize_runs(output_file, ans, problem_type, config_path)
+        if problem_type != "MIMO":
+            for solver in ans.config.solvers:
+                accuracies[solver].append(ret[1])
+                tts_all[solver].append(ret[0])
+        else:
+            for solver in ans.config.solvers:
+                bers[solver].append(ans.BER)
+    if problem_type != "MIMO":
+        mean_acc = " ".join([f"{np.mean(accuracies[solver])}" for solver in ans_list[0].config.solvers])
+        mean_tts = " ".join([f"{solver: np.mean(tts_all[solver])}" for solver in ans_list[0].config.solvers])
+
+        with Path.open(output_file, "a") as f:
+            f.write("=====Summary of all runs=====\n")
+            f.write(f"mean approximation value| {mean_acc}\n")
+            f.write(f"mean TTT 0.9| {mean_tts}\n")
+    else:
+        mean_ber = " ".join([f"{np.mean(bers[solver])}" for solver in ans_list[0].config.solvers])
+        with Path.open(output_file, "a") as f:
+            f.write("=====Summary of all runs=====\n")
+            f.write(f"mean BER| {mean_ber}\n")
 
 def summarize_runs(output_file, ans, problem_type, config_path):
     solvers = ans.config.solvers
@@ -41,7 +68,7 @@ def summarize_runs(output_file, ans, problem_type, config_path):
                 f.write(f"computation time| {comp_str}\n")
                 f.write(f"operation count| {operation_str}\n")
                 f.write(f"operation count / it| {operation_it_str}\n")
-
+        return None
     elif not ans.config.dummy_creator:
         benchmark = ans.benchmark
         ising_energies = ans.energies
@@ -89,3 +116,4 @@ def summarize_runs(output_file, ans, problem_type, config_path):
             ising_energy_min,
             ising_energy_avg,
         )
+        return tts, approximation
