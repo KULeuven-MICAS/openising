@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from ising.utils.flow import compute_ttt, approximation_to_best_found
+from ising.utils.problem_difficulty import compute_ruggedness
 from ising.stages.simulation_stage import Ans
 
 def summarize_workload(output_file: Path, problem_type: str, config_path: str, ans_list: list[Ans]):
@@ -49,6 +50,7 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             for solver in solvers
         ]
     )
+    ruggednes_prob = compute_ruggedness(ans.ising_model, ans.ising_model.num_variables*10)
     if problem_type == "MIMO":
         logging.info("BER: %s", ans.BER)
         if not ans.config.dummy_creator:
@@ -58,6 +60,8 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
                 f.write("=====================\n")
                 f.write(f"results of running {ans.benchmark} with {config_path.rsplit('/', maxsplit=1)[-1]}:\n")
                 f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
+                f.write("=====================\n")
+                f.write(f"ruggedness {ans.benchmark}| {ruggednes_prob}")
                 f.write("=====================\n")
                 f.write("MIMO results:\n")
                 f.write(f"SNR|BER  {solver_str}\n")
@@ -96,6 +100,8 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
             f.write(f"reference energy {best_found}\n")
             f.write("=====================\n")
+            f.write(f"ruggedness {benchmark}| {ruggednes_prob}")
+            f.write("=====================\n")
             f.write("Simulation results:\n")
             f.write(f"solver| {solver_str}\n")
             f.write(f"energy max| {max_en_str}\n")
@@ -109,8 +115,9 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             f.write("\n")
 
         logging.info(
-            "benchmark: %s, \n reference: %s,\n energy max: %s, \n min: %s, \n avg: %s",
+            "benchmark: %s, \n ruggedness: %s, \n reference: %s,\n energy max: %s, \n min: %s, \n avg: %s",
             benchmark,
+            ruggednes_prob,
             best_found,
             ising_energy_max,
             ising_energy_min,
