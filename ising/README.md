@@ -2,8 +2,6 @@
 
 - **benchmarks/:** the benchmarks for different applications.
 
-- **flow/:** temporal functions used in development.
-
 - **generators/:** temporal functions used in development.
 
 - **hw/:** standalone hardware simulation scripts.
@@ -15,8 +13,6 @@
 - **solvers/:** implementation of different solvers.
 
 - **stages/:** execution pipeline stages of the framework.
-
-- **under_dev/:** scripts under development.
 
 - **utils/:** utilities of the framework.
 

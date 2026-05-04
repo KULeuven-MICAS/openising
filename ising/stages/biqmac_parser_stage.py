@@ -41,9 +41,10 @@ class BiqMacParserStage(Stage):
     def generate_biqmac(graph: nx.Graph) -> IsingModel:
         """! Generates an Ising model from the given undirected nx graph
 
-        @param graph (nx.Graph): graph on which the max-cut problem will be solved
-
-        @return model (IsingModel): generated model from the graph
+        @type graph: nx.Graph
+        @param graph: graph on which the max-cut problem will be solved
+        @rtype: IsingModel
+        @return: generated model from the graph
         """
         Q_matrix = nx.adjacency_matrix(graph, weight="weight").toarray()
         diag = np.diag(Q_matrix)
@@ -57,10 +58,10 @@ class BiqMacParserStage(Stage):
     def biqmac_parser(benchmark: pathlib.Path | str) -> tuple[nx.DiGraph, float]:
         """! Creates undirected graph from G benchmark.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: benchmark that needs to be generated.
-
-        @return G: a tuple containing the graph and best found cut value.
-        @return best_found: the best found cut value.
+        @rtype: tuple[nx.DiGraph, float]
+        @return: a tuple containing the graph and best found energy.
         """
         data = False
         name = str(benchmark).split("/")[-1].split(".")[0]
@@ -85,9 +86,10 @@ class BiqMacParserStage(Stage):
     def get_optim_value(benchmark: pathlib.Path | str) -> float | None:
         """! Returns the best found value of the benchmark if the optimal value is known.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: the benchmark file
-
-        @return: best_found: the best found energy of the benchmark
+        @rtype: float | None
+        @return: the best found energy of the benchmark
         """
         best_found = None
         benchmark_name = str(benchmark).split("/")[-1]

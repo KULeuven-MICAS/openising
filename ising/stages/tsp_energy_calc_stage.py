@@ -61,11 +61,14 @@ class TSPEnergyCalcStage(Stage):
         """! Calculates the TSP distance for every state of the given logfiles.
         It will append this data to the file.
 
+        @type logfile: pathlib.Path
         @param logfile: the logfiles.
+        @type graph: nx.DiGraph
         @param graph: the original graph on which the TSP problem is solved. All the logfiles solved this problem.
+        @type gurobi: bool
         @param gurobi: whether the logfiles contain Gurobi data. Defaults to False.
-
-        @return TSP_value: the TSP distance value.
+        @rtype: float
+        @return: the TSP distance value.
         """
         start_time = datetime.datetime.now()
         LOGGER.info(f"TSP energy inferring started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")

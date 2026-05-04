@@ -18,7 +18,7 @@ class IsingModel:
         c (float): A constant term in the Hamiltonian.
     """
 
-    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0, name:str=None) -> None:
+    def __init__(self, J: np.ndarray, h: np.ndarray, c: float = 0, name:str=None, freeze_spins:list[int] = []) -> None:
         """
         Initialize an Ising model with the specified interaction matrix, bias vector, and constant.
 
@@ -31,8 +31,8 @@ class IsingModel:
             raise ValueError("h must be a vector")
         if not isinstance(J, np.ndarray) or not npu.is_square(J):
             raise ValueError("J must be a square matrix")
-        if not npu.is_triu(J, k=1):
-            raise ValueError("J must be a strictly upper triangular matrix")
+        # if not npu.is_triu(J, k=1):
+        #     raise ValueError("J must be a strictly upper triangular matrix")
         if not len(h) == J.shape[0]:
             raise ValueError(f"h ({h.shape}) and J ({J.shape}) are not compatible")
         self.J = J.astype(np.float32)
@@ -40,6 +40,7 @@ class IsingModel:
         self.c = np.float32(c)
         self.benchmark_name = name
         self.transformation_history = []
+        self.freeze_spins = freeze_spins
 
     def __repr__(self) -> str:
         return f"IsingModel(\n J={str(self.J).replace('\n ', '\n    ')},\n h={self.h},\n c={self.c}\n)"
@@ -56,6 +57,16 @@ class IsingModel:
             int: the number of variables (nodes).
         """
         return len(self.h)
+
+    @property
+    def num_non_frozen_variables(self) -> int:
+        """
+        The number of non-frozen variables in the Ising model.
+
+        Returns:
+            int: the number of non-frozen variables (nodes).
+        """
+        return self.num_variables - len(self.freeze_spins)
 
     @property
     def num_interactions(self) -> int:

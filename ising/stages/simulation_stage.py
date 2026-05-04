@@ -210,13 +210,16 @@ class SimulationStage(Stage):
     ) -> tuple[np.ndarray, float]:
         """! Solves the given problem with the specified solver.
 
+        @type solver: str
         @param solver: The solver to use
+        @type s_init: np.ndarray
         @param s_init: Initial state for the solver
+        @type model: IsingModel
         @param model: The Ising model to use for the solver
+        @type logfile: pathlib.Path | None
         @param logfile: Path to the logfile to store data. Defaults to None.
-
-        @return optim_state: optimal state of the specified solver.
-        @return optim_energy: optimal energy of the specified solver.
+        @rtype: tuple[np.ndarray, float]
+        @return: optimal state and energy of the specified solver.
         """
         optim_state = np.zeros((model.num_variables,))
         optim_energy = None
@@ -246,7 +249,6 @@ class SimulationStage(Stage):
                     "end_cluster_size",
                     "exponent",
                     "cluster_choice",
-                    "ode_choice",
                     "stop_criterion",
                     "accumulation_delay",
                     "broadcast_delay",

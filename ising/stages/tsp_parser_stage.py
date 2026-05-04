@@ -46,9 +46,10 @@ class TSPParserStage(Stage):
         """! Creates a graph from the given benchmark. With this graph a TSP problem can be generated.
         It is important to note that only TSP benchmarks can be used
 
+        @type benchmark: pathlib.Path
         @param benchmark: the absolute path to the benchmark file.
-
-        @return graph: a tuple containing the graph and best found energy.
+        @rtype: tuple[nx.DiGraph, float]
+        @return: a tuple containing the graph and best found energy.
         """
         if not benchmark.exists():
             LOGGER.error(f"Benchmark does not exist: {benchmark}")
@@ -66,9 +67,10 @@ class TSPParserStage(Stage):
     def get_optim_value(benchmark:pathlib.Path|str)->float | None:
         """! Returns the best found value of the benchmark if the optimal value is known.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: the benchmark file
-
-        @return: best_found: the best found energy of the benchmark
+        @rtype: float | None
+        @return: the best found energy of the benchmark
         """
         benchmark = str(benchmark).split("/")[-1].split(".")[0]
         optim_file = TOP / "ising/benchmarks/TSP/optimal_energy.txt"

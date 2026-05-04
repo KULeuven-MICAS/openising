@@ -137,10 +137,10 @@ class QuantizationStage(Stage):
     def calc_original_precision(J: np.ndarray) -> tuple[int:, bool]:
         """! Calculate the original precision of the matrix.
 
+        @type J: np.ndarray
         @param J: the input matrix
-
-        @return: the original required int precision
-        @return: whether the matrix is unsigned
+        @rtype: tuple[int, bool]
+        @return: the original required int precision and whether the matrix is unsigned.
         """
         J_min = int(np.min(J))
         J_max = int(np.max(J))
@@ -176,12 +176,17 @@ class QuantizationStage(Stage):
     ) -> np.ndarray:
         """! Quantizes a matrix to a given precision.
 
+        @type J: np.ndarray
         @param J: the input matrix
+        @type original_precision: int
         @param original_precision: the original precision of the matrix
+        @type quantization_precision: int or float
         @param quantization_precision: the precision for quantization
+        @type scale: float
         @param scale: the scaling factor for the matrix
+        @type scale_to_integer: bool
         @param scale_to_integer: scale the values to the ones supported on chip
-
+        @rtype: np.ndarray
         @return: a quantized matrix
         """
         # Scale J first, afterwards scale is applied to quantized values
@@ -286,8 +291,11 @@ class QuantizationStage(Stage):
         zero_as_white: bool = True,
     ):
         """! Visualize 2D ndarray in matrix
+        @type mat: np.ndarray
         @param mat: input 2D ndarray
+        @type output: str
         @param output: output file name
+        @type zero_as_white: bool
         @param zero_as_white: whether to plot zero values as white
         """
 
@@ -349,8 +357,11 @@ class QuantizationStage(Stage):
         bins: int = 50,
     ):
         """! Plot the distribution of a ndarray
+        @type data: np.ndarray
         @param data: input ndarray
+        @type output: str
         @param output: output file name
+        @type bins: int
         @param bins: number of bins for the histogram
         """
 

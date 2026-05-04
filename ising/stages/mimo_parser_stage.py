@@ -112,13 +112,11 @@ class MIMOParserStage(Stage):
     def parse_MIMO(benchmark: pathlib.Path) -> tuple[np.ndarray, np.ndarray, int, int, int]:
         """! Parses the MIMO benchmark from the given file.
 
-        @param benchmark (pathlib.Path): the path to the benchmark to parse.
-
-        @return H (np.ndarray): the transfer function matrix of the MIMO system.
-        @return x (np.ndarray): all the input signals that where sent.
-        @return M (int): the considered QAM scheme.
-        @return ant_num (int): amount of user antennas for the MIMO problem.
-        @return user_num (int): amount of receiver antennas for the MIMO problem.
+        @type benchmark: pathlib.Path
+        @param benchmark: the path to the benchmark to parse.
+        @rtype: tuple[np.ndarray, np.ndarray, int, int, int]
+        @return: the transfer function matrix, input signals, QAM scheme, and amount of antennas and users\
+            of the MIMO system.
         """
 
         with benchmark.open() as f:
@@ -168,19 +166,24 @@ class MIMOParserStage(Stage):
     ) -> tuple[IsingModel, np.ndarray, np.ndarray]:
         """!Transforms the MIMO model into an Ising model.
 
-        @param H (np.ndarray): The transfer function matrix.
-        @param x (np.ndarray): the input signal.
-        @param T (np.ndarray): the transformation matrix to transform the input signal to Ising format.
-        @param SNR (float): the signal to noise ratio.
-        @param user_num (int): the amount of input signals.
-        @param ant_num (int): the amount of output signals.
-        @param M (int): the considered QAM scheme.
-        @param seed (int, optional): The seed for the random noise generation. Defaults to 0.
-        @param is_hamming_encoding (bool, optional): Whether to use Hamming encoding. Defaults to False.
-
-        @return model (IsingModel): the generated Ising model.
-        @return xtilde (np.ndarray): the real version of the input symbols.
-        @return ytilde (np.ndarray): the real version of the output symbols.
+        @type H: np.ndarray
+        @param H: The transfer function matrix.
+        @type x: np.ndarray
+        @param x: the input signal.
+        @type SNR: float
+        @param SNR: the signal to noise ratio.
+        @type user_num: int
+        @param user_num: the amount of input signals.
+        @type ant_num: int
+        @param ant_num: the amount of output signals.
+        @type M: int
+        @param M: the considered QAM scheme.
+        @type seed: int, optional
+        @param seed: The seed for the random noise generation. Defaults to 0.
+        @type is_hamming_encoding: bool, optional
+        @param is_hamming_encoding: Whether to use Hamming encoding. Defaults to False.
+        @rtype: tuple[IsingModel, np.ndarray, np.ndarray]
+        @return: the generated Ising model, and the real version of the input, and output symbols.
         """
         is_bpsk = np.linalg.norm(np.imag(x)) == 0
 

@@ -19,44 +19,10 @@ class MaxcutParserStage(Stage):
         """! Parse the Maxcut benchmark workload."""
 
         if self.config.dummy_creator:
-            if self.config.dummy_quadratic:
-                LOGGER.debug("Generating a dummy problem with only 1 minimum.")
-                v = np.array([2**i for i in range(3, -1, -1)])
-                vvT = np.outer(v, v)
-                Q = np.zeros((self.config.dummy_size, self.config.dummy_size))
-                for block in range(0, self.config.dummy_size, 4):
-                    if block + 4 <= self.config.dummy_size:
-                        Q[block : block + 4, block : block + 4] = vvT
-                    else:
-                        Q[block:, block:] = vvT[: self.config.dummy_size - block, : self.config.dummy_size - block]
-                coupling = -np.triu(Q, k=1) / 2
-                bias = -1 / 2 * np.ones((self.config.dummy_size, 1)).T @ Q
-                constant = np.sum(np.diag(Q)) / 4 + np.sum(Q) / 4
-                ising_model = IsingModel(coupling, bias.flatten(), constant, name="Dummy_Quadratic")
-                best_found = 0.0
-                graph = nx.Graph()
-            elif self.config.dummy_local_optima:
-                LOGGER.debug("Generating a dummy problem with local optima.")
-                Qhat = np.array(
-                    [
-                        [3, -1, -1, -1],
-                        [-1, 3, -1, -1],
-                        [-1, -1, 2, 0],
-                        [-1, -1, 0, 2],
-                    ]
-                )
-                Q = np.zeros((self.config.dummy_size, self.config.dummy_size))
-                for block in range(0, self.config.dummy_size, 4):
-                    if block + 4 <= self.config.dummy_size:
-                        Q[block : block + 4, block : block + 4] = Qhat
-                ising_model = IsingModel.from_qubo(-Q)
-                best_found = -4* (self.config.dummy_size // 4)
-                graph = nx.Graph()
-            else:
-                dummy_dict = self.kwargs.get("dummy_dict", {})
-                graph = dummy_dict.get("graph", None)
-                best_found = dummy_dict.get("best_found", None)
-                ising_model = dummy_dict.get("ising_model", None)
+            dummy_dict = self.kwargs.get("dummy_dict", {})
+            graph = dummy_dict.get("graph", None)
+            best_found = dummy_dict.get("best_found", None)
+            ising_model = dummy_dict.get("ising_model", None)
         else:
             LOGGER.debug(f"Parsing Maxcut benchmark: {self.benchmark_filename}")
             graph: nx.Graph
@@ -75,9 +41,10 @@ class MaxcutParserStage(Stage):
     def generate_maxcut(graph: nx.Graph) -> IsingModel:
         """! Generates an Ising model from the given undirected nx graph
 
-        @param graph (nx.Graph): graph on which the max-cut problem will be solved
-
-        @return model (IsingModel): generated model from the graph
+        @type graph: nx.Graph
+        @param graph: graph on which the max-cut problem will be solved
+        @rtype: IsingModel
+        @return: generated model from the graph
         """
         N = len(graph.nodes)
         coupling = -nx.adjacency_matrix(graph, weight="weight").toarray() / 2
@@ -90,10 +57,10 @@ class MaxcutParserStage(Stage):
     def G_parser(benchmark: pathlib.Path | str) -> tuple[nx.DiGraph, float]:
         """! Creates undirected graph from G benchmark.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: benchmark that needs to be generated.
-
-        @return G: a tuple containing the graph and best found cut value.
-        @return best_found: the best found cut value.
+        @rtype: tuple[nx.DiGraph, float]
+        @return: a tuple containing the graph and best found cut value.
         """
         data = False
         name = str(benchmark).split("/")[-1].split(".")[0]
@@ -118,9 +85,10 @@ class MaxcutParserStage(Stage):
     def get_optim_value(benchmark: pathlib.Path | str) -> float | None:
         """! Returns the best found value of the benchmark if the optimal value is known.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: the benchmark file
-
-        @return: best_found: the best found energy of the benchmark
+        @rtype: float | None
+        @return: the best found energy of the benchmark. None is returned when the best energy is not known.
         """
         best_found = None
         benchmark_name = str(benchmark).split("/")[-1]

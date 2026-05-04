@@ -37,9 +37,12 @@ class QKPParserStage(Stage):
     def generate_knapsack(self, graph: nx.Graph, penalty_value: float) -> IsingModel:
         """! Generates an Ising model from the given undirected nx graph
 
-        @param graph (nx.Graph): graph on which the knapsack problem will be solved
-
-        @return model (IsingModel): generated model from the graph
+        @type graph: nx.Graph
+        @param graph: graph on which the knapsack problem will be solved
+        @type penalty_value: float
+        @param penalty_value: the penalty value for the constraint. Should not be smaller than 1.
+        @rtype: IsingModel
+        @return: generated model from the graph
         """
         if penalty_value < 1.0:
             LOGGER.warning(f"Penalty value is {penalty_value} < 1. Changing to 1.")
@@ -60,10 +63,10 @@ class QKPParserStage(Stage):
     def QKP_parser(benchmark: pathlib.Path | str) -> tuple[nx.DiGraph, float]:
         """! Creates undirected graph from QKP benchmark.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: benchmark that needs to be generated.
-
-        @return G: a networkx object containing the all the data of the benchmark.
-        @return best_found: the best found cut value.
+        @rtype: tuple[nx.DiGraph, float]
+        @return: a graph containing the all the data of the benchmark and the best found value.
         """
         # Make sure we keep track of where we are in the file
         profit_part = False
@@ -139,12 +142,16 @@ class QKPParserStage(Stage):
     ) -> IsingModel:
         """!Generates an instance of the knapsack problem in the Ising form.
 
-        @param profit (np.ndarray): the profits of choosing the items.
-        @param capacity (int): the capacity of the knapsack.
-        @param weights (np.ndarray): the weight of every item.
-        @param penalty_value (float): the penalty value for the constraint.
-
-        @return IsingModel: the corresponding Ising model.
+        @type profit: np.ndarray
+        @param profit: the profits of choosing the items.
+        @type capacity: int
+        @param capacity: the capacity of the knapsack.
+        @type weights: np.ndarray
+        @param weights: the weight of every item.
+        @type penalty_value: float
+        @param penalty_value: the penalty value for the constraint.
+        @rtype: IsingModel
+        @return: the corresponding Ising model.
         """
         alpha = np.max(profit) * penalty_value
 
@@ -242,9 +249,10 @@ class QKPParserStage(Stage):
     def get_optim_value(benchmark: pathlib.Path | str) -> float | None:
         """! Returns the best found value of the benchmark if the optimal value is known.
 
+        @type benchmark: pathlib.Path | str
         @param benchmark: the benchmark file
-
-        @return: best_found: the best found energy of the benchmark
+        @rtype: float | None
+        @return: the best found energy of the benchmark
         """
         best_found = None
         benchmark_name = str(benchmark).split("/")[-1][:-4]

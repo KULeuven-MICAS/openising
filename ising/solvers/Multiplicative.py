@@ -1,8 +1,7 @@
 import numpy as np
 import pathlib
-from collections import deque
 
-from ising.stages import LOGGER
+# from ising.stages import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
@@ -11,6 +10,7 @@ from ising.utils.numpy import triu_to_symm
 
 class Multiplicative(SolverBase):
     def __init__(self):
+        super().__init__()
         self.name = "Multiplicative"
 
     def set_params(
@@ -25,16 +25,26 @@ class Multiplicative(SolverBase):
         # coupling_neg: np.ndarray,
         voltage_delay_idx: np.ndarray | None = None,
     ):
-        """!Set the parameters for the solver.
+        """Set the parameters for the solver.
 
-        @param dt (float): time step.
-        @param num_iterations (int): the number of iterations.
-        @param capacitance (float): the capacitance of the system.
-        @param current (float): the unit current that flows through the cells.
-        @param stop_criterion (float): the stopping criterion to stop the solver when the voltages stagnate.
-        @param coupling_pos (np.ndarray): the coupling matrix of the system for positive pushes.
-        @param coupling_neg (np.ndarray): the coupling matrix of the system for negative pushes.
-        @param voltage_delay_idx (np.ndarray|None): the matrix containing the delay indices for each voltage.
+        @type dt: float
+        @param dt: time step.
+        @type num_iterations: int
+        @param num_iterations: the number of iterations.
+        @type capacitance: float
+        @param capacitance: the capacitance of the system.
+        @type current: float
+        @param current: the unit current that flows through the cells.
+        @type stop_criterion: float
+        @param stop_criterion: the stopping criterion to stop the solver when the voltages stagnate.
+        @type coupling: np.ndarray
+        @param coupling: the coupling matrix of the system.
+        @type coupling_pos: np.ndarray
+        @param coupling_pos: the coupling matrix of the system for positive pushes.
+        @type coupling_neg: np.ndarray
+        @param coupling_neg: the coupling matrix of the system for negative pushes.
+        @type voltage_delay_idx: np.ndarray|None
+        @param voltage_delay_idx: the matrix containing the delay indices for each voltage.
         """
         self.dt = np.float32(dt)
         self.num_iterations = num_iterations
@@ -47,14 +57,16 @@ class Multiplicative(SolverBase):
         self.voltage_delay_idx = voltage_delay_idx
 
     def construct_voltage_delay(self, previous_states: np.ndarray) -> np.ndarray:
-        """!Generates a matrix of voltages taking into account what each voltage sees at the current time step.
+        """Generates a matrix of voltages taking into account what each voltage sees at the current time step.
 
-        @param previous_states (np.ndarray): deque containing all the previous states up to\
+        @type previous_states: np.ndarray
+        @param previous_states: deque containing all the previous states up to\
                   accumulation_delay + broadcast_delay + 1 time steps.
-        @param previous_Voltages (np.ndarray|None): list containing all previous voltage matrices up to inter_delay
+        @type previous_Voltages: np.ndarray|None
+        @param previous_Voltages: list containing all previous voltage matrices up to inter_delay\
              time steps.
-
-        @return Voltages (np.ndarray): voltage matrix with all delays taken into account.
+        @rtype: np.ndarray
+        @return: voltage matrix with all delays taken into account.
         """
         Voltages = np.zeros(
             (self.num_variables + int(self.bias), self.num_variables + int(self.bias)), dtype=np.float32
@@ -68,93 +80,25 @@ class Multiplicative(SolverBase):
             Voltages[-1, :] = 1.0
         return Voltages
 
-    def inner_loop_discrete(
-        self,
-        model: IsingModel,
-        state: np.ndarray,
-        accumulation_delay: int,
-        broadcast_delay: int,
-        logging: HDF5Logger | None = None,
-    ) -> tuple[np.ndarray, float, np.ndarray]:
-        """!Simulates a discrete version of the hardware.
-
-        @param model (IsingModel): the model to solve.
-        @param state (np.ndarray): the initial state to start the simulation with.
-        @param accumulation_delay (int): Amount of accumulation delay.
-        @param broadcast_delay (int): Amount of broadcast delay.
-        @param logging (HDF5Logger|None): the logger to use when flipping is disabled.
-
-        @return spins (np.ndarray): the final spins of the system.
-        @return energy (float): the energy of the final state.
-        @return count (np.ndarray): the count of sign changes for every spin.
-        """
-        if logging is not None:
-            if logging.filename is not None:
-                logging.log(
-                    time=0.0,
-                    state=np.sign(state[: model.num_variables]),
-                    energy=model.evaluate(np.sign(state[: model.num_variables]).astype(np.float32)),
-                    voltages=state[: model.num_variables],
-                )
-
-        LOGGER.info(
-            f"Energy: {model.evaluate(np.sign(state[: model.num_variables]).astype(np.float32))},state:{np.sign(state)}"
-        )
-        i = 0
-        max_change = np.inf
-        previous_states = deque([np.sign(state) for _ in range(accumulation_delay + broadcast_delay + 1)])
-        while i < self.num_iterations and max_change > self.stop_criterion:
-            if accumulation_delay > 0 or broadcast_delay > 0:
-                Voltages = self.construct_voltage_delay(previous_states)
-                dv = np.diagonal(self.coupling @ Voltages).copy()
-            else:
-                dv = self.coupling @ np.sign(state)
-            if self.bias:
-                dv[-1] = 0.0
-
-            new_state = np.sign(dv)
-            if self.bias:
-                new_state[-1] = 1.0
-
-            previous_states.appendleft(np.sign(new_state))
-            previous_states.pop()
-            if logging is not None:
-                if logging.filename is not None:
-                    logging.log(
-                        time=i * self.dt,
-                        state=np.sign(new_state[: model.num_variables]),
-                        energy=model.evaluate(np.sign(new_state[: model.num_variables]).astype(np.float32)),
-                        voltages=new_state[: model.num_variables],
-                    )
-            if i > 0:
-                max_change = np.linalg.norm(new_state - state, ord=np.inf)
-            state = new_state.copy()
-            i += 1
-            LOGGER.info(
-                f"Energy: {model.evaluate(np.sign(state[: model.num_variables]).astype(np.float32))}, state:{state}"
-            )
-        return (
-            state[: model.num_variables],
-            model.evaluate(np.sign(state[: model.num_variables]).astype(np.float32)),
-        )
-
     def inner_loop_FE(
         self,
         model: IsingModel,
         state: np.ndarray,
         total_delay: int,
         logging: HDF5Logger | None = None,
-    ) -> tuple[np.ndarray, float, np.ndarray]:
-        """! Simulates the hardware with the Forward Euler method.
+    ) -> tuple[np.ndarray, float]:
+        """Simulates the hardware with the Forward Euler method.
 
-        @param model (IsingModel): the model to solve.
-        @param state (np.ndarray): the initial state to start the simulation.
-        @param total_delay (int): total delay present in the system.
-        @param logging (HDF5Logger|None): the logger to use when flipping is disabled.
-
-        @return sigma (np.ndarray): the final discrete state of the system.
-        @return energy (float): the final energy of the system.
-        @return count (np.ndarray): the count of sign flips for every node.
+        @type model: IsingModel
+        @param model: the model to solve.
+        @type state: np.ndarray
+        @param state: the initial state to start the simulation.
+        @type total_delay: int
+        @param total_delay: total delay present in the system.
+        @type logging: HDF5Logger|None
+        @param logging: the logger to use when flipping is disabled.
+        @rtype: tuple[np.ndarray, float]
+        @return: the new state and new energy.
         """
         # set up the simulation
         i = 0
@@ -187,6 +131,7 @@ class Multiplicative(SolverBase):
                 counter += 1
                 if self.bias:
                     dv[-1] = 0.0
+            dv[self.freeze_nodes] = 0.0
             new_state = np.clip(state + self.dt * dv, -1, 1)
 
             if np.max(np.sign(new_state) != np.sign(state)):
@@ -208,8 +153,8 @@ class Multiplicative(SolverBase):
                     voltages=new_state[: model.num_variables],
                 )
         return (
-            np.sign(new_state[: model.num_variables]),
-            model.evaluate(np.sign(new_state[: model.num_variables]).astype(np.float32)),
+            np.where(new_state[: model.num_variables] >= 0, 1, -1).astype(np.float32),
+            model.evaluate(np.where(new_state[: model.num_variables] >= 0, 1, -1).astype(np.float32)),
         )
 
     def solve(
@@ -227,7 +172,6 @@ class Multiplicative(SolverBase):
         capacitance: float = 1.0,
         seed: int = 0,
         stop_criterion: float = 1e-8,
-        ode_choice: str = "FE",
         accumulation_delay: float = 0.0,
         broadcast_delay: float = 0.0,
         delay_offset: float = 0.0,
@@ -236,36 +180,55 @@ class Multiplicative(SolverBase):
         # sigma_J: float = -1.0,
         file: pathlib.Path | None = None,
     ) -> tuple[np.ndarray, float, float, int, int]:
-        """!Solves the given problem using a multiplicative coupling scheme.
+        """Solves the given problem using a multiplicative coupling scheme.
 
-        @param model (IsingModel): the model to solve.
-        @param initial_state (np.ndarray): the initial spins of the nodes.
-        @param num_iterations (int): the number of iterations.
-        @param nb_flipping (int): the number of flipping iterations.
-        @param cluster_threshold (float): the threshold for clustering.
-        @param init_cluster_size (float): the initial cluster size.
-        @param end_cluster_size (float): the final cluster size.
-        @param exponent (float): the exponent for the exponential decrease of the cluster size.
-        @param cluster_choice (str): the choice of clustering method.
-        @param pseudo_length (int | None): the sequence length of the pseudo-random number generator.
-        @param current (float): the current flowing through a coupling unit.
-        @param capacitance (float): the capacitance of the system.
-        @param seed (int): the seed for random number generation.
-        @param stop_criterion (float): the stopping criterion to stop the solver when the voltages don't change
-        @param ode_choice (str): the choice of ODE solver.
-        @param accumulation_delay (float): the amount of accumulation delay in percentage of C/I value.
-        @param broadcast_delay (float): the amount of broadcast delay in percentage of C/I value.
-        @param delay_offset (float): amount of delay due to the comparator, which offsets all the delays.
-        @param sigma_J (float): the standard deviation of mismatch in the coupling.
-        @param file: (pathlib.Path,None): the path to the logfile
-
-        @return state (np.ndarray): the final state of the system.
-        @return energy (float): best energy of the system.
-        @return computation_time (float): total computation time for analog simulation.
-        @return operation_count (int): the number of operations performed.
-        @return iteration_count (int): amount of performed iterations until convergence.
+        @type model: IsingModel
+        @param model: the model to solve.
+        @type initial_state: np.ndarray
+        @param initial_state: the initial spins of the nodes.
+        @type num_iterations: int
+        @param num_iterations: the number of iterations.
+        @type freeze_spins: list[int]
+        @param freeze_spins: indices of spins not allowed to change. These also include the replicated spins when\
+            combine_nodes is True.
+        @type nb_flipping: int
+        @param nb_flipping: the number of flipping iterations.
+        @type cluster_threshold: float
+        @param cluster_threshold: the threshold for clustering.
+        @type init_cluster_size: float
+        @param init_cluster_size: the initial cluster size.
+        @type end_cluster_size: float
+        @param end_cluster_size: the final cluster size.
+        @type exponent: float
+        @param exponent: the exponent for the exponential decrease of the cluster size.
+        @type cluster_choice: str
+        @param cluster_choice: the choice of clustering method.
+        @type current: float
+        @param current: the current flowing through a coupling unit.
+        @type capacitance: float
+        @param capacitance: the capacitance of the system.
+        @type seed: int
+        @param seed: the seed for random number generation.
+        @type stop_criterion: float
+        @param stop_criterion: the stopping criterion to stop the solver when the voltages don't change
+        @type accumulation_delay: float
+        @param accumulation_delay: the amount of accumulation delay in percentage of C/I value.
+        @type  broadcast_delay: float
+        @param broadcast_delay: the amount of broadcast delay in percentage of C/I value.
+        @type delay_offset: float
+        @param delay_offset: amount of delay due to the comparator, which offsets all the delays.
+        @type sigma_J: float
+        @param sigma_J: the standard deviation of mismatch in the coupling.
+        @type combine_nodes: bool
+        @param combine_nodes: whether nodes need to be flipped together.
+        @type nb_splits: int
+        @param nb_splits: if combine_nodes is True, the number of nodes that need to be flipped together.
+        @type file: pathlib.Path|None
+        @param file: the path to the logfile
+        @rtype: tuple[np.ndarray, float, float, int, int]
+        @return: the final state, final energy, total computation time, number of operations, and number of iterations\
+              until convergence.
         """
-
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
             new_model = model.transform_to_no_h()
@@ -274,8 +237,10 @@ class Multiplicative(SolverBase):
             new_model = model
             self.bias = np.int8(0)
 
+        self.freeze_nodes = model.freeze_spins
+
         # Ensure the mean and variance of J are reasonable
-        coupling = triu_to_symm(new_model.J)
+        coupling = triu_to_symm(new_model.J) - new_model.J.diagonal() * np.eye(new_model.num_variables)
         # if sigma_J != -1.0:
         #     self.mismatch = True
         #     coupling_pos = coupling * (1 + np.random.normal(0.0, sigma_J, coupling.shape))
@@ -289,10 +254,10 @@ class Multiplicative(SolverBase):
         dtMult = 0.1 * capacitance / (current * np.max(np.abs(np.sum(coupling, axis=1))))
 
         capacitance_delay = capacitance / model.num_variables
-        LOGGER.info(f"Delay capacitance: {capacitance_delay:.4e} F")
+        # LOGGER.info(f"Delay capacitance: {capacitance_delay:.4e} F")
 
         time_constant = capacitance_delay / current
-        LOGGER.info(f"Adjusted time step to {dtMult:.4e} for stability.")
+        # LOGGER.info(f"Adjusted time step to {dtMult:.4e} for stability.")
         if accumulation_delay > 0.0 and accumulation_delay * time_constant < dtMult:
             dtMult = accumulation_delay * time_constant
             num_iterations = int(np.ceil(num_iterations * (dtMult / (accumulation_delay * time_constant))))
@@ -308,7 +273,7 @@ class Multiplicative(SolverBase):
         delay_offset = int(delay_offset * time_constant / dtMult)
 
         total_delay = (self.num_variables - 1) * (accumulation_delay + broadcast_delay) + delay_offset
-        LOGGER.info(f"Total delay in system: {total_delay} time steps.")
+        # LOGGER.info(f"Total delay in system: {total_delay} time steps.")
 
         if accumulation_delay > 0 or broadcast_delay > 0 or delay_offset > 0:
             voltage_delay_idx = np.zeros((self.num_variables, self.num_variables), dtype=np.int8)
@@ -320,12 +285,12 @@ class Multiplicative(SolverBase):
 
         # Set the parameters for easy calling
         if combine_nodes:
-            num_var = int(model.num_variables / nb_splits)
+            num_var = int((model.num_variables - len(self.freeze_nodes)) / nb_splits)
             init_size = int(init_cluster_size * num_var)
             end_size = int(end_cluster_size * num_var)
         else:
-            init_size = int(init_cluster_size * model.num_variables)
-            end_size = int(end_cluster_size * model.num_variables)
+            init_size = int(init_cluster_size * model.num_non_frozen_variables)
+            end_size = int(end_cluster_size * model.num_non_frozen_variables)
         if end_size < 1:
             end_size = 1
         self.set_params(
@@ -351,7 +316,6 @@ class Multiplicative(SolverBase):
             v[-1] = 1.0
         else:
             v = initial_state.astype(np.float32, copy=True)
-
         # Schema for logging
         if nb_flipping == 1:
             schema = {
@@ -373,14 +337,14 @@ class Multiplicative(SolverBase):
         choice = ""
         if cluster_choice == "random":
             find_cluster = self.find_cluster_random
-        elif cluster_choice == "gradient":
-            find_cluster = self.find_cluster_gradient
-        elif cluster_choice == "weighted_mean_smallest":
-            find_cluster = self.find_cluster_weighted_mean
-            choice = "smallest"
-        elif cluster_choice == "weighted_mean_largest":
-            find_cluster = self.find_cluster_weighted_mean
-            choice = "largest"
+        # elif cluster_choice == "gradient":
+        #     find_cluster = self.find_cluster_gradient
+        # elif cluster_choice == "weighted_mean_smallest":
+        #     find_cluster = self.find_cluster_weighted_mean
+        #     choice = "smallest"
+        # elif cluster_choice == "weighted_mean_largest":
+        #     find_cluster = self.find_cluster_weighted_mean
+        #     choice = "largest"
         else:
             raise ValueError(
                 f" Unknown cluster choice: {cluster_choice}. \
@@ -392,13 +356,6 @@ class Multiplicative(SolverBase):
             "optimal_points": [],
             "choice": choice,
         }
-
-        if ode_choice == "FE":
-            inner_loop = self.inner_loop_FE
-        elif ode_choice == "discrete":
-            inner_loop = self.inner_loop_discrete
-        else:
-            raise ValueError(f"Unknown ODE choice: {ode_choice}.")
 
         with HDF5Logger(file, schema) as log:
             if log.filename is not None:
@@ -429,8 +386,10 @@ class Multiplicative(SolverBase):
             counter = 0  # Counter for no improvement
             restart = 0  # When counter reaches threshold, size of cluster is reset with restart = it
             for it in range(nb_flipping):
-                sample, energy = inner_loop(model, v, total_delay, logging)
-                additional_information["current_state"] = sample
+                sample, energy = self.inner_loop_FE(model, v, total_delay, logging)
+                additional_information["current_state"] = sample[
+                    np.setdiff1d(np.arange(model.num_variables), self.freeze_nodes)
+                ]
 
                 if energy < best_energy:
                     best_energy = energy
@@ -456,10 +415,9 @@ class Multiplicative(SolverBase):
                     **additional_information,
                 )
                 v = best_sample.copy()
-                v[cluster] *= -1
+                v[cluster] *= np.float32(-1.0)
                 if self.bias:
                     v = np.block([v, np.float32(1.0)])
-
                 # Log everything
                 if log.filename is not None and nb_flipping > 1:
                     log.log(
@@ -493,85 +451,95 @@ class Multiplicative(SolverBase):
 
         return int(result)
 
-    def find_cluster_gradient(
-        self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
-    ) -> np.ndarray:
-        coupling = self.coupling_d * self.resistance
-        sigma = additional_information["current_state"]
+    # def find_cluster_gradient(
+    #     self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
+    # ) -> np.ndarray:
+    #     coupling = self.coupling_d * self.resistance
+    #     sigma = additional_information["current_state"]
 
-        gradient = (coupling @ np.block([sigma, 1]))[: len(sigma)]
-        gradient /= np.max(gradient)
-        if combine_nodes:
-            num_nodes = len(sigma) / nb_splits
-            gradient = np.array([np.sum(gradient[i * nb_splits : (i + 1) * nb_splits]) for i in range(int(num_nodes))])
-        else:
-            num_nodes = len(sigma)
-        threshold = additional_information["cluster_threshold"]
+    #     gradient = (coupling @ np.block([sigma, 1]))[: len(sigma)]
+    #     gradient /= np.max(gradient)
+    #     if combine_nodes:
+    #         num_nodes = (len(sigma)) / nb_splits
+    #        gradient = np.array([np.sum(gradient[i * nb_splits : (i + 1) * nb_splits]) for i in range(int(num_nodes))])
+    #     else:
+    #         num_nodes = len(sigma)
+    #     threshold = additional_information["cluster_threshold"]
 
-        available_nodes = np.where(gradient >= threshold, np.arange(num_nodes), -1)  # Chosen nodes based on threshold
-        if len(available_nodes[available_nodes >= 0]) < cluster_size:  # Case when not enough nodes are available
-            current_size = len(available_nodes[available_nodes >= 0])
-            ind_unavailable_nodes = np.where(available_nodes < 0)[0]
-            chosen_nodes = np.random.choice(ind_unavailable_nodes, (cluster_size - current_size,), replace=False)
-            available_nodes[chosen_nodes] = np.arange(num_nodes)[chosen_nodes]
-            cluster = available_nodes[available_nodes >= 0]
-        else:  # case when enough nodes are available
-            cluster = np.random.choice(available_nodes[available_nodes >= 0], size=(cluster_size,), replace=False)
-        if combine_nodes:
-            cluster = np.array([nb_splits*cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
-        return cluster
+    #     available_nodes = np.where(
+    #         gradient >= threshold, np.setdiff1d(np.arange(num_nodes), self.freeze_nodes), -1
+    #     )  # Chosen nodes based on threshold
+    #     if len(available_nodes[available_nodes >= 0]) < cluster_size:  # Case when not enough nodes are available
+    #         current_size = len(available_nodes[available_nodes >= 0])
+    #         ind_unavailable_nodes = np.where(available_nodes < 0)[0]
+    #         chosen_nodes = np.random.choice(ind_unavailable_nodes, (cluster_size - current_size,), replace=False)
+    #         available_nodes[chosen_nodes] = np.arange(num_nodes)[chosen_nodes]
+    #         cluster = available_nodes[available_nodes >= 0]
+    #     else:  # case when enough nodes are available
+    #         cluster = np.random.choice(available_nodes[available_nodes >= 0], size=(cluster_size,), replace=False)
+    #     if combine_nodes:
+    #         cluster = np.array([nb_splits * cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
+    #     return cluster
 
     def find_cluster_random(
         self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
     ) -> np.ndarray:
         """Finds a random cluster of nodes to flip.
 
-        Args:
-            cluster_size (int): the size of the cluster to find.
+        @type cluster_size: int
+        @param cluster_size: the size of the cluster to find.
+        @rtype: np.ndarray
+        @return: the indices of the nodes in the cluster.
         """
         if combine_nodes:
             cluster = self.generator(
-                np.arange(int(self.num_variables / nb_splits)), size=(cluster_size,), replace=False
+                np.setdiff1d(np.arange(int(self.num_variables / nb_splits)), self.freeze_nodes[::nb_splits]),
+                size=(cluster_size,),
+                replace=False,
             )
-            cluster = np.array([nb_splits*cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
+            cluster = np.array([nb_splits * cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
         else:
-            cluster = self.generator(np.arange(self.num_variables), size=(cluster_size,), replace=False)
+            cluster = self.generator(
+                np.setdiff1d(np.arange(int(self.num_variables)), self.freeze_nodes),
+                size=(cluster_size,),
+                replace=False,
+            )
         return cluster
 
-    def find_cluster_weighted_mean(
-        self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
-    ) -> np.ndarray:
-        optimal_points = additional_information["optimal_points"]
-        choice = additional_information["choice"]
-        weight_nodes = np.zeros_like(optimal_points[0][0], dtype=float)
+    # def find_cluster_weighted_mean(
+    #     self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
+    # ) -> np.ndarray:
+    #     optimal_points = additional_information["optimal_points"]
+    #     choice = additional_information["choice"]
+    #     weight_nodes = np.zeros_like(optimal_points[0][0], dtype=float)
 
-        for point, en in optimal_points:
-            weight_nodes += 1 / en * point  # the smaller the energy, the larger the weight
-        if np.linalg.norm(weight_nodes) == 0:
-            weight_nodes = np.random.random(weight_nodes.shape)  # First step is random choice
-        if combine_nodes:
-            weight_nodes = np.array(
-                [
-                    np.sum(weight_nodes[i * nb_splits : (i + 1) * nb_splits])
-                    for i in range(int(len(weight_nodes) / nb_splits))
-                ]
-            )
-        weight_nodes = np.abs(weight_nodes) / np.max(np.abs(weight_nodes))
-        if choice == "smallest":
-            available_nodes = np.where(weight_nodes < additional_information["cluster_threshold"])[0]
-            current_size = len(available_nodes)
-            if len(available_nodes) < cluster_size:
-                ind_unavailable_nodes = np.where(weight_nodes >= additional_information["cluster_threshold"])[0]
-                chosen_nodes = np.random.choice(ind_unavailable_nodes, (cluster_size - current_size,), replace=False)
-                available_nodes = np.append(available_nodes, chosen_nodes)
-        else:
-            available_nodes = np.where(weight_nodes > additional_information["cluster_threshold"])[0]
-            current_size = len(available_nodes)
-            if len(available_nodes) < cluster_size:
-                ind_unavailable_nodes = np.where(weight_nodes <= additional_information["cluster_threshold"])[0]
-                chosen_nodes = np.random.choice(ind_unavailable_nodes, (cluster_size - current_size,), replace=False)
-                available_nodes = np.append(available_nodes, chosen_nodes)
-        cluster = np.random.choice(available_nodes, size=(cluster_size,), replace=False)
-        if combine_nodes:
-            cluster = np.array([nb_splits*cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
-        return cluster
+    #     for point, en in optimal_points:
+    #         weight_nodes += 1 / en * point  # the smaller the energy, the larger the weight
+    #     if np.linalg.norm(weight_nodes) == 0:
+    #         weight_nodes = np.random.random(weight_nodes.shape)  # First step is random choice
+    #     if combine_nodes:
+    #         weight_nodes = np.array(
+    #             [
+    #                 np.sum(weight_nodes[i * nb_splits : (i + 1) * nb_splits])
+    #                 for i in range(int(len(weight_nodes) / nb_splits))
+    #             ]
+    #         )
+    #     weight_nodes = np.abs(weight_nodes) / np.max(np.abs(weight_nodes))
+    #     if choice == "smallest":
+    #         available_nodes = np.where(weight_nodes < additional_information["cluster_threshold"])[0]
+    #         current_size = len(available_nodes)
+    #         if len(available_nodes) < cluster_size:
+    #             ind_unavailable_nodes = np.where(weight_nodes >= additional_information["cluster_threshold"])[0]
+    #             chosen_nodes = np.random.choice(ind_unavailable_nodes, (cluster_size - current_size,), replace=False)
+    #             available_nodes = np.append(available_nodes, chosen_nodes)
+    #     else:
+    #         available_nodes = np.where(weight_nodes > additional_information["cluster_threshold"])[0]
+    #         current_size = len(available_nodes)
+    #         if len(available_nodes) < cluster_size:
+    #             ind_unavailable_nodes = np.where(weight_nodes <= additional_information["cluster_threshold"])[0]
+    #             chosen_nodes = np.random.choice(ind_unavailable_nodes, (cluster_size - current_size,), replace=False)
+    #             available_nodes = np.append(available_nodes, chosen_nodes)
+    #     cluster = np.random.choice(available_nodes, size=(cluster_size,), replace=False)
+    #     if combine_nodes:
+    #         cluster = np.array([nb_splits * cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
+    #     return cluster

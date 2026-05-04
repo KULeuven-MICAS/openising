@@ -3,9 +3,37 @@ from pathlib import Path
 import numpy as np
 
 from ising.utils.flow import compute_ttt, approximation_to_best_found
+from ising.utils.problem_difficulty import compute_ruggedness
+from ising.stages.simulation_stage import Ans
 
+def summarize_workload(output_file: Path, problem_type: str, config_path: str, ans_list: list[Ans]):
+    accuracies = {solver: [] for solver in ans_list[0].config.solvers}
+    tts_all = {solver: [] for solver in ans_list[0].config.solvers}
+    bers = {solver: [] for solver in ans_list[0].config.solvers}
+    for ans in ans_list:
+        ret = summarize_runs(output_file, ans, problem_type, config_path)
+        if problem_type != "MIMO":
+            for solver in ans.config.solvers:
+                accuracies[solver].append(ret[1][solver])
+                tts_all[solver].append(ret[0][solver])
+        else:
+            for solver in ans.config.solvers:
+                bers[solver].append(ans.BER)
+    if problem_type != "MIMO":
+        mean_acc = " ".join([f"{np.mean(accuracies[solver])}" for solver in ans_list[0].config.solvers])
+        mean_tts = " ".join([f"{np.mean(tts_all[solver])}" for solver in ans_list[0].config.solvers])
 
-def summarize_runs(output_file, ans, problem_type, config_path):
+        with Path.open(output_file, "a") as f:
+            f.write("=====Summary of all runs=====\n")
+            f.write(f"mean approximation value| {mean_acc}\n")
+            f.write(f"mean TTT 0.9| {mean_tts}\n")
+    else:
+        mean_ber = " ".join([f"{np.mean(bers[solver])}" for solver in ans_list[0].config.solvers])
+        with Path.open(output_file, "a") as f:
+            f.write("=====Summary of all runs=====\n")
+            f.write(f"mean BER| {mean_ber}\n")
+
+def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: str):
     solvers = ans.config.solvers
     mean_computation_time = {solver: np.mean(ans.computation_time[solver]) for solver in solvers}
     comp_str = " ".join([f"{mean_computation_time[solver]:.4e}s" for solver in solvers])
@@ -22,6 +50,7 @@ def summarize_runs(output_file, ans, problem_type, config_path):
             for solver in solvers
         ]
     )
+    ruggednes_prob = compute_ruggedness(ans.ising_model, ans.ising_model.num_variables*10)
     if problem_type == "MIMO":
         logging.info("BER: %s", ans.BER)
         if not ans.config.dummy_creator:
@@ -32,6 +61,8 @@ def summarize_runs(output_file, ans, problem_type, config_path):
                 f.write(f"results of running {ans.benchmark} with {config_path.rsplit('/', maxsplit=1)[-1]}:\n")
                 f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
                 f.write("=====================\n")
+                f.write(f"ruggedness {ans.benchmark}| {ruggednes_prob}")
+                f.write("=====================\n")
                 f.write("MIMO results:\n")
                 f.write(f"SNR|BER  {solver_str}\n")
                 f.write(f"{ans.SNR}|     {BER_str}\n")
@@ -41,7 +72,7 @@ def summarize_runs(output_file, ans, problem_type, config_path):
                 f.write(f"computation time| {comp_str}\n")
                 f.write(f"operation count| {operation_str}\n")
                 f.write(f"operation count / it| {operation_it_str}\n")
-
+        return None
     elif not ans.config.dummy_creator:
         benchmark = ans.benchmark
         ising_energies = ans.energies
@@ -69,6 +100,8 @@ def summarize_runs(output_file, ans, problem_type, config_path):
             f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
             f.write(f"reference energy {best_found}\n")
             f.write("=====================\n")
+            f.write(f"ruggedness {benchmark}| {ruggednes_prob}")
+            f.write("=====================\n")
             f.write("Simulation results:\n")
             f.write(f"solver| {solver_str}\n")
             f.write(f"energy max| {max_en_str}\n")
@@ -82,10 +115,12 @@ def summarize_runs(output_file, ans, problem_type, config_path):
             f.write("\n")
 
         logging.info(
-            "benchmark: %s, \n reference: %s,\n energy max: %s, \n min: %s, \n avg: %s",
+            "benchmark: %s, \n ruggedness: %s, \n reference: %s,\n energy max: %s, \n min: %s, \n avg: %s",
             benchmark,
+            ruggednes_prob,
             best_found,
             ising_energy_max,
             ising_energy_min,
             ising_energy_avg,
         )
+        return tts, approximation
