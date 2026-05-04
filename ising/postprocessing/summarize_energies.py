@@ -17,9 +17,10 @@ def summary_energies(logfiles: list[pathlib.Path], save_dir: pathlib.Path) -> No
     """Summarizes the energies over multiple sweeps for each solver and benchmark solved.
     The summary will hold the minimum, maximum, average and std values over the sweep.
 
-    Args:
-        logfiles (list[pathlib.Path]): a list of all the log files to summarize.
-        save_dir (pathlib.Path): where to store the data.
+    @type logfiles: list[pathlib.Path]
+    @param logfiles: a list of all the log files to summarize.
+    @type save_dir: pathlib.Path
+    @param save_dir: where to store the data.
     """
     energies = dict()
 
@@ -45,11 +46,14 @@ def box_plot_energies_logfiles(
 ) -> None:
     """Generates a boxplot from the final energy obtained from a list of logfiles.
 
-    Args:
-        logfiles (list[pathlib.Path]): the list of logfiles to plot from.
-        best_found (float): best found energy to plot as a reference.
-        save_dir (pathlib.Path): the save directory.
-        discriminate_by (str | None, optional): to discriminate the colors by. Defaults to None.
+    @type logfiles: list[pathlib.Path]
+    @param logfiles: the list of logfiles to plot from.
+    @type best_found: float
+    @param best_found: best found energy to plot as a reference.
+    @type save_dir: pathlib.Path
+    @param save_dir: the save directory.
+    @type discriminate_by: str | None
+    @param discriminate_by: to discriminate the colors by. Defaults to None.
     """
     data = get_metadata_from_logfiles(
         logfiles, discriminate_by if discriminate_by is not None else "num_iterations", "solution_energy"
@@ -75,8 +79,96 @@ def box_plot_energies_logfiles(
     plt.close()
 
 
+def _per_trial_metric(ans: Ans, solver: str, problem: str) -> np.ndarray:
+    """Return the per-trial quality metric for a single Ans. Lower is better.
+
+    For MIMO this is BER per trial; for every other problem it is the gap to the
+    best known energy, |E - E*| / |E*|.
+    """
+    if problem == "MIMO":
+        return np.asarray(ans.ber_of_trials[solver], dtype=float)
+    energies = np.asarray(ans.energies[solver], dtype=float)
+    return relative_to_best_found(energies, ans.best_found)
+
+
+def _metric_axis_label(problem: str) -> str:
+    return "BER" if problem == "MIMO" else "Gap to best known: |E - E*| / |E*|"
+
+
+def ans_to_metric_df(
+    ans_by_label: dict[Any, Ans | list[Ans]],
+    label_name: str,
+    problem: str,
+    solvers: list[str] | None = None,
+) -> pd.DataFrame:
+    """Convert run results into a long-form DataFrame with one row per trial.
+
+    @type ans_by_label: dict[Any, Ans | list[Ans]]
+    @param ans_by_label: maps a label (e.g. parameter value, solver_type, difficulty) to
+        a single Ans or a list of Ans (one per benchmark).
+    @type label_name: str
+    @param label_name: column name to use for the label key.
+    @type problem: str
+    @param problem: problem type. Selects gap vs. BER as the per-trial metric.
+    @type solvers: list[str] | None
+    @param solvers: which solvers to extract. Defaults to all solvers in each Ans config.
+    @rtype: pd.DataFrame
+    @return: DataFrame with columns: C{label_name}, "benchmark", "solver", "metric".
+    """
+    rows = []
+    for label, ans_or_list in ans_by_label.items():
+        ans_list = ans_or_list if isinstance(ans_or_list, list) else [ans_or_list]
+        for ans in ans_list:
+            for solver in solvers or ans.config.solvers:
+                for value in _per_trial_metric(ans, solver, problem):
+                    rows.append({
+                        label_name: label,
+                        "benchmark": ans.benchmark,
+                        "solver": solver,
+                        "metric": float(value),
+                    })
+    return pd.DataFrame(rows)
+
+
+def box_plot_metric(
+    df: pd.DataFrame,
+    x: str,
+    problem: str,
+    hue: str | None = None,
+    title: str = "",
+    save_path: pathlib.Path | None = None,
+) -> None:
+    """Log-y box plot of a per-trial quality metric (gap or BER).
+
+    @type df: pd.DataFrame
+    @param df: long-form DataFrame containing at least column C{x} and column "metric".
+    @type x: str
+    @param x: column name to place on the x-axis.
+    @type problem: str
+    @param problem: problem type. Used only to set the y-axis label.
+    @type hue: str | None
+    @param hue: optional column name to group/color by within each x.
+    @type title: str
+    @param title: figure title.
+    @type save_path: pathlib.Path | None
+    @param save_path: where to save the figure. If None, the figure is closed without saving.
+    """
+    plt.figure()
+    sns.boxplot(data=df, x=x, y="metric", hue=hue)
+    plt.yscale("log")
+    plt.xlabel(x)
+    plt.ylabel(_metric_axis_label(problem))
+    if title:
+        plt.title(title)
+    if hue is not None:
+        plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
+
+
 def box_plot_energies_loop(
-    ans_data: dict[Any:Ans],
+    ans_data: dict[Any, Ans],
     base_ans: Ans,
     parameter_values: list[Any],
     parameter_name: str,
@@ -85,61 +177,42 @@ def box_plot_energies_loop(
     save_folder: pathlib.Path,
     fig_name: str,
 ):
-    """Generates a box plot for different values of `parameter_name`. Per value the box plot are ordened per solver.
+    """Box plot of solution quality across a parameter sweep, hue=solver.
 
-    Args:
-        ans_data (dict[Any:Ans]): the data of the different value runs.
-        base_ans (Ans): the data of the base run (`parameter_name` is turned off).
-        parameter_values (list[Any]): list of all the parameter values tested.
-        parameter_name (str): the name of the parameter.
-        problem (str): the problem being solved.
-        best_found (float | None): the best found energy to plot as reference.
-        save_folder (pathlib.Path): the folder in which to save the figure.
-        fig_name (str): the name of the figure.
+    Y-axis is the gap to best known (or BER for MIMO) on a log scale.
+
+    @type ans_data: dict[Any, Ans]
+    @param ans_data: results keyed by parameter value.
+    @type base_ans: Ans
+    @param base_ans: result for the base run (parameter turned off).
+    @type parameter_values: list[Any]
+    @param parameter_values: parameter values explored in the sweep.
+    @type parameter_name: str
+    @param parameter_name: the swept parameter — used as the x-axis label.
+    @type problem: str
+    @param problem: problem type — selects metric (BER vs. gap) and axis label.
+    @type best_found: float | None
+    @param best_found: kept for signature compatibility; metric is derived per Ans.
+    @type save_folder: pathlib.Path
+    @param save_folder: figure save root (figure goes to C{save_folder/figures/<fig_name>}).
+    @type fig_name: str
+    @param fig_name: figure file name.
     """
-    solvers = base_ans.config.solvers
-    df_solvers = []
+    del best_found  # metric is derived per Ans
 
-    for solver in solvers:
-        df_solvers.append(pd.DataFrame({parameter_name: "Base", "energy": base_ans.energies[solver], "solver": solver}))
-        for value in parameter_values:
-            if problem == "MIMO":
-                energies = []
-                nb_trials = ans_data[value].config.nb_trials
-                for trials in range(nb_trials):
-                    energies.append(ans_data[value].MIMO[trials].lowest_energy[solver])
-            else:
-                energies = ans_data[value].energies[solver]
-            df_solvers.append(pd.DataFrame({parameter_name: str(value), "energy": energies, "solver": solver}))
-    df = pd.concat(df_solvers)
+    ans_by_label: dict[Any, Ans] = {"Base": base_ans}
+    for value in parameter_values:
+        ans_by_label[str(value)] = ans_data[value]
 
-    plt.figure()
-    sns.boxplot(data=df, x=parameter_name, y="energy", hue="solver")
-    if best_found is not None:
-        plt.axhline(y=best_found, color="k", linestyle="--", label=f"Best found: {best_found}")
-        if best_found < 0.0:
-            plt.axhline(
-                0.9 * best_found,
-                color="k",
-                linestyle="-.",
-                label=f"90% Best found: {0.9 * best_found}",
-            )
-        elif best_found > 0.0:
-            plt.axhline(
-                1.1 * best_found,
-                color="k",
-                linestyle="-.",
-                label=f"90% Best found: {1.1 * best_found}",
-            )
-    plt.title(f"Energy distribution for different {parameter_name} values - {problem} problem")
-    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-    plt.xlabel(parameter_name)
-    plt.ylabel("Energy")
-    plt.savefig(
-        save_folder / f"figures/{fig_name}",
-        bbox_inches="tight",
+    df = ans_to_metric_df(ans_by_label, label_name=parameter_name, problem=problem)
+    box_plot_metric(
+        df,
+        x=parameter_name,
+        problem=problem,
+        hue="solver",
+        title=f"Solution quality across {parameter_name} values - {problem} problem",
+        save_path=save_folder / f"figures/{fig_name}",
     )
-    plt.close()
 
 
 def histogram_energies_loop(
@@ -152,17 +225,24 @@ def histogram_energies_loop(
     fig_name: str,
     save_folder: pathlib.Path,
 ):
-    """Plots a histogram for all the solvers on the different values of `parameter_name`.
+    """Plots a histogram for all the solvers on the different values of C{parameter_name}.
 
-    Args:
-        ans_data (dict[Any:Ans]): a dictionary containing the answer data for all the different `parameter_values`.
-        ans_base (Ans): the answer data for the base run with `parameter_name` turned off.
-        parameter_values (list[Any]): the list of all the parameter values tested.
-        parameter_name (str): the name of the parameter.
-        problem (str): the problem that was tested.
-        best_found (float | None): the best found energy to plot as reference.
-        fig_name (str): name of the figure to save.
-        save_folder (pathlib.Path): folder where the figure needs to be saved.
+    @type ans_data: dict[Any, Ans]
+    @param ans_data: a dictionary containing the answer data for all the different C{parameter_values}.
+    @type ans_base: Ans
+    @param ans_base: the answer data for the base run with C{parameter_name} turned off.
+    @type parameter_values: list[Any]
+    @param parameter_values: the list of all the parameter values tested.
+    @type parameter_name: str
+    @param parameter_name: the name of the parameter.
+    @type problem: str
+    @param problem: the problem that was tested.
+    @type best_found: float | None
+    @param best_found: the best found energy to plot as reference.
+    @type fig_name: str
+    @param fig_name: name of the figure to save.
+    @type save_folder: pathlib.Path
+    @param save_folder: folder where the figure needs to be saved.
     """
     solvers = ans_base.config.solvers
     for solver in solvers:
@@ -231,16 +311,23 @@ def pareto_curve_loop(
 ):
     """Plots the pareto curve for a parameter from a solver over different benchmarks.
 
-    Args:
-        energy_data (dict[str:dict[Any:list]]): a dictionary containing the energy data
-                                                for all the different benchmarks.
-        parameter_name (str): the name of the parameter. This will be put on the x-axis.
-        parameter_values (list[Any]): the list of all the parameter values tested.
-        problems (list[str]): the different benchmarks tested.
-        best_found (dict[str:float]): a dictionary with the best found energies for every benchmark.
-        save_folder (pathlib.Path): where to save the figure.
-        fig_name (str): name of the figure to save.
-        solver (str): the solver to plot the pareto curve for.
+    @type energy_data: dict[str, dict[Any, list]]
+    @param energy_data: a dictionary containing the energy data
+        for all the different benchmarks.
+    @type parameter_name: str
+    @param parameter_name: the name of the parameter. This will be put on the x-axis.
+    @type parameter_values: list[Any]
+    @param parameter_values: the list of all the parameter values tested.
+    @type problems: list[str]
+    @param problems: the different benchmarks tested.
+    @type best_found: dict[str, float]
+    @param best_found: a dictionary with the best found energies for every benchmark.
+    @type save_folder: pathlib.Path
+    @param save_folder: where to save the figure.
+    @type fig_name: str
+    @param fig_name: name of the figure to save.
+    @type solver: str
+    @param solver: the solver to plot the pareto curve for.
     """
     colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:grey"]
     error_colors = ["darkblue", "chocolate", "darkgreen", "maroon"]

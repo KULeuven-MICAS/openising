@@ -1,48 +1,30 @@
-from ising.workloads.run_workload import run_workload
+from ising.workloads.run_workload import run_workload, SolverConfig
 from ising.stages import TOP
 from ising.postprocessing.run_summary import summarize_workload
+from ising.postprocessing.summarize_energies import ans_to_metric_df, box_plot_metric
 import yaml
+from ising.utils.problem_difficulty import compute_ruggedness
 
 """
-Choose type of the Galena solver to be used. Options are "base", "HW", "comb_nodes_HW", "multi_core", and
-"comb_nodes-multi_core".
-
-- "base": the base galena solver without any HW assumptions made.
-- "HW": this options adds all HW assumptions to the solver. These include quantization of the interaction weights J,
-    mismatch on the interaction weights, and delay. All sub-assumptions can be turned on or
-    off in the config file.
-- "comb_nodes_HW": this option adds the first solver improvement to the solver, given the HW assumptions.
-    The improvement allows one node to be represented by a combination of nodes
-    to increase quantization precision.
-- "multi_core": this option adds the second solver improvement to the solver, given the HW assumptions.
-    The improvement allows the solver to split the model into multiple cores to increase the amount of nodes
-    that can be handled. Currently not implemented.
-- "comb_nodes-multi_core": this option adds both the first and second solver improvements to the solver.
-
+Pick which Galena solver features to enable via SolverConfig:
+- SolverConfig() — base solver, no HW assumptions
+- SolverConfig(hw=True) — HW assumptions on (quantized weights, mismatch, delay; toggle
+    sub-assumptions in the config file)
+- SolverConfig(hw=True, comb_nodes=True) — adds the combine-nodes improvement (one node
+    represented by a combination of nodes to raise quantization precision)
+- SolverConfig(hw=True, multi_core=True) — adds the multi-core improvement (splits the
+    model across cores to scale node count). Currently not implemented.
+- SolverConfig(hw=True, comb_nodes=True, multi_core=True) — both improvements.
 """
 top_benchmark = "./ising/benchmarks/G/"
-solver_type = "base"
+solver_config = SolverConfig()
 config_file = "./ising/inputs/config/config_mcWorkload.yaml"
 difficulty = "easy"  # easy - 800 nodes, difficult - 2000 nodes
-
-settings = {
-    "current": 1e-6,
-    "capacitance": 1e-15,
-    "quantization": True,
-    "quantization_precision": 4,
-    "mismatch_std": 0.1,
-    "sigma_J": 0.0,
-    "accumulation_delay": 0,
-    "broadcast_delay": 0,
-    "delay_offset": 0,
-    "nodes_scaling": 2,
-    "nb_cores": 2,
-}
 
 if difficulty == "easy":
     problems = ["G1.txt", "G6.txt", "G11.txt", "G14.txt", "G18.txt"]
 elif difficulty == "difficult":
-    problem = ["K2000.txt", "G22.txt", "G27.txt", "G32.txt", "G35.txt", "G39.txt"]
+    problems = ["K2000.txt", "G22.txt", "G27.txt", "G32.txt", "G35.txt", "G39.txt"]
 else:
     raise ValueError("Invalid difficulty level. Options are 'easy' or 'difficult'.")
 
@@ -53,11 +35,21 @@ for problem in problems:
     config["benchmark"] = top_benchmark + problem
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
-    ans, _ = run_workload(problem_type="Maxcut", solver_type=solver_type, config_file=config_file, **settings)
+    ans, _ = run_workload(problem_type="Maxcut", solver_config=solver_config, config_file=config_file)
+    compute_ruggedness(ans.ising_model, 10000)
     ans_list.append(ans)
 summarize_workload(
-    output_file=TOP / f"ising/workloads/maxcut_results_{difficulty}_{solver_type}.txt",
+    output_file=TOP / f"ising/workloads/maxcut_results_{difficulty}_{solver_config.tag}.out",
     problem_type="Max Cut",
-    config_path=TOP / config_file,
+    config_path=config_file,
     ans_list=ans_list,
+)
+
+df = ans_to_metric_df({"all": ans_list}, label_name="bucket", problem="Maxcut")
+box_plot_metric(
+    df,
+    x="benchmark",
+    problem="Maxcut",
+    title=f"Max Cut - {difficulty} difficulty, {solver_config.tag} solver",
+    save_path=TOP / f"ising/workloads/maxcut_boxplot_{difficulty}_{solver_config.tag}.png",
 )
