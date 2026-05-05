@@ -5,6 +5,7 @@ import yaml
 
 from ising.api import get_hamiltonian_energy
 from ising.stages import TOP, LOGGER
+from ising.stages.simulation_stage import Ans
 
 
 @dataclass(frozen=True)
@@ -83,7 +84,7 @@ _MULTI_CORE_FIELDS = ("nb_cores",)
 
 def run_workload(problem_type, solver_config: SolverConfig, config_file,
                  settings: WorkloadSettings = WorkloadSettings(),
-                 benchmark_label: str | None = None):
+                 benchmark_label: str | None = None, simulation: bool = True)->Ans:
     """
     Runs the specified workload with the given solver configuration and YAML file.
 
@@ -94,15 +95,17 @@ def run_workload(problem_type, solver_config: SolverConfig, config_file,
     @type config_file: str
     @param config_file: The path to the configuration file for the workload.
     @type settings: WorkloadSettings
-    @param settings: Tunables to write into the config. Defaults are used
+    @param settings: Tunables to write into the config. Defaults are used\
         for any field the caller does not override.
     @type benchmark_label: str | None
-    @param benchmark_label: optional override for C{ans.benchmark}. Useful for the MIMO
-        workload, where the dummy creator yields a generic "dummy_MIMO" label that would
-        otherwise collide across iterations. When provided, it is also used as the save
+    @param benchmark_label: optional override for C{ans.benchmark}. Useful for the MIMO\
+        workload, where the dummy creator yields a generic "dummy_MIMO" label that would\
+        otherwise collide across iterations. When provided, it is also used as the save\
         filename stem.
-    @return: A tuple C{(ans, debug_info)} — the answer obtained from running the workload
-        and debug information collected during the run.
+    @type simulation: bool
+    @param simulation: whether to perform a simulation or load data from already performed simulations.
+    @rtype: Ans
+    @return: ans — the answer obtained from running the workload
     """
     values = asdict(settings)
     fields_to_apply = list(_BASE_FIELDS)
@@ -132,12 +135,15 @@ def run_workload(problem_type, solver_config: SolverConfig, config_file,
 
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
+    output_folder = TOP / f"ising/outputs/{problem_type}/ans"
+    if simulation:
+        ans, _ = get_hamiltonian_energy(problem_type=problem_type, config_path=config_file)
+    else:
+        ans = Ans().load(output_folder / f"{ans.benchmark}_{solver_config.tag}.ans")
 
-    ans, debug_info = get_hamiltonian_energy(problem_type=problem_type, config_path=config_file)
     if benchmark_label is not None:
         ans.benchmark = benchmark_label
-    output_folder = TOP / f"ising/outputs/{problem_type}/ans"
     if not output_folder.exists():
         Path.mkdir(output_folder)
     ans.save(output_folder / f"{ans.benchmark}_{solver_config.tag}.ans")
-    return ans, debug_info
+    return ans
