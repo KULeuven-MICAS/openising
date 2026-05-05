@@ -35,7 +35,7 @@ for problem in problems:
     config["benchmark"] = top_benchmark + problem
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
-    ans = run_workload(problem_type="TSP", solver_config=solver_config, config_file=config_file)
+    ans, _ = run_workload(problem_type="TSP", solver_config=solver_config, config_file=config_file)
     ans_list.append(ans)
 summarize_workload(
     output_file=TOP / f"ising/workloads/tsp_results_{difficulty}_{solver_config.tag}.txt",
