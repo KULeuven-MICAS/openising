@@ -48,7 +48,7 @@ for problem in problems:
     config["benchmark"] = top_benchmark + problem
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
-    ans, _ = run_workload(problem_type="QKP", solver_config=solver_config, config_file=config_file)
+    ans = run_workload(problem_type="QKP", solver_config=solver_config, config_file=config_file)
     ans_list.append(ans)
 summarize_workload(
     output_file=TOP / f"ising/workloads/qkp_results_{difficulty}_{solver_config.tag}.out",

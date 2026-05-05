@@ -59,7 +59,7 @@ for user_num, ant_num, M in instances:
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
 
-    ans, _ = run_workload(
+    ans = run_workload(
         problem_type="MIMO",
         solver_config=solver_config,
         config_file=config_file,

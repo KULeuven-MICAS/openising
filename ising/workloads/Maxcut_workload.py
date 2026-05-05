@@ -35,7 +35,7 @@ for problem in problems:
     config["benchmark"] = top_benchmark + problem
     with (TOP / config_file).open("w") as f:
         yaml.safe_dump(config, f)
-    ans, _ = run_workload(problem_type="Maxcut", solver_config=solver_config, config_file=config_file)
+    ans = run_workload(problem_type="Maxcut", solver_config=solver_config, config_file=config_file)
     compute_ruggedness(ans.ising_model, 10000)
     ans_list.append(ans)
 summarize_workload(
