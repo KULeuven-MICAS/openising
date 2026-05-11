@@ -1,7 +1,4 @@
-from ising.workloads.run_workload import run_workload, SolverConfig
-from ising.stages import TOP
-from ising.postprocessing.run_summary import summarize_workload
-import yaml
+from ising.workloads.run_workload import workload_api, SolverConfig
 
 """
 Pick which Galena solver features to enable via SolverConfig:
@@ -47,29 +44,23 @@ elif difficulty == "difficult":
 else:
     raise ValueError("Invalid difficulty level. Options are 'easy', 'medium', or 'difficult'.")
 
-ans_list = []
-for user_num, ant_num, M in instances:
-    with (TOP / config_file).open("r") as f:
-        config = yaml.safe_load(f)
-    config["dummy_creator"] = True   # MIMO workload always uses synthetic instances
-    config["dummy_user_num"] = user_num
-    config["dummy_ant_num"] = ant_num
-    config["dummy_qam"] = M
-    config["nb_runs"] = 1            # MIMO repeats over nb_trials, not nb_runs
-    with (TOP / config_file).open("w") as f:
-        yaml.safe_dump(config, f)
-
-    ans = run_workload(
-        problem_type="MIMO",
-        solver_config=solver_config,
-        config_file=config_file,
-        benchmark_label=f"u{user_num}_a{ant_num}_M{M}",
-    )
-    ans_list.append(ans)
-
-summarize_workload(
-    output_file=TOP / f"ising/workloads/mimo_results_{difficulty}_{solver_config.tag}.out",
+workload_api(
     problem_type="MIMO",
-    config_path=config_file,
-    ans_list=ans_list,
+    problem_label="MIMO",
+    solver_config=solver_config,
+    config_file=config_file,
+    difficulty=difficulty,
+    benchmarks=[
+        (
+            {
+                "dummy_creator": True,
+                "dummy_user_num": u,
+                "dummy_ant_num": a,
+                "dummy_qam": M,
+                "nb_runs": 1,
+            },
+            f"u{u}_a{a}_M{M}",
+        )
+        for u, a, M in instances
+    ],
 )
