@@ -201,8 +201,8 @@ class IsingModel:
             float: The calculated Hamiltonian value for the given sample.
         """
         # sample = sample.astype(np.float32)
-        return evaluate_ising(sample, self.J, self.h, self.c)
-        # return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
+        # return evaluate_ising(sample, self.J, self.h, self.c)
+        return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
 
     @classmethod
     def from_qubo(cls, Q: np.ndarray) -> IsingModel:

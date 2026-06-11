@@ -140,14 +140,16 @@ class ballisticSB(SB):
                 tk += dtbSB  # 1
                 k += 1
                 sample = np.sign(x)
-                energy_new = model.evaluate(sample)
+                if stop_criterion or log.filename is not None:
+                    energy_new = model.evaluate(sample)
                 if log.filename is not None:
                     elapsed_time = time.time() - start_time
                     log.log(time=elapsed_time, energy=energy_new, positions=x)
-                current_length += int(
-                    self.handle_stop_criterion(energy, energy_new) < self.max_energy_change and stop_criterion
-                )
-                energy = energy_new
+                if stop_criterion:
+                    current_length += int(
+                        self.handle_stop_criterion(energy, energy_new) < self.max_energy_change and stop_criterion
+                    )
+                    energy = energy_new
 
             nb_operations = num_iterations * (2 * N**2 + 9 * N + 6)
             if log.filename is not None:

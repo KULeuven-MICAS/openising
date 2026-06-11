@@ -80,15 +80,16 @@ class MIMOParserStage(Stage):
             for solver in self.config.solvers:
                 ans_all.computation_time[solver] += ans.computation_time[solver]
                 diff[solver][:, run] = ans.difference[solver]
-        x_hat_ZF = ZF().solve(H, y, M)
-        diff_ZF = x[:, :case_num] - x_hat_ZF
-        ans_all.ber_of_trials["ZF"] = np.sum(np.abs(np.real(diff_ZF)) / 2 + np.abs(np.imag(diff_ZF)) / 2, axis=0) / (
-            np.log2(M) * user_num
-        )
-        ans_all.ber_of_users["ZF"] = np.sum((np.abs(np.real(diff_ZF)) + np.abs(np.imag(diff_ZF))) / 2, axis=1) / (
-            np.log2(M) * case_num
-        )
-        ans_all.BER["ZF"] = np.mean(ans_all.ber_of_users["ZF"])
+        if self.config.use_ZF:
+            x_hat_ZF = ZF().solve(H, y, M)
+            diff_ZF = x[:, :case_num] - x_hat_ZF
+            ans_all.ber_of_trials["ZF"] = np.sum(
+                np.abs(np.real(diff_ZF)) / 2 + np.abs(np.imag(diff_ZF)) / 2, axis=0
+            ) / (np.log2(M) * user_num)
+            ans_all.ber_of_users["ZF"] = np.sum((np.abs(np.real(diff_ZF)) + np.abs(np.imag(diff_ZF))) / 2, axis=1) / (
+                np.log2(M) * case_num
+            )
+            ans_all.BER["ZF"] = np.mean(ans_all.ber_of_users["ZF"])
 
         for solver in self.config.solvers:
             # calc ber per trail

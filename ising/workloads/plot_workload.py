@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     df = ans_to_metric_df(grouped, label_name="solver_type", problem=problem_type)
 
-    save_dir = TOP / f"ising/outputs/{problem_type}/figures"
+    save_dir = TOP / f"ising/outputs/{problem_type}/plots"
     save_dir.mkdir(parents=True, exist_ok=True)
     save_path = save_dir / f"{problem_type}_galena_comparison.png"
     box_plot_metric(
