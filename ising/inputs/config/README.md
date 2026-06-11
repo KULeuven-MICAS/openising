@@ -120,6 +120,8 @@ The config file is written in YAML. It must has the following parameters:
 
 ## Following parameters are required only when the targeted benchmark is MIMO.
 
+*use_ZF*: [bool] Whether to also solve the problem with zero forcing.
+
 *SNR:* [int] the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
 
 *nb_trials*: [positive int] amount of symbols each user needs to send. More means the BER will be more correct.

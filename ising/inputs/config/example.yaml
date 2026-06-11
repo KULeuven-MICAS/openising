@@ -92,6 +92,7 @@ c0: 0.0
 weight_constant: 0
 
 # Parameters for MIMO
+use_ZF: False
 SNR: 10
 nb_trials: 100
 mimo_seed: 12
