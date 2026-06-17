@@ -8,6 +8,8 @@
 **/no_backup
 *.pkl
 
+!/Paper_OpenIsing/*/simulation_summary_*.pkl
+
 # environment stuff
 .env
 .venv
