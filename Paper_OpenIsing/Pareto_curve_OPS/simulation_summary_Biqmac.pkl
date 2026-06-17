@@ -1,0 +1,265 @@
+=================================================
+======= Simulation point 0 =======
+
+=====================
+results of running be100 with config_pareto_curve_Biqmac_point0.yaml:
+logfile discriminator: None
+reference energy -19412.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -9706.0000 -9689.0000 -2529.5000 -710.0000 -8325.5000 -9706.0000
+energy min| -9706.0000 -9706.0000 -7552.0000 -7406.5000 -9671.0000 -9706.0000
+energy avg| -9706.0000 -9705.4900 -5194.8150 -3690.8750 -9226.3350 -9706.0000
+computation time| 1.7115e-02s 1.6800e-02s 7.6484e-04s 4.0940e-02s 1.0759e-02s 1.1000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 10453000 10452500 2061200 350500 2085200.0 4831400
+operation count / it| 20906.0 20905.0 20612.0 701.0 20852.0 966.28
+Approximation value| 50.00% 50.00% 26.76% 19.01% 47.53% 50.00%
+
+
+=====================
+results of running bqp50-1 with config_pareto_curve_Biqmac_point0.yaml:
+logfile discriminator: None
+reference energy -2098.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1049.0000 -1049.0000 -442.0000 145.5000 -744.5000 -1006.0000
+energy min| -1049.0000 -1049.0000 -932.0000 -819.5000 -1049.0000 -1049.0000
+energy avg| -1049.0000 -1049.0000 -698.2350 -414.5900 -963.7550 -1040.8300
+computation time| 1.2106e-02s 1.1167e-02s 3.6352e-04s 3.8087e-02s 5.4376e-03s 1.1000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 2728000 2727500 526000 175500 542700.0 25750000
+operation count / it| 5456.0 5455.0 5260.0 351.0 5427.0 5150.0
+Approximation value| 50.00% 50.00% 33.28% 19.76% 45.94% 49.61%
+
+
+=====================
+results of running gka1a with config_pareto_curve_Biqmac_point0.yaml:
+logfile discriminator: None
+reference energy -3414.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1706.5000 -1689.0000 -842.0000 111.0000 -1595.0000 -1707.0000
+energy min| -1707.0000 -1707.0000 -1702.0000 -1355.0000 -1707.0000 -1707.0000
+energy avg| -1706.9750 -1702.1300 -1341.0450 -711.1800 -1683.4600 -1707.0000
+computation time| 1.2112e-02s 1.1471e-02s 3.7781e-04s 3.8752e-02s 5.4333e-03s 1.1000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 2728000 2727500 526000 175500 542700.0 1225700
+operation count / it| 5456.0 5455.0 5260.0 351.0 5427.0 245.14
+Approximation value| 50.00% 49.86% 39.28% 20.83% 49.31% 50.00%
+
+=================================================
+======= Simulation point 1 =======
+
+=====================
+results of running be100 with config_pareto_curve_Biqmac_point1.yaml:
+logfile discriminator: None
+reference energy -19412.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -9706.0000 -9689.0000 -7914.0000 -1009.0000 -9133.0000 -9706.0000
+energy min| -9706.0000 -9706.0000 -9670.5000 -7058.5000 -9706.0000 -9706.0000
+energy avg| -9706.0000 -9705.8300 -9227.6450 -3764.6300 -9564.4450 -9706.0000
+computation time| 3.4024e-02s 2.7034e-02s 3.7710e-03s 8.2977e-02s 5.1092e-02s 2.2000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 20906000 20905000 10224400 701000 10426000.0 9662800
+operation count / it| 20906.0 20905.0 20448.8 701.0 20852.0 966.28
+Approximation value| 50.00% 50.00% 47.54% 19.39% 49.27% 50.00%
+
+
+=====================
+results of running bqp50-1 with config_pareto_curve_Biqmac_point1.yaml:
+logfile discriminator: None
+reference energy -2098.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1049.0000 -1049.0000 -853.5000 -52.5000 -930.5000 -1006.0000
+energy min| -1049.0000 -1049.0000 -1049.0000 -810.0000 -1049.0000 -1049.0000
+energy avg| -1049.0000 -1049.0000 -970.0050 -456.1050 -1031.3100 -1048.1400
+computation time| 2.3232e-02s 2.1792e-02s 1.6636e-03s 7.3674e-02s 2.5960e-02s 2.2000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 5456000 5455000 2609200 351000 2713500.0 51500000
+operation count / it| 5456.0 5455.0 5218.4 351.0 5427.0 5150.0
+Approximation value| 50.00% 50.00% 46.23% 21.74% 49.16% 49.96%
+
+
+=====================
+results of running gka1a with config_pareto_curve_Biqmac_point1.yaml:
+logfile discriminator: None
+reference energy -3414.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1707.0000 -1666.5000 -1574.0000 -54.0000 -1666.0000 -1707.0000
+energy min| -1707.0000 -1707.0000 -1707.0000 -1532.0000 -1707.0000 -1707.0000
+energy avg| -1707.0000 -1700.1600 -1684.9250 -744.7000 -1701.1400 -1707.0000
+computation time| 2.4660e-02s 2.2589e-02s 1.7284e-03s 7.6839e-02s 2.7086e-02s 2.2000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 5456000 5455000 2609200 351000 2713500.0 2451400
+operation count / it| 5456.0 5455.0 5218.4 351.0 5427.0 245.14
+Approximation value| 50.00% 49.80% 49.35% 21.81% 49.83% 50.00%
+
+=================================================
+======= Simulation point 2 =======
+
+=====================
+results of running be100 with config_pareto_curve_Biqmac_point2.yaml:
+logfile discriminator: None
+reference energy -19412.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -9706.0000 -9689.0000 -8940.0000 -1715.5000 -9157.0000 -9706.0000
+energy min| -9706.0000 -9706.0000 -9706.0000 -8265.5000 -9706.0000 -9706.0000
+energy avg| -9706.0000 -9704.6400 -9522.2200 -4851.7200 -9629.0750 -9706.0000
+computation time| 1.6257e-01s 1.3361e-01s 9.3793e-03s 4.0318e-01s 1.0145e-01s 1.1000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 104530000 104525000 20428400 3505000 20852000.0 48314000
+operation count / it| 20906.0 20905.0 20428.4 701.0 20852.0 966.28
+Approximation value| 50.00% 49.99% 49.05% 24.99% 49.60% 50.00%
+
+
+=====================
+results of running bqp50-1 with config_pareto_curve_Biqmac_point2.yaml:
+logfile discriminator: None
+reference energy -2098.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1049.0000 -1049.0000 -696.5000 -71.5000 -938.5000 -1049.0000
+energy min| -1049.0000 -1049.0000 -1049.0000 -863.5000 -1049.0000 -1049.0000
+energy avg| -1049.0000 -1049.0000 -986.9050 -489.1300 -1042.4450 -1049.0000
+computation time| 1.1840e-01s 1.1194e-01s 3.4053e-03s 3.7845e-01s 5.3436e-02s 1.1000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 27280000 27275000 5213200 1755000 5427000.0 257500000
+operation count / it| 5456.0 5455.0 5213.2 351.0 5427.0 5150.0
+Approximation value| 50.00% 50.00% 47.04% 23.31% 49.69% 50.00%
+
+
+=====================
+results of running gka1a with config_pareto_curve_Biqmac_point2.yaml:
+logfile discriminator: None
+reference energy -3414.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1707.0000 -1694.0000 -1608.0000 -72.0000 -1685.5000 -1707.0000
+energy min| -1707.0000 -1707.0000 -1707.0000 -1501.0000 -1707.0000 -1707.0000
+energy avg| -1707.0000 -1696.5500 -1692.7450 -704.6000 -1701.1150 -1707.0000
+computation time| 1.2275e-01s 1.1441e-01s 3.5755e-03s 3.8638e-01s 5.3469e-02s 1.1000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 27280000 27275000 5213200 1755000 5427000.0 12257000
+operation count / it| 5456.0 5455.0 5213.2 351.0 5427.0 245.14
+Approximation value| 50.00% 49.69% 49.58% 20.64% 49.83% 50.00%
+
+=================================================
+======= Simulation point 3 =======
+
+=====================
+results of running be100 with config_pareto_curve_Biqmac_point3.yaml:
+logfile discriminator: None
+reference energy -19412.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -9706.0000 -9689.0000 -9470.5000 -1723.0000 -9211.5000 -9706.0000
+energy min| -9706.0000 -9706.0000 -9706.0000 -8526.0000 -9706.0000 -9706.0000
+energy avg| -9706.0000 -9703.6200 -9665.9850 -4963.7600 -9684.2350 -9706.0000
+computation time| 3.2526e-01s 2.7008e-01s 3.9934e-02s 8.1791e-01s 5.1054e-01s 2.2000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 209060000 209050000 102060400 7010000 104260000.0 96648300
+operation count / it| 20906.0 20905.0 20412.08 701.0 20852.0 966.483
+Approximation value| 50.00% 49.99% 49.79% 25.57% 49.89% 50.00%
+
+
+=====================
+results of running bqp50-1 with config_pareto_curve_Biqmac_point3.yaml:
+logfile discriminator: None
+reference energy -2098.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1049.0000 -1049.0000 -908.5000 6.5000 -1049.0000 -1049.0000
+energy min| -1049.0000 -1049.0000 -1049.0000 -790.5000 -1049.0000 -1049.0000
+energy avg| -1049.0000 -1049.0000 -1029.5300 -481.8150 -1049.0000 -1049.0000
+computation time| 2.4176e-01s 2.2823e-01s 1.7513e-02s 7.7223e-01s 2.6775e-01s 2.2000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 54560000 54550000 26045200 3510000 27135000.0 515000000
+operation count / it| 5456.0 5455.0 5209.04 351.0 5427.0 5150.0
+Approximation value| 50.00% 50.00% 49.07% 22.97% 50.00% 50.00%
+
+
+=====================
+results of running gka1a with config_pareto_curve_Biqmac_point3.yaml:
+logfile discriminator: None
+reference energy -3414.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1707.0000 -1694.0000 -1666.5000 -171.0000 -1687.5000 -1707.0000
+energy min| -1707.0000 -1707.0000 -1707.0000 -1419.5000 -1707.0000 -1707.0000
+energy avg| -1707.0000 -1696.2100 -1700.5350 -809.5450 -1701.3050 -1707.0000
+computation time| 2.4223e-01s 2.2675e-01s 1.7618e-02s 7.6789e-01s 2.6706e-01s 2.2000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 54560000 54550000 26045200 3510000 27135000.0 24519150
+operation count / it| 5456.0 5455.0 5209.04 351.0 5427.0 245.1915
+Approximation value| 50.00% 49.68% 49.81% 23.71% 49.83% 50.00%
+
+=================================================
+======= Simulation point 4 =======
+
+=====================
+results of running be100 with config_pareto_curve_Biqmac_point4.yaml:
+logfile discriminator: None
+reference energy -19412.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -9706.0000 -9689.0000 -9211.5000 -1479.0000 -9211.5000 -9706.0000
+energy min| -9706.0000 -9706.0000 -9706.0000 -9168.5000 -9706.0000 -9706.0000
+energy avg| -9706.0000 -9703.7900 -9690.3450 -5121.6950 -9696.3150 -9706.0000
+computation time| 4.8023e-01s 3.9913e-01s 7.4416e-02s 4.0169e+00s 1.0000e+00s 1.1000e-05s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 313590000 313575000 204100400 35050000 208520000.0 483322700
+operation count / it| 20906.0 20905.0 20410.04 701.0 20852.0 966.6454
+Approximation value| 50.00% 49.99% 49.92% 26.38% 49.95% 50.00%
+
+
+=====================
+results of running bqp50-1 with config_pareto_curve_Biqmac_point4.yaml:
+logfile discriminator: None
+reference energy -2098.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1049.0000 -951.5000 -964.0000 -118.0000 -1006.0000 -1049.0000
+energy min| -1049.0000 -1049.0000 -1049.0000 -818.0000 -1049.0000 -1049.0000
+energy avg| -1049.0000 -1048.0250 -1043.9600 -501.0600 -1048.5700 -1049.0000
+computation time| 3.5961e-01s 3.4020e-01s 3.5310e-02s 3.8593e+00s 5.3558e-01s 1.1000e-05s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 81840000 81825000 52085200 17550000 54270000.0 2575000000
+operation count / it| 5456.0 5455.0 5208.52 351.0 5427.0 5150.0
+Approximation value| 50.00% 49.95% 49.76% 23.88% 49.98% 50.00%
+
+
+=====================
+results of running gka1a with config_pareto_curve_Biqmac_point4.yaml:
+logfile discriminator: None
+reference energy -3414.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| -1707.0000 -1663.5000 -1689.0000 -60.0000 -1688.5000 -1707.0000
+energy min| -1707.0000 -1707.0000 -1707.0000 -1406.0000 -1707.0000 -1707.0000
+energy avg| -1707.0000 -1695.2400 -1703.1000 -727.3600 -1699.6600 -1707.0000
+computation time| 3.6655e-01s 3.5096e-01s 3.5895e-02s 3.8920e+00s 5.4334e-01s 1.1000e-05s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 81840000 81825000 52085200 17550000 54270000.0 122616350
+operation count / it| 5456.0 5455.0 5208.52 351.0 5427.0 245.2327
+Approximation value| 50.00% 49.66% 49.89% 21.31% 49.79% 50.00%
+

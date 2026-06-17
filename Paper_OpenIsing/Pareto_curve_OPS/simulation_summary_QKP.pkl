@@ -1,0 +1,265 @@
+=================================================
+======= Simulation point 0 =======
+
+=====================
+results of running jeu_100_25_1 with config_pareto_curve_QKP_point0.yaml:
+logfile discriminator: None
+reference energy -18558.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 1759728.0000 39187344.0000 142553168.0000 389643520.0000 108548848.0000 861943808.0000
+energy min| -7920.0000 -832.0000 -7536.0000 14503576.0000 7604880.0000 -272.0000
+energy avg| 346691.6800 2041969.4400 27973590.8800 134404738.4000 42273297.6800 364432940.4800
+computation time| 1.2334e-02s 1.2528e-02s 3.7661e-04s 4.2631e-03s 4.5875e-02s 1.1000e-08s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 12598000 12597500 1257040 43950 12568500.0 12265000
+operation count / it| 25196.0 25195.0 25140.8 879.0 25137.0 24530.0
+Approximation value| -1868.15% -11003.18% -150736.02% -724241.50% -227790.16% -1963751.16%
+
+
+=====================
+results of running jeu_200_25_1 with config_pareto_curve_QKP_point0.yaml:
+logfile discriminator: None
+reference energy -204441.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 82155552.0000 284560448.0000 486597856.0000 965877504.0000 323228960.0000 2754939392.0000
+energy min| 325824.0000 -86048.0000 -101680.0000 -25520.0000 -57600.0000 1584039936.0000
+energy avg| 25924451.2000 11272004.8000 57173648.9600 171526616.3200 71165240.2400 1858517035.5200
+computation time| 1.4112e-02s 1.3603e-02s 4.3278e-04s 4.8127e-03s 9.8630e-02s 1.1000e-08s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 45901000 45900500 4627936 84750 45846000.0 45262000
+operation count / it| 91802.0 91801.0 92558.72 1695.0 91692.0 90524.0
+Approximation value| -12680.65% -5513.57% -27965.84% -83900.30% -34809.67% -909072.56%
+
+
+=====================
+results of running jeu_100_50_1 with config_pareto_curve_QKP_point0.yaml:
+logfile discriminator: None
+reference energy -83742.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 7962000.0000 29157920.0000 125651024.0000 362099168.0000 48692908.0000 901069696.0000
+energy min| -34136.0000 -21568.0000 -52296.0000 -17824.0000 -36624.0000 8.0000
+energy avg| 1050435.1200 1993527.0400 11417986.0800 96743368.8800 9138376.8400 408450646.0000
+computation time| 1.2438e-02s 1.2555e-02s 3.6947e-04s 4.2805e-03s 4.9866e-02s 1.1000e-08s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 12823500 12823000 1279786 44350 12793750.0 12487500
+operation count / it| 25647.0 25646.0 25595.72 887.0 25587.5 24975.0
+Approximation value| -1254.37% -2380.56% -13634.72% -115525.51% -10912.54% -487748.85%
+
+=================================================
+======= Simulation point 1 =======
+
+=====================
+results of running jeu_100_25_1 with config_pareto_curve_QKP_point1.yaml:
+logfile discriminator: None
+reference energy -18558.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 1558608.0000 40703952.0000 70053296.0000 359077184.0000 108548848.0000 861943808.0000
+energy min| -8592.0000 -4208.0000 -8528.0000 26921664.0000 7604880.0000 -432.0000
+energy avg| 303485.9200 1810840.7200 5756292.9600 144864031.9200 42273297.6800 47275744.8000
+computation time| 2.4766e-02s 2.5154e-02s 7.2563e-04s 8.3429e-03s 9.1839e-02s 1.1000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 25196000 25195000 2489440 87900 25137000.0 122650000
+operation count / it| 25196.0 25195.0 24894.4 879.0 25137.0 24530.0
+Approximation value| -1635.34% -9757.74% -31017.85% -780601.53% -227790.16% -254745.90%
+
+
+=====================
+results of running jeu_200_25_1 with config_pareto_curve_QKP_point1.yaml:
+logfile discriminator: None
+reference energy -204441.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 71295440.0000 87595040.0000 186024096.0000 697947648.0000 323228960.0000 2754939392.0000
+energy min| -53776.0000 -134688.0000 -127328.0000 -62976.0000 -57600.0000 1621672704.0000
+energy avg| 14297083.7600 5737228.6400 14152763.6000 144161113.3600 71165240.2400 1882324042.2400
+computation time| 2.8241e-02s 2.7192e-02s 8.2977e-04s 9.2154e-03s 1.9769e-01s 1.1000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 91802000 91801000 9165136 169500 91692000.0 452620000
+operation count / it| 91802.0 91801.0 91651.36 1695.0 91692.0 90524.0
+Approximation value| -6993.26% -2806.30% -6922.66% -70514.78% -34809.67% -920717.49%
+
+
+=====================
+results of running jeu_100_50_1 with config_pareto_curve_QKP_point1.yaml:
+logfile discriminator: None
+reference energy -83742.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 10933656.0000 76202320.0000 32029760.0000 346664832.0000 48692908.0000 901069696.0000
+energy min| -44384.0000 -41056.0000 -52296.0000 -30040.0000 -36624.0000 8.0000
+energy avg| 1923272.4000 6182279.6000 1265401.9200 76964093.5200 9138376.8400 347835847.7600
+computation time| 2.5351e-02s 2.5583e-02s 7.8263e-04s 8.4543e-03s 9.9897e-02s 1.1000e-07s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 25647000 25646000 2534486 88700 25587500.0 124875000
+operation count / it| 25647.0 25646.0 25344.86 887.0 25587.5 24975.0
+Approximation value| -2296.66% -7382.53% -1511.07% -91906.20% -10912.54% -415366.06%
+
+=================================================
+======= Simulation point 2 =======
+
+=====================
+results of running jeu_100_25_1 with config_pareto_curve_QKP_point2.yaml:
+logfile discriminator: None
+reference energy -18558.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 1501392.0000 25906544.0000 6416.0000 354170176.0000 108548848.0000 980112.0000
+energy min| -10976.0000 4688.0000 -10192.0000 17962640.0000 7604880.0000 -288.0000
+energy avg| 89594.0800 1392884.4800 -3743.6800 150202116.8800 42273297.6800 131420.6400
+computation time| 1.2261e-01s 1.2496e-01s 8.5493e-03s 4.0683e-02s 4.5596e-01s 1.1000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 125980000 125975000 24672640 439500 125685000.0 1226500000
+operation count / it| 25196.0 25195.0 24672.64 879.0 25137.0 24530.0
+Approximation value| -482.78% -7505.57% 20.17% -809365.86% -227790.16% -708.16%
+
+
+=====================
+results of running jeu_200_25_1 with config_pareto_curve_QKP_point2.yaml:
+logfile discriminator: None
+reference energy -204441.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 24558512.0000 187664064.0000 -4448.0000 831094720.0000 323228960.0000 2754939392.0000
+energy min| -68832.0000 -140544.0000 -156304.0000 -67552.0000 -57600.0000 1621672704.0000
+energy avg| 2829472.1600 8013382.7200 -60309.1200 200222349.2000 71165240.2400 2040981378.5600
+computation time| 1.3869e-01s 1.3477e-01s 1.1052e-02s 4.5381e-02s 9.5576e-01s 1.1000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 459010000 459005000 90834736 847500 458460000.0 4526200000
+operation count / it| 91802.0 91801.0 90834.736 1695.0 91692.0 90524.0
+Approximation value| -1384.00% -3919.66% 29.50% -97936.49% -34809.67% -998322.93%
+
+
+=====================
+results of running jeu_100_50_1 with config_pareto_curve_QKP_point2.yaml:
+logfile discriminator: None
+reference energy -83742.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 5835728.0000 75657776.0000 25584.0000 393974848.0000 48692908.0000 57584.0000
+energy min| -42896.0000 -45544.0000 -56184.0000 -31208.0000 -36624.0000 8.0000
+energy avg| 796763.0400 4718108.2400 -24554.4000 82922823.4000 9138376.8400 23176.3200
+computation time| 1.3059e-01s 1.3241e-01s 9.9596e-03s 4.3025e-02s 4.8962e-01s 1.1000e-06s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 128235000 128230000 25119086 443500 127937500.0 1248750000
+operation count / it| 25647.0 25646.0 25119.086 887.0 25587.5 24975.0
+Approximation value| -951.45% -5634.10% 29.32% -99021.79% -10912.54% -27.68%
+
+=================================================
+======= Simulation point 3 =======
+
+=====================
+results of running jeu_100_25_1 with config_pareto_curve_QKP_point3.yaml:
+logfile discriminator: None
+reference energy -18558.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 323840.0000 980112.0000 6416.0000 297196096.0000 108548848.0000 980112.0000
+energy min| -11312.0000 980112.0000 -10192.0000 19087472.0000 7604880.0000 -10256.0000
+energy avg| 74136.1600 980112.0000 -3790.7200 141310749.1200 42273297.6800 250544.1600
+computation time| 2.4983e-01s 2.5363e-01s 4.1212e-02s 8.2354e-02s 9.4571e-01s 1.1000e-05s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 251960000 251950000 123264640 879000 251370000.0 12265000000
+operation count / it| 25196.0 25195.0 24652.928 879.0 25137.0 24530.0
+Approximation value| -399.48% -5281.34% 20.43% -761454.62% -227790.16% -1350.06%
+
+
+=====================
+results of running jeu_200_25_1 with config_pareto_curve_QKP_point3.yaml:
+logfile discriminator: None
+reference energy -204441.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 13461040.0000 41724016.0000 -4448.0000 658370944.0000 323228960.0000 2754939392.0000
+energy min| -72400.0000 -101152.0000 -156304.0000 -67040.0000 -57600.0000 2368.0000
+energy avg| 1966543.0400 5497639.8400 -60447.3600 165736829.1200 71165240.2400 2121874652.0000
+computation time| 2.8260e-01s 2.7353e-01s 4.7919e-02s 9.1797e-02s 1.9602e+00s 1.1000e-05s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 918020000 918010000 453810736 1695000 916920000.0 45262000000
+operation count / it| 91802.0 91801.0 90762.1472 1695.0 91692.0 90524.0
+Approximation value| -961.91% -2689.11% 29.57% -81068.29% -34809.67% -1037890.96%
+
+
+=====================
+results of running jeu_100_50_1 with config_pareto_curve_QKP_point3.yaml:
+logfile discriminator: None
+reference energy -83742.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 4021600.0000 84999936.0000 25584.0000 343316704.0000 48692908.0000 57584.0000
+energy min| -36096.0000 -42360.0000 -56184.0000 -32288.0000 -36624.0000 1616.0000
+energy avg| 481520.4800 4046987.7600 -24615.6800 79402619.8000 9138376.8400 30553.1200
+computation time| 2.5405e-01s 2.5681e-01s 4.2170e-02s 8.3268e-02s 9.4812e-01s 1.1000e-05s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 256470000 256460000 125495086 887000 255875000.0 12487500000
+operation count / it| 25647.0 25646.0 25099.0172 887.0 25587.5 24975.0
+Approximation value| -575.00% -4832.69% 29.39% -94818.16% -10912.54% -36.48%
+
+=================================================
+======= Simulation point 4 =======
+
+=====================
+results of running jeu_100_25_1 with config_pareto_curve_QKP_point4.yaml:
+logfile discriminator: None
+reference energy -18558.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 229104.0000 980112.0000 6416.0000 288307456.0000 108548848.0000 980112.0000
+energy min| -9824.0000 980112.0000 -10192.0000 16716064.0000 7604880.0000 -12208.0000
+energy avg| 25030.8800 980112.0000 -3942.7200 139298153.0400 42273297.6800 55936.4800
+computation time| 3.8348e-01s 3.8897e-01s 7.6819e-01s 4.1686e-01s 4.8005e+00s 1.1000e-04s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 377940000 377925000 2464824640 4395000 1256850000.0 122650000000
+operation count / it| 25196.0 25195.0 24648.2464 879.0 25137.0 24530.0
+Approximation value| -134.88% -5281.34% 21.25% -750609.73% -227790.16% -301.41%
+
+
+=====================
+results of running jeu_200_25_1 with config_pareto_curve_QKP_point4.yaml:
+logfile discriminator: None
+reference energy -204441.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 13825248.0000 180489312.0000 -4448.0000 829351424.0000 323228960.0000 2754939392.0000
+energy min| -73600.0000 -116720.0000 -156304.0000 -75216.0000 -57600.0000 -896.0000
+energy avg| 2508786.0800 9859229.2800 -60666.0800 156283250.9600 71165240.2400 1792847006.8800
+computation time| 4.3725e-01s 4.2914e-01s 8.9963e-01s 4.7356e-01s 9.9555e+00s 1.1000e-04s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 1377030000 1377015000 9074490736 8475000 4584600000.0 452620000000
+operation count / it| 91802.0 91801.0 90744.90736 1695.0 91692.0 90524.0
+Approximation value| -1227.14% -4822.53% 29.67% -76444.18% -34809.67% -876950.81%
+
+
+=====================
+results of running jeu_100_50_1 with config_pareto_curve_QKP_point4.yaml:
+logfile discriminator: None
+reference energy -83742.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM
+energy max| 1275840.0000 67721344.0000 25584.0000 434671936.0000 48692908.0000 57584.0000
+energy min| -36808.0000 -45384.0000 -56184.0000 -32288.0000 -36624.0000 2416.0000
+energy avg| 200271.2800 3416318.8000 -24727.7600 91815377.0000 9138376.8400 31713.2800
+computation time| 3.8724e-01s 3.8966e-01s 7.8211e-01s 4.1442e-01s 4.8777e+00s 1.1000e-04s
+TTT 0.9| -infs -infs -infs -infs -infs -infs
+operation count| 384705000 384690000 2509425086 4435000 1279375000.0 124875000000
+operation count / it| 25647.0 25646.0 25094.25086 887.0 25587.5 24975.0
+Approximation value| -239.15% -4079.58% 29.53% -109640.77% -10912.54% -37.87%
+

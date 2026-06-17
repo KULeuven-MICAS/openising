@@ -1,0 +1,15 @@
+=====================
+results of running G1 with G1_experiment.yaml:
+logfile discriminator: None
+reference energy -11624.0
+=====================
+Simulation results:
+solver| SA inSituSA
+energy max| -11167.0000 -10334.0000
+energy min| -11350.0000 -10618.0000
+energy avg| -11265.2500 -10519.6200
+computation time| 1.9903e-01s 2.5027e-01s
+TTT 0.9| 1.9903e-01s 2.7180e-01s
+operation count| 5257303168 5119200
+relative error| 3.09% 9.50%
+
