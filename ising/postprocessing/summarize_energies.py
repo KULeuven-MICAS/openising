@@ -157,6 +157,7 @@ def box_plot_metric(
     sns.boxplot(data=df, x=x, y="metric", hue=hue)
     plt.yscale("log")
     plt.xlabel(x)
+    plt.tick_params('x', rotation=45)
     plt.ylabel(_metric_axis_label(problem))
     if title:
         plt.title(title)

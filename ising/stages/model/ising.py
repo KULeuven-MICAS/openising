@@ -5,7 +5,7 @@ import numpy as np
 import h5py
 
 import ising.utils.numpy as npu
-from ising.utils.numba_functions import evaluate_ising
+# from ising.utils.numba_functions import evaluate_ising
 
 
 class IsingModel:
