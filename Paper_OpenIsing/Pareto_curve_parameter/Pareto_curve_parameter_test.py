@@ -109,5 +109,5 @@ pareto_curve_loop(
     parameter_values,
     problem_type,
     fig_folder,
-    fig_name=f"Pareto_curve_parameter_{parameter_name}_{solver}.pdf",
+    fig_name=f"Pareto_curve_parameter_{parameter_name}",
 )

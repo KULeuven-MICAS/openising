@@ -23,10 +23,10 @@ __pycache__/
 
 
 # Figures and output files
-*.png
-*.jpg
-*.pdf
-*.csv
+ising/*/*.png
+ising/*/*.jpg
+ising/*/*.pdf
+ising/*/*.csv
 *.prof
 
 # Config yaml files
