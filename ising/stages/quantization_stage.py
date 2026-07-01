@@ -28,6 +28,7 @@ class QuantizationStage(Stage):
             self.visualization = self.config.visualization
         else:
             self.visualization = False
+        self.original_quantization = self.config.quantization_precision
 
     def run(self) -> Any:
         """! Quantize the J of the Ising model."""
@@ -44,26 +45,27 @@ class QuantizationStage(Stage):
             original_precision = max(original_int_j_precision, original_int_h_precision)
 
         if self.config.quantization:
+            # TODO: nakijken
             if self.config.combine_nodes:
                 LOGGER.info("Combine nodes is enabled, setting scale_to_integer to True.")
                 self.config.scale_to_integer = True
-                quantization_precision = (
-                    int(
-                        np.ceil(
-                            np.log2((2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling**2)
-                        )
-                    )
+                quantization_precision = int(
+                    np.ceil(np.log2((2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling**2))
                     + 1
                 )
+                max_quant_valJ = (2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling**2
+                max_quant_valh = (2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling
             else:
                 quantization_precision = self.config.quantization_precision
+                max_quant_valJ = 2 ** (quantization_precision - 1) - 1
+                max_quant_valh = max_quant_valJ
             scale_to_integer = self.config.scale_to_integer if hasattr(self.config, "scale_to_integer") else False
             original_J = self.ising_model.J
             original_h = self.ising_model.h
             # calculate the scale factor of h and map h to new range
-            if self.config.h_scale_factor == 1.0:
+            if self.config.h_scale_factor == 1.0 and np.max(np.abs(original_h)) != 0:
                 h_scale_factor_real = np.max(np.abs(original_h)) / np.max(np.abs(original_J))
-                h_scale_factor = h_scale_factor_real
+                h_scale_factor = int(np.round(h_scale_factor_real))
                 original_h = original_h / h_scale_factor
                 LOGGER.info(
                     f"original h scaling factor is {h_scale_factor_real}, rounded scale factor is {h_scale_factor}"
@@ -71,26 +73,28 @@ class QuantizationStage(Stage):
             else:
                 h_scale_factor_real = -1
                 h_scale_factor = self.config.h_scale_factor
+            # print(h_scale_factor)
             quantized_J = self.quantize_matrix(
                 J=original_J,
                 original_precision=original_int_j_precision,
                 quantization_precision=quantization_precision,
                 scale_to_integer=scale_to_integer,
+                max_quant_val=max_quant_valJ,
             )
             h_scale = self.config.h_scale_factor if hasattr(self.config, "h_scale_factor") else 1.0
             max_abs_h = np.max(np.abs(self.ising_model.h))
             if max_abs_h != 0:
                 j_over_h_ratio = np.max(np.abs(original_J)) / max_abs_h
-                LOGGER.info(
-                    f"J is {j_over_h_ratio:.2f} times larger than h. Scale used is {h_scale}."
-                )
+                LOGGER.info(f"J is {j_over_h_ratio:.2f} times larger than h. Scale used is {h_scale}.")
             quantized_h = self.quantize_matrix(
                 J=original_h,
                 original_precision=original_int_h_precision,
                 quantization_precision=quantization_precision,
                 scale=h_scale_factor,
                 scale_to_integer=scale_to_integer,
+                max_quant_val=max_quant_valh,
             )
+            self.h_scale_factor = h_scale_factor
             LOGGER.info(f"Quantization is enabled with precision: {quantization_precision}-bit.")
 
             quantized_model = IsingModel(
@@ -118,7 +122,7 @@ class QuantizationStage(Stage):
             ans.original_int_h_precision = original_int_h_precision
             ans.original_int_precision = original_precision
             if self.config.quantization:
-                ans.h_scale_factor = h_scale_factor_real
+                ans.h_scale_factor = h_scale_factor
             else:
                 ans.h_scale_factor = None
             for solver in ans.config.solvers:
@@ -166,10 +170,12 @@ class QuantizationStage(Stage):
 
         return original_precision, is_unsigned
 
-    @staticmethod
+    # @staticmethod
     def quantize_matrix(
+        self,
         J: np.ndarray,
         original_precision: int,
+        max_quant_val: int,
         quantization_precision: int | float = 2,
         scale: float = 1.0,
         scale_to_integer: bool = False,
@@ -244,7 +250,14 @@ class QuantizationStage(Stage):
                 step_num -= 1  # dismiss the most negative value
 
         quantized_J = copy.deepcopy(J.astype(np.float64))
-        step_size = 2 * max(np.abs(J_max), np.abs(J_min)) / int(2**quantization_precision - 1)
+        if (
+            2 ** (quantization_precision - 1) - 1 > max_quant_val
+            and self.config.combine_nodes
+            and self.config.scale_to_correct_range
+        ):
+            step_size = max(np.abs(J_max), np.abs(J_min)) / max_quant_val
+        else:
+            step_size = 2 * max(np.abs(J_max), np.abs(J_min)) / int(2**quantization_precision - 1)
 
         quantization_lower_bound = quantization_lower_bound + step_size / 2.0
         quantization_upper_bound = np.abs(quantization_lower_bound)

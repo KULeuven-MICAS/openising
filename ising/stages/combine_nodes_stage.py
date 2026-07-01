@@ -35,7 +35,11 @@ class CombineNodesStage(Stage):
             split_model = IsingModel(
                 J=np.triu(new_J, k=1),
                 h=new_h,
-                c=self.ising_model.c,
+                c=self.ising_model.c + 14*(new_h.shape[0] - self.ising_model.num_variables),
+            )
+            LOGGER.info(
+                f"Split model has {split_model.num_variables} variables, original model has \
+{self.ising_model.num_variables} variables"
             )
         else:
             LOGGER.debug("Split Nodes is disabled.")
@@ -89,7 +93,6 @@ class CombineNodesStage(Stage):
                 # distributing extra units to off-diagonal symmetric pairs first.
                 sign = np.sign(J[i, j])
                 abs_total = np.abs(J[i, j])
-
                 base = abs_total // nodes_scaling**2
                 remainder = abs_total - base * nodes_scaling**2
 
@@ -126,12 +129,10 @@ class CombineNodesStage(Stage):
             abs_total_h = np.abs(h[i])
             base_h = abs_total_h // nodes_scaling
             remainder_h = abs_total_h % nodes_scaling
-            new_h[nodes_scaling * i : nodes_scaling * i + nodes_scaling] = (
-                np.ones((nodes_scaling,)) * base_h
-            )
+            new_h[nodes_scaling * i : nodes_scaling * i + nodes_scaling] = np.ones((nodes_scaling,)) * base_h
             for m in range(nodes_scaling):
                 if remainder_h > 0:
-                    new_h[nodes_scaling*i + m] += 1
+                    new_h[nodes_scaling * i + m] += 1
                     remainder_h -= 1
                 else:
                     break
@@ -165,5 +166,8 @@ class CombineNodesStage(Stage):
                 result[i] = state_split[nodes_scaling * i]
         else:
             for i in range(len(result)):
-                result[i] = np.bincount(state_split[nodes_scaling * i : nodes_scaling * i + nodes_scaling].argmax())
+                spins, counts = np.unique(
+                    state_split[nodes_scaling * i : nodes_scaling * i + nodes_scaling], return_counts=True
+                )
+                result[i] = spins[np.argmax(counts)]
         return result
