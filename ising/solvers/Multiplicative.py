@@ -1,5 +1,6 @@
 import numpy as np
 import pathlib
+import time
 
 # from ising.stages import LOGGER
 from ising.solvers.base import SolverBase
@@ -9,12 +10,14 @@ from ising.utils.numpy import triu_to_symm
 
 
 class Multiplicative(SolverBase):
-    def __init__(self):
+    def __init__(self, adjustments=False):
         super().__init__()
         self.name = "Multiplicative"
+        self.adjustments = adjustments
 
     def set_params(
         self,
+        model: IsingModel,
         dt: float,
         num_iterations: int,
         capacitance: float,
@@ -27,6 +30,8 @@ class Multiplicative(SolverBase):
     ):
         """Set the parameters for the solver.
 
+        @type model: IsingModel
+        @param model: model to solve
         @type dt: float
         @param dt: time step.
         @type num_iterations: int
@@ -46,6 +51,7 @@ class Multiplicative(SolverBase):
         @type voltage_delay_idx: np.ndarray|None
         @param voltage_delay_idx: the matrix containing the delay indices for each voltage.
         """
+        self.model = model
         self.dt = np.float32(dt)
         self.num_iterations = num_iterations
         self.capacitance = np.float32(capacitance)
@@ -55,6 +61,7 @@ class Multiplicative(SolverBase):
         # self.coupling_pos = coupling_pos.astype(np.float32)
         # self.coupling_neg = coupling_neg.astype(np.float32)
         self.voltage_delay_idx = voltage_delay_idx
+        self.tau_system = capacitance / (current * np.mean(np.sum(coupling, axis=1)))
 
     def construct_voltage_delay(self, previous_states: np.ndarray) -> np.ndarray:
         """Generates a matrix of voltages taking into account what each voltage sees at the current time step.
@@ -69,11 +76,11 @@ class Multiplicative(SolverBase):
         @return: voltage matrix with all delays taken into account.
         """
         Voltages = np.zeros(
-            (self.num_variables + int(self.bias), self.num_variables + int(self.bias)), dtype=np.float32
+            (self.model.num_variables + int(self.bias), self.model.num_variables + int(self.bias)), dtype=np.float32
         )
 
-        Voltages[: self.num_variables, : self.num_variables] = previous_states[
-            self.voltage_delay_idx, np.arange(self.num_variables)[:, None]
+        Voltages[: self.model.num_variables, : self.model.num_variables] = previous_states[
+            self.voltage_delay_idx, np.arange(self.model.num_variables)[:, None]
         ]
         if self.bias == 1:
             Voltages[:, -1] = previous_states[0, :]
@@ -120,6 +127,8 @@ class Multiplicative(SolverBase):
         previous_states = np.array([np.sign(state) for _ in range(total_delay + 1)])
         counter = total_delay + 1
         dv = self.coupling @ np.sign(state) * self.current / self.capacitance
+        time_zero = 0.0
+        nb_operations = 0
         while i < self.num_iterations and max_change > self.stop_criterion:
             if counter < total_delay + 1:
                 if total_delay > 0:
@@ -152,9 +161,14 @@ class Multiplicative(SolverBase):
                     energy=model.evaluate(np.sign(new_state[: model.num_variables]).astype(np.float32)),
                     voltages=new_state[: model.num_variables],
                 )
+            if i * self.dt - time_zero >= self.tau_system:
+                time_zero = i * self.dt
+                nb_operations += 2 * model.num_variables**2 + 3 * model.num_variables
         return (
             np.where(new_state[: model.num_variables] >= 0, 1, -1).astype(np.float32),
             model.evaluate(np.where(new_state[: model.num_variables] >= 0, 1, -1).astype(np.float32)),
+            i * self.dt,
+            nb_operations,
         )
 
     def solve(
@@ -231,16 +245,15 @@ class Multiplicative(SolverBase):
         """
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
-            new_model = model.transform_to_no_h()
+            model = model.transform_to_no_h()
             self.bias = np.int8(1)
         else:
-            new_model = model
+            model = model
             self.bias = np.int8(0)
 
         self.freeze_nodes = model.freeze_spins
-
-        # Ensure the mean and variance of J are reasonable
-        coupling = triu_to_symm(new_model.J) - new_model.J.diagonal() * np.eye(new_model.num_variables)
+        coupling = triu_to_symm(model.J)
+        # Include J mismatch
         # if sigma_J != -1.0:
         #     self.mismatch = True
         #     coupling_pos = coupling * (1 + np.random.normal(0.0, sigma_J, coupling.shape))
@@ -249,15 +262,14 @@ class Multiplicative(SolverBase):
         #     self.mismatch = False
         #     coupling_pos = coupling
         #     coupling_neg = coupling
-        self.num_variables = model.num_variables
 
+        # Change time step according to parameters of system
         dtMult = 0.1 * capacitance / (current * np.max(np.abs(np.sum(coupling, axis=1))))
 
+        # Set up delay
         capacitance_delay = capacitance / model.num_variables
-        # LOGGER.info(f"Delay capacitance: {capacitance_delay:.4e} F")
-
         time_constant = capacitance_delay / current
-        # LOGGER.info(f"Adjusted time step to {dtMult:.4e} for stability.")
+
         if accumulation_delay > 0.0 and accumulation_delay * time_constant < dtMult:
             dtMult = accumulation_delay * time_constant
             num_iterations = int(np.ceil(num_iterations * (dtMult / (accumulation_delay * time_constant))))
@@ -272,13 +284,12 @@ class Multiplicative(SolverBase):
         broadcast_delay = int(broadcast_delay * time_constant / dtMult)
         delay_offset = int(delay_offset * time_constant / dtMult)
 
-        total_delay = (self.num_variables - 1) * (accumulation_delay + broadcast_delay) + delay_offset
-        # LOGGER.info(f"Total delay in system: {total_delay} time steps.")
+        total_delay = (model.num_variables - 1) * (accumulation_delay + broadcast_delay) + delay_offset
 
         if accumulation_delay > 0 or broadcast_delay > 0 or delay_offset > 0:
-            voltage_delay_idx = np.zeros((self.num_variables, self.num_variables), dtype=np.int8)
-            for i in range(self.num_variables):
-                for j in range(self.num_variables):
+            voltage_delay_idx = np.zeros((model.num_variables, model.num_variables), dtype=np.int8)
+            for i in range(model.num_variables):
+                for j in range(model.num_variables):
                     voltage_delay_idx[i, j] = (
                         np.floor(np.abs(i - j) * (accumulation_delay + broadcast_delay)) + delay_offset
                     )
@@ -294,6 +305,7 @@ class Multiplicative(SolverBase):
         if end_size < 1:
             end_size = 1
         self.set_params(
+            model,
             dtMult,
             num_iterations,
             capacitance,
@@ -311,7 +323,7 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         if self.bias:
-            v = np.empty(self.num_variables + 1, dtype=np.float32)
+            v = np.empty(model.num_variables + 1, dtype=np.float32)
             v[:-1] = initial_state
             v[-1] = 1.0
         else:
@@ -321,30 +333,21 @@ class Multiplicative(SolverBase):
             schema = {
                 "time": np.float32,
                 "energy": np.float32,
-                "state": (np.int8, (self.num_variables,)),
-                "voltages": (np.float32, (self.num_variables,)),
+                "state": (np.int8, (model.num_variables,)),
+                "voltages": (np.float32, (model.num_variables,)),
             }
         else:
             schema = {
                 "energy_best": np.float32,
                 "energy": np.float32,
-                "state_out": (np.int8, (self.num_variables,)),
-                "state_in": (np.int8, (self.num_variables,)),
+                "state_out": (np.int8, (model.num_variables,)),
+                "state_in": (np.int8, (model.num_variables,)),
                 "cluster": (np.int8, (model.num_variables,)),
             }
 
         # Define cluster function
-        choice = ""
         if cluster_choice == "random":
             find_cluster = self.find_cluster_random
-        # elif cluster_choice == "gradient":
-        #     find_cluster = self.find_cluster_gradient
-        # elif cluster_choice == "weighted_mean_smallest":
-        #     find_cluster = self.find_cluster_weighted_mean
-        #     choice = "smallest"
-        # elif cluster_choice == "weighted_mean_largest":
-        #     find_cluster = self.find_cluster_weighted_mean
-        #     choice = "largest"
         else:
             raise ValueError(
                 f" Unknown cluster choice: {cluster_choice}. \
@@ -354,7 +357,7 @@ class Multiplicative(SolverBase):
             "current_state": np.ndarray,
             "cluster_threshold": cluster_threshold,
             "optimal_points": [],
-            "choice": choice,
+            "choice": cluster_choice,
         }
 
         with HDF5Logger(file, schema) as log:
@@ -385,8 +388,11 @@ class Multiplicative(SolverBase):
 
             counter = 0  # Counter for no improvement
             restart = 0  # When counter reaches threshold, size of cluster is reset with restart = it
+            tot_time = 0  # total time of system (analog + flipping)
+            tot_ops = 0  # total amount of operations (analog + flipping)
             for it in range(nb_flipping):
-                sample, energy = self.inner_loop_FE(model, v, total_delay, logging)
+                sample, energy, ana_time, ana_ops = self.inner_loop_FE(model, v, total_delay, logging)
+                start = time.time()
                 additional_information["current_state"] = sample[
                     np.setdiff1d(np.arange(model.num_variables), self.freeze_nodes)
                 ]
@@ -398,11 +404,10 @@ class Multiplicative(SolverBase):
                     counter = 0
                 else:
                     counter += 1
-
                 # if counter >= int(nb_flipping / 4):
                 #     restart = int(it / 2)
                 #     counter = 0
-                cluster = find_cluster(
+                cluster, operations = find_cluster(
                     self.size_function(
                         iteration=it - restart,
                         total_iterations=nb_flipping + int(nb_flipping == 1),
@@ -427,14 +432,20 @@ class Multiplicative(SolverBase):
                         state_in=best_sample,
                         cluster=np.where(v[: model.num_variables] == best_sample, 0, 1).astype(np.int8),
                     )
-
+                tot_time += ana_time + time.time() - start
+                tot_ops += (
+                    ana_ops +                                                   # analog operation count
+                    2 * model.num_variables**2 + 3 * model.num_variables +      # operation count for energy calculation
+                    operations +                                                # cluster choice operation count
+                    len(cluster)                                                # set cluster operation count
+                )
             if log.filename is not None:
                 log.write_metadata(
                     solution_state=sample,
                     solution_energy=energy,
                     total_time=dtMult * num_iterations,
                 )
-        return best_sample, best_energy, dtMult * num_iterations * nb_flipping, -1, nb_flipping
+        return best_sample, best_energy, tot_time, tot_ops, nb_flipping
 
     def size_function(
         self,
@@ -483,28 +494,42 @@ class Multiplicative(SolverBase):
 
     def find_cluster_random(
         self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
-    ) -> np.ndarray:
+    ) -> tuple[np.ndarray, int]:
         """Finds a random cluster of nodes to flip.
 
         @type cluster_size: int
         @param cluster_size: the size of the cluster to find.
-        @rtype: np.ndarray
-        @return: the indices of the nodes in the cluster.
+        @rtype: tuple[np.ndarray, int]
+        @return: the indices of the nodes in the cluster and the amount of operations.
         """
         if combine_nodes:
             cluster = self.generator(
-                np.setdiff1d(np.arange(int(self.num_variables / nb_splits)), self.freeze_nodes[::nb_splits]),
+                np.setdiff1d(np.arange(int(self.model.num_variables / nb_splits)), self.freeze_nodes[::nb_splits]),
                 size=(cluster_size,),
                 replace=False,
             )
-            cluster = np.array([nb_splits * cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
+            state = additional_information["current_state"]
+            cluster_nodes = []
+            for cluster_elem in cluster:
+                replica_indices = nb_splits * cluster_elem + np.arange(nb_splits)
+                replica_states = state[replica_indices]
+                if np.all(replica_states == replica_states[0]) or not self.adjustments:
+                    # Replicas agree: flip the whole group.
+                    cluster_nodes.extend(replica_indices)
+                else:
+                    # Replicas disagree: flip the minority so the group ends up agreeing.
+                    target = np.sign(np.sum(replica_states))
+                    if target == 0:  # perfect tie: fall back to a reference replica
+                        target = replica_states[0]
+                    cluster_nodes.extend(replica_indices[replica_states != target])
+            cluster = np.array(cluster_nodes, dtype=int)
         else:
             cluster = self.generator(
-                np.setdiff1d(np.arange(int(self.num_variables)), self.freeze_nodes),
+                np.setdiff1d(np.arange(int(self.model.num_variables)), self.freeze_nodes),
                 size=(cluster_size,),
                 replace=False,
             )
-        return cluster
+        return cluster, self.model.num_variables
 
     # def find_cluster_weighted_mean(
     #     self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
