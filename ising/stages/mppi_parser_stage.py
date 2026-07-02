@@ -9,7 +9,7 @@ from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 
 from ising.benchmarks.MPPI import get_dynamics_model
-from ising.benchmarks.MPPI.environment import generate_random_scene, create_environment, create_reference_trajectory
+from ising.stages.model.MPPI.environment import generate_random_scene, create_environment, create_reference_trajectory
 
 import numpy as np
 

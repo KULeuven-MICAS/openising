@@ -105,7 +105,7 @@ is_hamming_encoding: False
 # Parameters for quantization stage
 quantization: True
 quantization_precision: 4
-scale_to_integer: False
+scale_to_integer: True
 h_scale_factor: 1.0
 
 # Parameters for npmos stage

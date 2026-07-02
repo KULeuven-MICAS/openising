@@ -2,11 +2,11 @@
 dynamics: 'Bicycle'
 
 # General parameters
-delta_t: .2
+delta_t: .1
 velocity: 4.0
 
 # Trajectory generation seed
-seed: 4242
+seed: 42
 
 # QUBO parameters (for bicycle riding)
 Q: null   # No full Q
@@ -21,7 +21,7 @@ state_dim: 5            # State space dimension     --> compatible with Q
 action_dim: 2           # Action space dimension    --> compatible with R
 
 K: 1.                   # Multiplier for bits
-N_BITS: 8               # Number of bits
+N_BITS: 16               # Number of bits
 
 action_scales: null     # Optional action scale
 scale_multiplier: null  # Optional multiplier
