@@ -10,7 +10,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = str(4)
 
 from ising import api
 from ising.postprocessing.run_summary import summarize_runs
-from ising.postprocessing.mppi import summarize_mppi
 
 
 # Initialize the logger
@@ -32,4 +31,3 @@ ans, debug_info = api.get_hamiltonian_energy(
 # Output summary file
 output_file = Path(f"./simulation_summary_{ans.benchmark}.pkl")
 summarize_runs(output_file, ans, problem_type, config_path)
-summarize_mppi(Path("."), ans, "mppi")
