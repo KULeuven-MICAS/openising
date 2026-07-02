@@ -158,7 +158,7 @@ Besides, the following parameters will be added within returned ans:
 
 *quantization_precision:* [positive int] the targeted quantization precision.
 
-*h_scale_factor*: [positive int] the factor with which the bias should be scaled. If 1 the scaling is computed based on the difference between the range of J and h.
+*scale_h*: [bool] Whether to scale h with a factor equal to the max(h)/max(J) to ensure relative strength stays.
 
 *scale_to_integer*: [bool] whether to scale the quantized values to integer values supported on chip.
 
@@ -177,6 +177,8 @@ Besides, the following parameters will be added within returned ans:
 *combine_nodes:* [bool] whether or not to activate the CombineNodesStage. 
 
 *nodes_scaling:* [int] the amount of nodes each node will be split into.
+
+*replica_strength:* [int] the coupling strength between two replica nodes. If 0, the strength will be equal to the maximum quantized value.
 
 **If DummyCreatorStage is used, the following parameters are required:**
 

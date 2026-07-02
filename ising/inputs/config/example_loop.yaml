@@ -110,7 +110,7 @@ is_hamming_encoding: False
 # Parameters for quantization stage
 quantization: False
 quantization_precision: 1.5
-h_scale_factor: 1.0
+scale_h: False
 scale_to_integer: False
 
 # Parameters for npmos stage
@@ -124,6 +124,7 @@ noise_level: 0.1
 # Parameters for combine nodes stage
 combine_nodes: False
 nodes_scaling: 2
+replica_strength: 0
 
 #################################
 ## Dummy creator hyperparameters

@@ -81,6 +81,9 @@ class CombineNodesStage(Stage):
         new_J = np.zeros((new_nb_nodes, new_nb_nodes))
         new_h = np.zeros(new_nb_nodes)
 
+        h /= self.config.h_scale_factor
+        h = np.round(h)
+        max_val = 2**(self.config.quantization_precision - 1) - 1
         for i in range(nb_nodes):
             for j in range(i + 1, nb_nodes):
                 # Distribute J[i,j] across an (nodes_scaling x nodes_scaling) block so
@@ -113,7 +116,7 @@ class CombineNodesStage(Stage):
                 if remainder == 1:
                     # place on first diagonal (deterministic)
                     block[0, 0] += 1
-
+                np.clip(block, -max_val, max_val, block)
                 # Assign symmetric blocks in the big matrix
                 new_J[
                     nodes_scaling * i : nodes_scaling * i + nodes_scaling,
@@ -137,10 +140,14 @@ class CombineNodesStage(Stage):
                 else:
                     break
             new_h[nodes_scaling * i : nodes_scaling * i + nodes_scaling] *= sign_h
-
+        np.clip(new_h, -max_val, max_val, new_h)
+        new_h *= self.config.h_scale_factor
         # Set the diagonal elements to the maximum element available
-        max_J = np.max(np.abs(new_J))
-        diag_part = np.triu(np.ones((nodes_scaling, nodes_scaling)) * (max_J), 1)
+        if self.config.replica_strength == 0:
+            replica_strength = max_val
+        else:
+            replica_strength = self.config.replica_strength
+        diag_part = np.triu(np.ones((nodes_scaling, nodes_scaling)) * replica_strength, 1)
         for i in range(nb_nodes):
             new_J[
                 nodes_scaling * i : nodes_scaling * i + nodes_scaling,
