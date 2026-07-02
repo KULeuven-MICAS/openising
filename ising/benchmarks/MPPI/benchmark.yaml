@@ -1,0 +1,36 @@
+# Dynamics model
+dynamics: 'Bicycle'
+
+# General parameters
+delta_t: .1
+velocity: 4.0
+
+# Trajectory generation seed
+seed: 42
+
+# QUBO parameters (for bicycle riding)
+Q: null   # No full Q
+R: null   # Nu full R
+Q_diag: [1.0, 1.0, 0.001, 0.0, 0.0]      # Default Q diagonal
+R_diag: [1., 1.]                         # Default R diagonal
+
+Q_slack: 177.           # Slack weight for Q matrix
+TERMINAL_WEIGHT: 1.     # Weight for terminal state
+
+state_dim: 5            # State space dimension     --> compatible with Q
+action_dim: 2           # Action space dimension    --> compatible with R
+
+K: 1.                   # Multiplier for bits
+N_BITS: 16               # Number of bits
+
+action_scales: null     # Optional action scale
+scale_multiplier: null  # Optional multiplier
+
+# MPC parameters
+HORIZON_LENGTH: 8       # Planning horizon length
+action_horizon: 1       # Action execution horizon -> should be one for receding horizon
+
+# MPPI parameters
+n_mppi_iterations: 1    # Number of MPPI iterations to do per tracking step
+n_approx_iter: 2        # Number of approximation terms in the calculation of inverses during forward rollout
+
