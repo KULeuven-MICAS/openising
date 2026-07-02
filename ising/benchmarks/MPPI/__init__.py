@@ -1,4 +1,4 @@
-from .dynamics import BicycleModel
+from ising.stages.model.MPPI.dynamics import BicycleModel
 
 
 def get_dynamics_model(config):

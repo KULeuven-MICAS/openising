@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from ising.benchmarks.MPPI.environment import plot_environment
+from ising.stages.model.MPPI.environment import plot_environment
 
 def plot_results(env, x_ref, all_x, predicted_traj, savefile="ising_bicycle_mpc_results.png", show=False):
     try:

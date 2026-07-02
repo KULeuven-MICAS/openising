@@ -1,6 +1,6 @@
 from pathlib import Path
-from ising.benchmarks.MPPI.environment import create_environment
-from .plot_mppi import plot_results
+from ising.stages.model.MPPI.environment import create_environment
+from .plot_mppi_trajectory import plot_results
 
 
 def summarize_mppi(output_dir: Path, ans, name: str | None = None):
