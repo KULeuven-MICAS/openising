@@ -17,7 +17,7 @@ class Multiplicative(SolverBase):
 
     def set_params(
         self,
-        model: IsingModel,
+        num_variables: int,
         dt: float,
         num_iterations: int,
         capacitance: float,
@@ -30,7 +30,7 @@ class Multiplicative(SolverBase):
     ):
         """Set the parameters for the solver.
 
-        @type model: IsingModel
+        @type num_variables: int
         @param model: model to solve
         @type dt: float
         @param dt: time step.
@@ -51,7 +51,7 @@ class Multiplicative(SolverBase):
         @type voltage_delay_idx: np.ndarray|None
         @param voltage_delay_idx: the matrix containing the delay indices for each voltage.
         """
-        self.model = model
+        self.num_variables = num_variables
         self.dt = np.float32(dt)
         self.num_iterations = num_iterations
         self.capacitance = np.float32(capacitance)
@@ -76,11 +76,11 @@ class Multiplicative(SolverBase):
         @return: voltage matrix with all delays taken into account.
         """
         Voltages = np.zeros(
-            (self.model.num_variables + int(self.bias), self.model.num_variables + int(self.bias)), dtype=np.float32
+            (self.num_variables + int(self.bias), self.num_variables + int(self.bias)), dtype=np.float32
         )
 
-        Voltages[: self.model.num_variables, : self.model.num_variables] = previous_states[
-            self.voltage_delay_idx, np.arange(self.model.num_variables)[:, None]
+        Voltages[: self.num_variables, : self.num_variables] = previous_states[
+            self.voltage_delay_idx, np.arange(self.num_variables)[:, None]
         ]
         if self.bias == 1:
             Voltages[:, -1] = previous_states[0, :]
@@ -245,14 +245,14 @@ class Multiplicative(SolverBase):
         """
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
-            model = model.transform_to_no_h()
+            new_model:IsingModel = model.transform_to_no_h()
             self.bias = np.int8(1)
         else:
-            model = model
+            new_model:IsingModel = model
             self.bias = np.int8(0)
-
+        num_variables = model.num_variables
         self.freeze_nodes = model.freeze_spins
-        coupling = triu_to_symm(model.J)
+        coupling = triu_to_symm(new_model.J)
         # Include J mismatch
         # if sigma_J != -1.0:
         #     self.mismatch = True
@@ -267,7 +267,7 @@ class Multiplicative(SolverBase):
         dtMult = 0.1 * capacitance / (current * np.max(np.abs(np.sum(coupling, axis=1))))
 
         # Set up delay
-        capacitance_delay = capacitance / model.num_variables
+        capacitance_delay = capacitance / num_variables
         time_constant = capacitance_delay / current
 
         if accumulation_delay > 0.0 and accumulation_delay * time_constant < dtMult:
@@ -284,19 +284,19 @@ class Multiplicative(SolverBase):
         broadcast_delay = int(broadcast_delay * time_constant / dtMult)
         delay_offset = int(delay_offset * time_constant / dtMult)
 
-        total_delay = (model.num_variables - 1) * (accumulation_delay + broadcast_delay) + delay_offset
+        total_delay = (num_variables - 1) * (accumulation_delay + broadcast_delay) + delay_offset
 
         if accumulation_delay > 0 or broadcast_delay > 0 or delay_offset > 0:
-            voltage_delay_idx = np.zeros((model.num_variables, model.num_variables), dtype=np.int8)
-            for i in range(model.num_variables):
-                for j in range(model.num_variables):
+            voltage_delay_idx = np.zeros((num_variables, num_variables), dtype=np.int8)
+            for i in range(num_variables):
+                for j in range(num_variables):
                     voltage_delay_idx[i, j] = (
                         np.floor(np.abs(i - j) * (accumulation_delay + broadcast_delay)) + delay_offset
                     )
 
         # Set the parameters for easy calling
         if combine_nodes:
-            num_var = int((model.num_variables - len(self.freeze_nodes)) / nb_splits)
+            num_var = int((num_variables - len(self.freeze_nodes)) / nb_splits)
             init_size = int(init_cluster_size * num_var)
             end_size = int(end_cluster_size * num_var)
         else:
@@ -305,7 +305,7 @@ class Multiplicative(SolverBase):
         if end_size < 1:
             end_size = 1
         self.set_params(
-            model,
+            num_variables,
             dtMult,
             num_iterations,
             capacitance,
@@ -323,7 +323,7 @@ class Multiplicative(SolverBase):
 
         # Set up the bias node and add noise to the initial voltages
         if self.bias:
-            v = np.empty(model.num_variables + 1, dtype=np.float32)
+            v = np.empty(num_variables + 1, dtype=np.float32)
             v[:-1] = initial_state
             v[-1] = 1.0
         else:
@@ -333,16 +333,16 @@ class Multiplicative(SolverBase):
             schema = {
                 "time": np.float32,
                 "energy": np.float32,
-                "state": (np.int8, (model.num_variables,)),
-                "voltages": (np.float32, (model.num_variables,)),
+                "state": (np.int8, (num_variables,)),
+                "voltages": (np.float32, (num_variables,)),
             }
         else:
             schema = {
                 "energy_best": np.float32,
                 "energy": np.float32,
-                "state_out": (np.int8, (model.num_variables,)),
-                "state_in": (np.int8, (model.num_variables,)),
-                "cluster": (np.int8, (model.num_variables,)),
+                "state_out": (np.int8, (num_variables,)),
+                "state_in": (np.int8, (num_variables,)),
+                "cluster": (np.int8, (num_variables,)),
             }
 
         # Define cluster function
@@ -375,12 +375,12 @@ class Multiplicative(SolverBase):
                     log.log(
                         energy_best=np.inf,
                         energy=np.inf,
-                        state_in=np.sign(v[: model.num_variables]),
-                        state_out=np.zeros(model.num_variables, dtype=np.int8),
-                        cluster=np.zeros(model.num_variables, dtype=np.int8),
+                        state_in=np.sign(v[: num_variables]),
+                        state_out=np.zeros(num_variables, dtype=np.int8),
+                        cluster=np.zeros(num_variables, dtype=np.int8),
                     )
             best_energy = np.inf
-            best_sample = v[: model.num_variables].copy()
+            best_sample = v[: num_variables].copy()
             if nb_flipping == 1:
                 logging = log
             else:
@@ -394,7 +394,7 @@ class Multiplicative(SolverBase):
                 sample, energy, ana_time, ana_ops = self.inner_loop_FE(model, v, total_delay, logging)
                 start = time.time()
                 additional_information["current_state"] = sample[
-                    np.setdiff1d(np.arange(model.num_variables), self.freeze_nodes)
+                    np.setdiff1d(np.arange(num_variables), self.freeze_nodes)
                 ]
 
                 if energy < best_energy:
@@ -430,12 +430,12 @@ class Multiplicative(SolverBase):
                         energy=energy,
                         state_out=sample,
                         state_in=best_sample,
-                        cluster=np.where(v[: model.num_variables] == best_sample, 0, 1).astype(np.int8),
+                        cluster=np.where(v[: num_variables] == best_sample, 0, 1).astype(np.int8),
                     )
                 tot_time += ana_time + time.time() - start
                 tot_ops += (
                     ana_ops +                                                   # analog operation count
-                    2 * model.num_variables**2 + 3 * model.num_variables +      # operation count for energy calculation
+                    2 * num_variables**2 + 3 * num_variables +      # operation count for energy calculation
                     operations +                                                # cluster choice operation count
                     len(cluster)                                                # set cluster operation count
                 )
@@ -504,7 +504,7 @@ class Multiplicative(SolverBase):
         """
         if combine_nodes:
             cluster = self.generator(
-                np.setdiff1d(np.arange(int(self.model.num_variables / nb_splits)), self.freeze_nodes[::nb_splits]),
+                np.setdiff1d(np.arange(int(self.num_variables / nb_splits)), self.freeze_nodes[::nb_splits]),
                 size=(cluster_size,),
                 replace=False,
             )
@@ -525,11 +525,11 @@ class Multiplicative(SolverBase):
             cluster = np.array(cluster_nodes, dtype=int)
         else:
             cluster = self.generator(
-                np.setdiff1d(np.arange(int(self.model.num_variables)), self.freeze_nodes),
+                np.setdiff1d(np.arange(int(self.num_variables)), self.freeze_nodes),
                 size=(cluster_size,),
                 replace=False,
             )
-        return cluster, self.model.num_variables
+        return cluster, self.num_variables
 
     # def find_cluster_weighted_mean(
     #     self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
