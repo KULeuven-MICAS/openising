@@ -270,7 +270,7 @@ class QuantizationStage(Stage):
         )
         # Set values close to zero to zero due to round-off
         quantized_matrix[nonzero_mask] = np.where(
-            np.ipsclose(quantized_matrix[nonzero_mask], 0, atol=1e-3), 0, quantized_matrix[nonzero_mask]
+            np.isclose(quantized_matrix[nonzero_mask], 0, atol=1e-3), 0, quantized_matrix[nonzero_mask]
         )
 
         # Due to round-off, set values close to max or min value to respective value
