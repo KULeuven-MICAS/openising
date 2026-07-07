@@ -2,7 +2,6 @@ from ising.stages import LOGGER, TOP
 from typing import Any
 import networkx as nx
 import pathlib
-import numpy as np
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 
