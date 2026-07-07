@@ -2,7 +2,6 @@ from ising.stages import LOGGER, TOP
 from typing import Any
 import networkx as nx
 import pathlib
-import numpy as np
 from ising.stages.stage import Stage, StageCallable
 from ising.stages.model.ising import IsingModel
 
@@ -47,9 +46,6 @@ class BiqMacParserStage(Stage):
         @return: generated model from the graph
         """
         Q_matrix = nx.adjacency_matrix(graph, weight="weight").toarray()
-        diag = np.diag(Q_matrix)
-        Q_matrix /= 2
-        np.fill_diagonal(Q_matrix, diag)
         ising_model = IsingModel.from_qubo(Q_matrix)
         ising_model.name = graph.name
         return ising_model
