@@ -30,12 +30,12 @@ class CombineNodesStage(Stage):
             self.config.nodes_scaling = nodes_scaling
             original_J = self.ising_model.J
             original_h = self.ising_model.h
-            new_J, new_h = self.split_nodes(original_J, original_h, nodes_scaling)
+            new_J, new_h, replica_strength = self.split_nodes(original_J, original_h, nodes_scaling)
 
             split_model = IsingModel(
                 J=np.triu(new_J, k=1),
                 h=new_h,
-                c=self.ising_model.c + 14*(new_h.shape[0] - self.ising_model.num_variables),
+                c=self.ising_model.c + 2*replica_strength*(new_h.shape[0] - self.ising_model.num_variables),
             )
             LOGGER.info(
                 f"Split model has {split_model.num_variables} variables, original model has \
@@ -154,7 +154,7 @@ class CombineNodesStage(Stage):
                 nodes_scaling * i : nodes_scaling * i + nodes_scaling,
             ] = diag_part
 
-        return new_J, new_h
+        return new_J, new_h, replica_strength
 
     def translate_state(self, state_split: np.ndarray, nodes_scaling: int) -> np.ndarray:
         """Translates the states from the split version to the original version. Each spin takes
