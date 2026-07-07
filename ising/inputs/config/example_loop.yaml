@@ -140,6 +140,9 @@ dummy_user_num: 16
 dummy_ant_num: 64
 dummy_case_num: 10
 
+# Parameters for dummy Biqmac/Maxcut
+dummy_precision: 6
+
 # Parameters for dummy MaxCut/TSP/ATSP/Knapsack
 dummy_size: 20
 

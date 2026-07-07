@@ -200,7 +200,9 @@ Besides, the following parameters will be added within returned ans:
 
 *dummy_case_num*: [int] the amount of dummy input testcases to generate.
 
-**If dummy MaxCut/TSP/ATSP is to be generated, these parameters are required:**
+**If dummy MaxCut/Biqmac/TSP/ATSP is to be generated, these parameters are required:**
+
+*dummy_precision:* [int] the aprecision of the dummy problem
 
 *dummy_size*: [int] the amount of nodes (cities in TSP/ATSP).
 
