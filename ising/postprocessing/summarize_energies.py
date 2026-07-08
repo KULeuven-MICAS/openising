@@ -352,12 +352,12 @@ def pareto_curve_loop(
                     energies = np.append(
                         energies, relative_to_best_found(np.array(ans.energies[solver]), ans.best_found)
                     )
-                    iterations.append(ans.total_iteration_count[solver])
+                    iterations+= ans.total_iteration_count[solver]
 
                 mean = np.mean(energies)
                 energies_avg[val] = mean
                 energies_std[val] = np.std(energies)/mean
-                iterations_avg[val] = gmean(iterations)
+                iterations_avg[val] = int(round(gmean(iterations)))
             energies_avg = np.array([energies_avg[val] for val in parameter_values])
             energies_std = np.array([energies_std[val] for val in parameter_values])
             iterations_avg = [iterations_avg[val] for val in parameter_values]
@@ -374,6 +374,7 @@ def pareto_curve_loop(
                     energies_avg-energies_std,
                     energies_avg+energies_std,
                     color=error_colors[ind],
+                    alpha=0.2
                 )
                 for ind, en in enumerate(energies_avg):
                     ax.text(x[ind], en+en/10, str(iterations_avg[ind]))
