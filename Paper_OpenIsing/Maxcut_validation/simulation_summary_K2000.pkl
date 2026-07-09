@@ -1,0 +1,15 @@
+=====================
+results of running K2000 with K2000_experiment.yaml:
+logfile discriminator: None
+reference energy -33337.0
+=====================
+Simulation results:
+solver| dSB bSB SCA BRIM
+energy max| -32994.0000 -32766.0000 -32660.0000 -32466.0000
+energy min| -33308.0000 -33278.0000 -33217.0000 -33167.0000
+energy avg| -33212.3200 -33134.2300 -32942.6700 -32782.4400
+computation time| 3.1360e+00s 3.0897e+00s 1.3557e+01s 1.1000e-05s
+TTT 0.9| 3.1360e+00s 3.0897e+00s 1.3557e+01s 1.1000e-05s
+operation count| 40090025000 40090030000 12506523120.0 -1
+relative error| 0.37% 0.61% 1.18% 1.66%
+

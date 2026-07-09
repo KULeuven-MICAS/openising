@@ -9,14 +9,46 @@ and strategies in software and hardware.
 ### Requirements
 - **Python Version**: 3.12
 - **Python-deps**: Automatically installed via `pip` using the provided setup script.
-
-### Linux Setup
-
+Install this git repository by running
 ```bash
 git clone git@github.com:KULeuven-MICAS/openising.git
+```
+### Linux Setup
+
+The best way to set up the environment is through either a virtual environment, or a conda virtual environment. I recommend first creating a virtual environment and then setting this as a default in VSCode.
+
+**1. Virtual Environment**
+
+Follow the following script to set up using a virtual environment.
+```bash
 cd openising
+python -m venv /path/to/new/virtual/environment
 source .setup
 ```
+The last step will activate the virtual environment and install all dependencies. Therefore, you will need to run this setup file every time you start a new terminal. However, with VSCode you can make sure this happens automatically.
+
+**2. Conda Environment**
+
+Be sure conda is available. Test this by running:
+```bash
+conda list
+```
+If you get the message that conda doesn't exist, follow the instruction on this [page](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html).
+
+Now we can make a new conda environment. Run
+```bash
+conda create --name <my-env> python=3.12.7
+```
+where `<my-env>` is the name of your environment. Now everytime you open a terminal you have to activate the environment by running
+
+```bash
+conda activate <my-env>
+```
+However, with VSCode you can make sure this happens automatically.
+
+**VSCode Default Setting**
+
+If you are using VSCode the virtual environment can also be created and set as a default. But when you have already made the environment from one of the choices above, you're already halfway there. All information is available on this [page](https://code.visualstudio.com/docs/python/environments).
 ### Windows Setup
 TODO
 

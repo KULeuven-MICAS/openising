@@ -61,7 +61,7 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
                 f.write(f"results of running {ans.benchmark} with {config_path.rsplit('/', maxsplit=1)[-1]}:\n")
                 f.write(f"logfile discriminator: {ans.config.logfile_discrimination}\n")
                 f.write("=====================\n")
-                f.write(f"ruggedness {ans.benchmark}| {ruggednes_prob}")
+                f.write(f"ruggedness {ans.benchmark}| {ruggednes_prob}\n")
                 f.write("=====================\n")
                 f.write("MIMO results:\n")
                 f.write(f"SNR|BER  {solver_str}\n")

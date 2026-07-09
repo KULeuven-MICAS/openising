@@ -20,7 +20,6 @@ benchmark:
 # Solver to use: [BRIM, SA, DSA, inSituSA, bSB, dSB, SCA, Multiplicative, CIM, all]
 solvers:
   - bSB
-  - dSB
 
 # Number of trials
 nb_runs: 100

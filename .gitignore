@@ -8,6 +8,8 @@
 **/no_backup
 *.pkl
 
+!/Paper_OpenIsing/*/simulation_summary_*.pkl
+
 # environment stuff
 .env
 .venv
@@ -25,7 +27,7 @@ __pycache__/
 # Figures and output files
 *.png
 *.jpg
-*.pdf
+ising/*/*.pdf
 *.csv
 *.prof
 

@@ -313,7 +313,7 @@ def pareto_curve_loop(
     """Plots the pareto curve for a parameter from a solver over different benchmarks.
 
     @type energy_data: dict[str, dict[Any, list]]
-    @param energy_data: a dictionary containing the energy data
+    @param energy_data: a dictionary containing the energy data\
         for all the different benchmarks.
     @type parameter_name: str
     @param parameter_name: the name of the parameter. This will be put on the x-axis.
@@ -352,7 +352,7 @@ def pareto_curve_loop(
                     energies = np.append(
                         energies, relative_to_best_found(np.array(ans.energies[solver]), ans.best_found)
                     )
-                    iterations+= ans.total_iteration_count[solver]
+                    iterations += ans.total_iteration_count[solver]
 
                 mean = np.mean(energies)
                 energies_avg[val] = mean
@@ -377,7 +377,7 @@ def pareto_curve_loop(
                     alpha=0.2
                 )
                 for ind, en in enumerate(energies_avg):
-                    ax.text(x[ind], en+en/10, str(iterations_avg[ind]))
+                    ax.text(x[ind], en+en/10, str(iterations_avg[ind]), ha='center')
             # else:
             #     ax2.errorbar(
             #         x,
