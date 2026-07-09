@@ -120,6 +120,8 @@ The config file is written in YAML. It must has the following parameters:
 
 ## Following parameters are required only when the targeted benchmark is MIMO.
 
+*use_ZF*: [bool] Whether to also solve the problem with zero forcing.
+
 *SNR:* [int] the Signal Noise Ratio value (integer) at which the MIMO problem is going to be solved. Multiple values can also be given.
 
 *nb_trials*: [positive int] amount of symbols each user needs to send. More means the BER will be more correct.
@@ -156,6 +158,8 @@ Besides, the following parameters will be added within returned ans:
 
 *quantization_precision:* [positive int] the targeted quantization precision.
 
+*scale_h*: [bool] Whether to scale h with a factor equal to the max(h)/max(J) to ensure relative strength stays.
+
 *scale_to_integer*: [bool] whether to scale the quantized values to integer values supported on chip.
 
 Besides, the following parameters will be added within returned ans:
@@ -173,6 +177,8 @@ Besides, the following parameters will be added within returned ans:
 *combine_nodes:* [bool] whether or not to activate the CombineNodesStage. 
 
 *nodes_scaling:* [int] the amount of nodes each node will be split into.
+
+*replica_strength:* [int] the coupling strength between two replica nodes. If 0, the strength will be equal to the maximum quantized value.
 
 **If DummyCreatorStage is used, the following parameters are required:**
 
@@ -194,7 +200,9 @@ Besides, the following parameters will be added within returned ans:
 
 *dummy_case_num*: [int] the amount of dummy input testcases to generate.
 
-**If dummy MaxCut/TSP/ATSP is to be generated, these parameters are required:**
+**If dummy MaxCut/Biqmac/TSP/ATSP is to be generated, these parameters are required:**
+
+*dummy_precision:* [int] the aprecision of the dummy problem
 
 *dummy_size*: [int] the amount of nodes (cities in TSP/ATSP).
 

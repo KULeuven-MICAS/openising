@@ -6,6 +6,8 @@ import yaml
 from ising.api import get_hamiltonian_energy
 from ising.stages import TOP, LOGGER
 from ising.stages.simulation_stage import Ans
+from ising.postprocessing.run_summary import summarize_workload
+from ising.postprocessing.summarize_energies import ans_to_metric_df, box_plot_metric
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,7 @@ class WorkloadSettings:
     delay_offset: float = 0.0
     nodes_scaling: int = 2
     nb_cores: int = 2
+    h_scale_factor: int = 1.0
 
 
 @dataclass(frozen=True)
@@ -76,7 +79,7 @@ class SolverConfig:
 _BASE_FIELDS = ("current", "capacitance")
 _HW_FIELDS = (
     "quantization", "quantization_precision", "mismatch_std", "sigma_J",
-    "accumulation_delay", "broadcast_delay", "delay_offset",
+    "accumulation_delay", "broadcast_delay", "delay_offset", "h_scale_factor"
 )
 _COMB_NODES_FIELDS = ("nodes_scaling",)
 _MULTI_CORE_FIELDS = ("nb_cores",)
@@ -139,7 +142,9 @@ def run_workload(problem_type, solver_config: SolverConfig, config_file,
     if simulation:
         ans, _ = get_hamiltonian_energy(problem_type=problem_type, config_path=config_file)
     else:
-        ans = Ans().load(output_folder / f"{ans.benchmark}_{solver_config.tag}.ans")
+        benchmark = config["benchmark"].split("/")[-1].split(".")[0]
+        ans = Ans()
+        ans.load(output_folder / f"{benchmark}_{solver_config.tag}.ans")
 
     if benchmark_label is not None:
         ans.benchmark = benchmark_label
@@ -147,3 +152,70 @@ def run_workload(problem_type, solver_config: SolverConfig, config_file,
         Path.mkdir(output_folder)
     ans.save(output_folder / f"{ans.benchmark}_{solver_config.tag}.ans")
     return ans
+
+
+def workload_api(
+    problem_type: str,
+    problem_label: str,
+    solver_config: SolverConfig,
+    config_file: str,
+    difficulty: str,
+    benchmarks: list[tuple[dict, str | None]],
+    settings: WorkloadSettings = WorkloadSettings(),
+    simulation: bool = True,
+) -> list[Ans]:
+    """Run a workload across a list of benchmarks and emit summary + box plot.
+
+    @type problem_type: str
+    @param problem_type: argument forwarded to L{run_workload} (e.g. "Maxcut", "MIMO").
+    @type problem_label: str
+    @param problem_label: human-readable problem name used in titles and the summary
+        file (e.g. "Max Cut").
+    @type solver_config: SolverConfig
+    @param solver_config: which Galena features to enable.
+    @type config_file: str
+    @param config_file: YAML config that gets rewritten before each run.
+    @type difficulty: str
+    @param difficulty: difficulty tag used in output filenames.
+    @type benchmarks: list[tuple[dict, str | None]]
+    @param benchmarks: ordered list of C{(config_overrides, benchmark_label)} pairs.
+        C{config_overrides} is merged into the YAML before each run; for problems
+        identified by file, this is C{{"benchmark": <path>}}. C{benchmark_label} is
+        forwarded to L{run_workload} (use C{None} when C{ans.benchmark} is already
+        unique, e.g. file-based problems).
+    @type simulation: bool
+    @param simulation: forwarded to L{run_workload}; set False to load cached .ans files.
+    @rtype: list[Ans]
+    @return: the Ans for every benchmark, in input order.
+    """
+    ans_list: list[Ans] = []
+    for overrides, label in benchmarks:
+        with (TOP / config_file).open() as f:
+            config = yaml.safe_load(f)
+        config.update(overrides)
+        with (TOP / config_file).open("w") as f:
+            yaml.safe_dump(config, f)
+        ans = run_workload(
+            problem_type=problem_type, solver_config=solver_config, config_file=config_file,
+            settings=settings, benchmark_label=label, simulation=simulation,
+        )
+        ans_list.append(ans)
+
+    stem = problem_type.lower()
+    plots_dir = TOP / f"ising/outputs/{problem_type}/plots"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    summarize_workload(
+        output_file=plots_dir / f"{stem}_results_{difficulty}_{solver_config.tag}.out",
+        problem_type=problem_label,
+        config_path=config_file,
+        ans_list=ans_list,
+    )
+    df = ans_to_metric_df({"all": ans_list}, label_name="bucket", problem=problem_type)
+    box_plot_metric(
+        df,
+        x="benchmark",
+        problem=problem_type,
+        title=f"{problem_label} - {difficulty} difficulty, {solver_config.tag} solver",
+        save_path=plots_dir / f"{stem}_boxplot_{difficulty}_{solver_config.tag}.png",
+    )
+    return ans_list

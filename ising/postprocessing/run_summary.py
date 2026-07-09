@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 import numpy as np
 
-from ising.utils.flow import compute_ttt, approximation_to_best_found
+from ising.utils.flow import compute_ttt, relative_to_best_found, approximation_to_best_found
 from ising.utils.problem_difficulty import compute_ruggedness
 from ising.stages.simulation_stage import Ans
 
@@ -50,7 +50,7 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             for solver in solvers
         ]
     )
-    ruggednes_prob = compute_ruggedness(ans.ising_model, ans.ising_model.num_variables*10)
+    ruggednes_prob = compute_ruggedness(ans.ising_model, ans.ising_model.num_variables*1000)
     if problem_type == "MIMO":
         logging.info("BER: %s", ans.BER)
         if not ans.config.dummy_creator:
@@ -88,9 +88,13 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             solver: compute_ttt(ising_energies[solver], mean_computation_time[solver], best_found, ans.config.nb_runs)
             for solver in solvers
         }
+        relative_energy = {
+            solver: relative_to_best_found(np.array(ising_energy_avg[solver]), best_found) for solver in solvers
+        }
         approximation = {
             solver: approximation_to_best_found(np.array(ising_energy_avg[solver]), best_found) for solver in solvers
         }
+        rel_str = " ".join([f"{relative_energy[solver]:.2f}" for solver in solvers])
         approx_str = " ".join([f"{approximation[solver]:.2f}%" for solver in solvers])
         tts_str = " ".join([f"{tts[solver]:.4e}s" for solver in solvers])
         with Path.open(output_file, "a") as f:
@@ -111,6 +115,7 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             f.write(f"TTT 0.9| {tts_str}\n")
             f.write(f"operation count| {operation_str}\n")
             f.write(f"operation count / it| {operation_it_str}\n")
+            f.write(f"Relative error| {rel_str}\n")
             f.write(f"Approximation value| {approx_str}\n")
             f.write("\n")
 

@@ -1,8 +1,4 @@
-from ising.workloads.run_workload import run_workload, SolverConfig
-from ising.stages import TOP
-from ising.postprocessing.run_summary import summarize_workload
-from ising.postprocessing.summarize_energies import ans_to_metric_df, box_plot_metric
-import yaml
+from ising.workloads.run_workload import workload_api, SolverConfig
 
 """
 Pick which Galena solver features to enable via SolverConfig:
@@ -54,27 +50,11 @@ elif difficulty == "difficult":
 else:
     raise ValueError("Invalid difficulty level. Options are 'easy', 'medium', or 'difficult'.")
 
-ans_list = []
-for problem in problems:
-    with (TOP / config_file).open("r") as f:
-        config = yaml.safe_load(f)
-    config["benchmark"] = top_benchmark + problem
-    with (TOP / config_file).open("w") as f:
-        yaml.safe_dump(config, f)
-    ans = run_workload(problem_type="Biqmac", solver_config=solver_config, config_file=config_file)
-    ans_list.append(ans)
-summarize_workload(
-    output_file=TOP / f"ising/workloads/biqmac_results_{difficulty}_{solver_config.tag}.out",
+workload_api(
     problem_type="Biqmac",
-    config_path=config_file,
-    ans_list=ans_list,
-)
-
-df = ans_to_metric_df({"all": ans_list}, label_name="bucket", problem="Biqmac")
-box_plot_metric(
-    df,
-    x="benchmark",
-    problem="Biqmac",
-    title=f"Biqmac - {difficulty} difficulty, {solver_config.tag} solver",
-    save_path=TOP / f"ising/workloads/biqmac_boxplot_{difficulty}_{solver_config.tag}.png",
+    problem_label="Biqmac",
+    solver_config=solver_config,
+    config_file=config_file,
+    difficulty=difficulty,
+    benchmarks=[({"benchmark": top_benchmark + p}, None) for p in problems],
 )

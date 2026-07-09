@@ -28,9 +28,12 @@ class QuantizationStage(Stage):
             self.visualization = self.config.visualization
         else:
             self.visualization = False
+        self.original_quantization = self.config.quantization_precision
 
     def run(self) -> Any:
         """! Quantize the J of the Ising model."""
+
+        # Get original integer precision of J and h
         original_int_j_precision, j_is_unsigned = self.calc_original_precision(self.ising_model.J)
         original_int_h_precision, h_is_unsigned = self.calc_original_precision(self.ising_model.h)
         LOGGER.info(
@@ -38,63 +41,71 @@ class QuantizationStage(Stage):
         )
         LOGGER.info(f"J is unsigned: {j_is_unsigned}, h is unsigned: {h_is_unsigned}")
 
+        # Calculate actual original precision as maximum precision of h and J
         if original_int_h_precision == 0:
             original_precision = original_int_j_precision
         else:
             original_precision = max(original_int_j_precision, original_int_h_precision)
 
         if self.config.quantization:
+            # TODO: nakijken
             if self.config.combine_nodes:
+                # Each node will be split into a number of replica nodes. Some different steps need to be undertaken.
+                # The values will be scaled to their respective integers and the quantization precision is recalculated.
                 LOGGER.info("Combine nodes is enabled, setting scale_to_integer to True.")
                 self.config.scale_to_integer = True
-                quantization_precision = (
-                    int(
-                        np.ceil(
-                            np.log2((2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling**2)
-                        )
-                    )
+                quantization_precision = int(
+                    np.ceil(np.log2((2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling**2))
                     + 1
                 )
+                # Calculate the maximum allowed value to which can be quantized due to slightly smaller range
+                max_quant_valJ = (2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling**2
+                max_quant_valh = (2 ** (self.config.quantization_precision - 1) - 1) * self.config.nodes_scaling
             else:
+                # Combine nodes is not activated
                 quantization_precision = self.config.quantization_precision
+                max_quant_valJ = 2 ** (quantization_precision - 1) - 1
+                max_quant_valh = max_quant_valJ
             scale_to_integer = self.config.scale_to_integer if hasattr(self.config, "scale_to_integer") else False
             original_J = self.ising_model.J
             original_h = self.ising_model.h
-            # calculate the scale factor of h and map h to new range
-            if self.config.h_scale_factor == 1.0:
+
+            # Calculate the scale factor of h and map h to new range
+            if self.config.scale_h and np.max(np.abs(original_h)) != 0:
                 h_scale_factor_real = np.max(np.abs(original_h)) / np.max(np.abs(original_J))
-                h_scale_factor = h_scale_factor_real
-                original_h = original_h / h_scale_factor
-                LOGGER.info(
-                    f"original h scaling factor is {h_scale_factor_real}, rounded scale factor is {h_scale_factor}"
-                )
+                h_scale_factor = int(np.round(h_scale_factor_real))
             else:
-                h_scale_factor_real = -1
-                h_scale_factor = self.config.h_scale_factor
-            quantized_J = self.quantize_matrix(
-                J=original_J,
+                # Don't scale h after quantization
+                h_scale_factor_real = 1
+                h_scale_factor = 1
+            original_h = original_h / h_scale_factor
+            LOGGER.info(f"original h scaling factor is {h_scale_factor_real}, rounded scale factor is {h_scale_factor}")
+
+            # Quantize J and h.
+            quantized_matrix = self.quantize_matrix(
+                matrix=original_J,
                 original_precision=original_int_j_precision,
                 quantization_precision=quantization_precision,
                 scale_to_integer=scale_to_integer,
+                max_quant_val=max_quant_valJ,
             )
-            h_scale = self.config.h_scale_factor if hasattr(self.config, "h_scale_factor") else 1.0
-            max_abs_h = np.max(np.abs(self.ising_model.h))
-            if max_abs_h != 0:
-                j_over_h_ratio = np.max(np.abs(original_J)) / max_abs_h
-                LOGGER.info(
-                    f"J is {j_over_h_ratio:.2f} times larger than h. Scale used is {h_scale}."
+            if np.max(np.abs(original_h)) != 0:
+                quantized_h = self.quantize_matrix(
+                    matrix=original_h,
+                    original_precision=original_int_h_precision,
+                    quantization_precision=quantization_precision,
+                    scale=h_scale_factor,
+                    scale_to_integer=scale_to_integer,
+                    max_quant_val=max_quant_valh,
                 )
-            quantized_h = self.quantize_matrix(
-                J=original_h,
-                original_precision=original_int_h_precision,
-                quantization_precision=quantization_precision,
-                scale=h_scale_factor,
-                scale_to_integer=scale_to_integer,
-            )
+            else:
+                # bias is all zeros, don't need to quantize this.
+                quantized_h = original_h
+            self.config.h_scale_factor = h_scale_factor
             LOGGER.info(f"Quantization is enabled with precision: {quantization_precision}-bit.")
 
             quantized_model = IsingModel(
-                J=np.triu(quantized_J, k=1),
+                J=np.triu(quantized_matrix, k=1),
                 h=quantized_h,
                 c=self.ising_model.c,
             )
@@ -118,7 +129,7 @@ class QuantizationStage(Stage):
             ans.original_int_h_precision = original_int_h_precision
             ans.original_int_precision = original_precision
             if self.config.quantization:
-                ans.h_scale_factor = h_scale_factor_real
+                ans.h_scale_factor = h_scale_factor
             else:
                 ans.h_scale_factor = None
             for solver in ans.config.solvers:
@@ -166,18 +177,20 @@ class QuantizationStage(Stage):
 
         return original_precision, is_unsigned
 
-    @staticmethod
+    # @staticmethod
     def quantize_matrix(
-        J: np.ndarray,
+        self,
+        matrix: np.ndarray,
         original_precision: int,
+        max_quant_val: int,
         quantization_precision: int | float = 2,
         scale: float = 1.0,
         scale_to_integer: bool = False,
     ) -> np.ndarray:
         """! Quantizes a matrix to a given precision.
 
-        @type J: np.ndarray
-        @param J: the input matrix
+        @type matrix: np.ndarray
+        @param matrix: the input matrix
         @type original_precision: int
         @param original_precision: the original precision of the matrix
         @type quantization_precision: int or float
@@ -189,9 +202,8 @@ class QuantizationStage(Stage):
         @rtype: np.ndarray
         @return: a quantized matrix
         """
-        # Scale J first, afterwards scale is applied to quantized values
-        J_min = np.min(J)
-        J_max = np.max(J)
+        J_min = np.min(matrix)
+        J_max = np.max(matrix)
 
         if (J_min >= 0 and J_max >= 0) or (J_min <= 0 and J_max <= 0):
             same_sign = True
@@ -203,10 +215,10 @@ class QuantizationStage(Stage):
             original_precision,
             quantization_precision,
         )
-        # assert quantization_precision <= original_precision, (
-        #     f"Quantization precision {quantization_precision} is larger "
-        #     f"than the original precision {original_precision}."
-        # )
+        assert quantization_precision <= original_precision, (
+            f"Quantization precision {quantization_precision} is larger "
+            f"than the original precision {original_precision}."
+        )
         assert quantization_precision == 1.5 or isinstance(quantization_precision, int)
 
         if quantization_precision == 1.5:
@@ -214,6 +226,7 @@ class QuantizationStage(Stage):
         else:
             ternary_quantization = False
 
+        # Get lower bound of the original range
         if same_sign:
             # If J has only positive or only negative values, we can calculate the precision
             # based on the range from 0 to the maximum value.
@@ -230,59 +243,61 @@ class QuantizationStage(Stage):
             )
             quantization_lower_bound = -max(np.abs(J_min), np.abs(J_max))
 
-        if same_sign:
-            if ternary_quantization:
-                step_num: int = 2
-            else:
-                step_num: int = 2 ** (quantization_precision - 1)
+        # Get the amount of steps that can be taken with current quantization precision.
+        if ternary_quantization:
+            step_num: int = 2
         else:
-            # dismiss the most negative value to balance the pos/neg range of binary representation
-            if ternary_quantization:
-                step_num: int = 2
-            else:
-                step_num: int = (2**quantization_precision) - 1
+            step_num: int = (2**quantization_precision) - 1
+            if not same_sign:
                 step_num -= 1  # dismiss the most negative value
 
-        quantized_J = copy.deepcopy(J.astype(np.float64))
-        step_size = 2 * max(np.abs(J_max), np.abs(J_min)) / int(2**quantization_precision - 1)
+        quantized_matrix = copy.deepcopy(matrix.astype(np.float64))
 
+        # Now calculate the step size based on whether the nodes will be split.
+        if 2 ** (quantization_precision - 1) - 1 > max_quant_val and self.config.combine_nodes:
+            step_size = max(np.abs(J_max), np.abs(J_min)) / max_quant_val
+        else:
+            step_size = 2 * max(np.abs(J_max), np.abs(J_min)) / step_num
+
+        # Add half a step size to the lower bound to minimize the quantization error.
         quantization_lower_bound = quantization_lower_bound + step_size / 2.0
         quantization_upper_bound = np.abs(quantization_lower_bound)
-        nonzero_mask = (J != 0) & (J > quantization_lower_bound) & (J < quantization_upper_bound)
+        nonzero_mask = (matrix != 0) & (matrix > quantization_lower_bound) & (matrix < quantization_upper_bound)
 
-        quantized_J[nonzero_mask] = (
-            np.round((J[nonzero_mask] - quantization_lower_bound) / step_size) * step_size + quantization_lower_bound
+        quantized_matrix[nonzero_mask] = (
+            np.round((matrix[nonzero_mask] - quantization_lower_bound) / step_size) * step_size
+            + quantization_lower_bound
         )
         # Set values close to zero to zero due to round-off
-        quantized_J[nonzero_mask] = np.where(
-            np.isclose(quantized_J[nonzero_mask], 0, atol=1e-3), 0, quantized_J[nonzero_mask]
+        quantized_matrix[nonzero_mask] = np.where(
+            np.isclose(quantized_matrix[nonzero_mask], 0, atol=1e-3), 0, quantized_matrix[nonzero_mask]
         )
 
         # Due to round-off, set values close to max or min value to respective value
-        quantized_J[quantized_J <= quantization_lower_bound] = quantization_lower_bound
-        quantized_J[quantized_J >= quantization_upper_bound] = quantization_upper_bound
+        quantized_matrix[quantized_matrix <= quantization_lower_bound] = quantization_lower_bound
+        quantized_matrix[quantized_matrix >= quantization_upper_bound] = quantization_upper_bound
 
-        quantized_J = quantized_J.astype(np.float32)
+        quantized_matrix = quantized_matrix.astype(np.float32)
 
         if scale_to_integer and step_size != 0:
-            quantized_J = np.round(quantized_J / step_size)
+            quantized_matrix = np.round(quantized_matrix / step_size)
 
-        assert len(np.unique(quantized_J)) <= (step_num + 1), (
-            f"Quantized J matrix has {len(np.unique(quantized_J))} unique values, "
+        assert len(np.unique(quantized_matrix)) <= (step_num + 1), (
+            f"Quantized J matrix has {len(np.unique(quantized_matrix))} unique values, "
             f"which exceeds the limit for "
             f"{quantization_precision}-bit quantization."
         )
-        quantized_J *= scale
+        quantized_matrix *= scale
 
         LOGGER.info(
-            f"Quantization details for {'J matrix' if len(J.shape) == 2 else 'h vector'}: original min value {
+            f"Quantization details for {'J matrix' if len(matrix.shape) == 2 else 'h vector'}: original min value {
                 J_min
-            }, quantized min value {np.min(quantized_J)}, original max value {J_max}, quantized max value {
-                np.max(quantized_J)
+            }, quantized min value {np.min(quantized_matrix)}, original max value {J_max}, quantized max value {
+                np.max(quantized_matrix)
             }, scale factor {scale}"
         )
 
-        return quantized_J
+        return quantized_matrix
 
     @staticmethod
     def plot_ndarray_in_matrix(

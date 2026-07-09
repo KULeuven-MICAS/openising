@@ -31,7 +31,7 @@ class DummyCreatorStage(Stage):
             if self.problem_type == "Maxcut":
                 N = self.config.dummy_size
                 LOGGER.info(f"size: {N}, seed: {seed}")
-                nb_bits = round(self.config.quantization_precision) if hasattr(self.config, "quantization_precision")\
+                nb_bits = round(self.config.dummy_precision) if hasattr(self.config, "dummy_precision")\
                     else 2
                 dummy_dict = self.generate_dummy_maxcut(N, nb_bits, seed)
             elif self.problem_type in ["TSP", "ATSP"]:
@@ -79,6 +79,12 @@ class DummyCreatorStage(Stage):
                 dummy_dict = self.generate_dummy_knapsack(
                     size=N, dns=density, penalty_value=penalty_value, bit_width=bit_width
                 )
+            elif self.problem_type == "Biqmac":
+                N = self.config.dummy_size
+                LOGGER.info(f"size: {N}, seed: {seed}")
+                nb_bits = round(self.config.dummy_precision) if hasattr(self.config, "dummy_precision")\
+                    else 2
+                dummy_dict = self.generate_dummy_maxcut(N, nb_bits, seed)
             else:
                 LOGGER.error(f"Dummy creator for {self.problem_type} is not supported.")
                 raise NotImplementedError(f"Dummy creator for {self.problem_type} is not implemented.")
@@ -94,13 +100,45 @@ class DummyCreatorStage(Stage):
         yield from sub_stage.run()
 
     @staticmethod
-    def generate_dummy_maxcut(N: int, nb_bits: int = 2, seed: int = 0) -> dict:
+    def generate_dummy_biqmac(N: int, dummy_bits: int = 2, seed: int = 0)-> dict:
         """! Generates a random Max Cut Ising model.
 
         @type N: int
         @param N: Number of nodes in the graph.
-        @type nb_bits: int
-        @param nb_bits: number of bits to represent the weights.
+        @type dummy_bits: int
+        @param dummy_bits: number of bits to represent the weights.
+        @type seed: int
+        @param seed: Random seed for reproducibility.
+        @rtype: dict
+        @return: dict containing graph and IsingModel representing the Max Cut problem.
+        """
+        np.random.seed(seed)
+        name = f"DummyBiqMac_N{N}_seed{seed}"
+        J = np.random.choice(np.arange(int(-(2 ** (dummy_bits - 1)-1)), int(2 ** (dummy_bits - 1))), (N, N))
+        J = np.triu(J, k=1)
+        h = np.random.choice(np.arange(int(-(2 ** (dummy_bits - 1)-1)), int(2 ** (dummy_bits - 1))), (N, ))
+
+        graph = nx.Graph(name=name)
+        graph.add_nodes_from([(i+1, h[i]) for i in range(N)])
+        for i in range(N):
+            for j in range(i+1, N):
+                graph.add_edge(i+1, j+1, weight=J[i,j])
+        ising_model = IsingModel(J, h)
+
+        dummy_dict:dict = {"ising_model": ising_model,
+            "graph": graph,
+            "N": N,
+            "seed": seed,}
+        return dummy_dict
+
+    @staticmethod
+    def generate_dummy_maxcut(N: int, dummy_bits: int = 2, seed: int = 0) -> dict:
+        """! Generates a random Max Cut Ising model.
+
+        @type N: int
+        @param N: Number of nodes in the graph.
+        @type dummy_bits: int
+        @param dummy_bits: number of bits to represent the weights.
         @type seed: int
         @param seed: Random seed for reproducibility.
         @rtype: dict
@@ -109,7 +147,7 @@ class DummyCreatorStage(Stage):
 
         np.random.seed(seed)
         name = f"DummyMaxCut_N{N}_seed{seed}"
-        J = np.random.choice(np.arange(int(-(2 ** (nb_bits - 1)-1)), int(2 ** (nb_bits - 1))), (N, N))
+        J = np.random.choice(np.arange(int(-(2 ** (dummy_bits - 1)-1)), int(2 ** (dummy_bits - 1))), (N, N))
 
         # Map the J matrix to a graph
         graph = nx.Graph(name=name)

@@ -92,6 +92,7 @@ c0: 0.0
 weight_constant: 0
 
 # Parameters for MIMO
+use_ZF: False
 SNR: 10
 nb_trials: 100
 mimo_seed: 12
@@ -104,6 +105,7 @@ is_hamming_encoding: False
 # Parameters for quantization stage
 quantization: False
 quantization_precision: 1.5
+scale_h: False
 scale_to_integer: False
 
 # Parameters for npmos stage
@@ -120,6 +122,7 @@ mismatch_std: 0.0
 # Parameters for combine nodes stage
 combine_nodes: False
 nodes_scaling: 2
+replica_strength: 0
 
 #################################
 ## Dummy creator hyperparameters
@@ -134,6 +137,9 @@ dummy_spacing: 1.0
 dummy_user_num: 16
 dummy_ant_num: 64
 dummy_case_num: 10
+
+# Parameters for dummy Biqmac/Maxcut
+dummy_precision: 6
 
 # Parameters for dummy MaxCut/TSP/ATSP/Knapsack
 dummy_size: 20

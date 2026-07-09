@@ -30,12 +30,16 @@ class CombineNodesStage(Stage):
             self.config.nodes_scaling = nodes_scaling
             original_J = self.ising_model.J
             original_h = self.ising_model.h
-            new_J, new_h = self.split_nodes(original_J, original_h, nodes_scaling)
+            new_J, new_h, replica_strength = self.split_nodes(original_J, original_h, nodes_scaling)
 
             split_model = IsingModel(
                 J=np.triu(new_J, k=1),
                 h=new_h,
-                c=self.ising_model.c,
+                c=self.ising_model.c + 2*replica_strength*(new_h.shape[0] - self.ising_model.num_variables),
+            )
+            LOGGER.info(
+                f"Split model has {split_model.num_variables} variables, original model has \
+{self.ising_model.num_variables} variables"
             )
         else:
             LOGGER.debug("Split Nodes is disabled.")
@@ -77,6 +81,9 @@ class CombineNodesStage(Stage):
         new_J = np.zeros((new_nb_nodes, new_nb_nodes))
         new_h = np.zeros(new_nb_nodes)
 
+        h /= self.config.h_scale_factor
+        h = np.round(h)
+        max_val = 2**(self.config.quantization_precision - 1) - 1
         for i in range(nb_nodes):
             for j in range(i + 1, nb_nodes):
                 # Distribute J[i,j] across an (nodes_scaling x nodes_scaling) block so
@@ -89,7 +96,6 @@ class CombineNodesStage(Stage):
                 # distributing extra units to off-diagonal symmetric pairs first.
                 sign = np.sign(J[i, j])
                 abs_total = np.abs(J[i, j])
-
                 base = abs_total // nodes_scaling**2
                 remainder = abs_total - base * nodes_scaling**2
 
@@ -110,7 +116,7 @@ class CombineNodesStage(Stage):
                 if remainder == 1:
                     # place on first diagonal (deterministic)
                     block[0, 0] += 1
-
+                np.clip(block, -max_val, max_val, block)
                 # Assign symmetric blocks in the big matrix
                 new_J[
                     nodes_scaling * i : nodes_scaling * i + nodes_scaling,
@@ -126,27 +132,29 @@ class CombineNodesStage(Stage):
             abs_total_h = np.abs(h[i])
             base_h = abs_total_h // nodes_scaling
             remainder_h = abs_total_h % nodes_scaling
-            new_h[nodes_scaling * i : nodes_scaling * i + nodes_scaling] = (
-                np.ones((nodes_scaling,)) * base_h
-            )
+            new_h[nodes_scaling * i : nodes_scaling * i + nodes_scaling] = np.ones((nodes_scaling,)) * base_h
             for m in range(nodes_scaling):
                 if remainder_h > 0:
-                    new_h[nodes_scaling*i + m] += 1
+                    new_h[nodes_scaling * i + m] += 1
                     remainder_h -= 1
                 else:
                     break
             new_h[nodes_scaling * i : nodes_scaling * i + nodes_scaling] *= sign_h
-
+        np.clip(new_h, -max_val, max_val, new_h)
+        new_h *= self.config.h_scale_factor
         # Set the diagonal elements to the maximum element available
-        max_J = np.max(np.abs(new_J))
-        diag_part = np.triu(np.ones((nodes_scaling, nodes_scaling)) * (max_J), 1)
+        if self.config.replica_strength == 0:
+            replica_strength = max_val
+        else:
+            replica_strength = self.config.replica_strength
+        diag_part = np.triu(np.ones((nodes_scaling, nodes_scaling)) * replica_strength, 1)
         for i in range(nb_nodes):
             new_J[
                 nodes_scaling * i : nodes_scaling * i + nodes_scaling,
                 nodes_scaling * i : nodes_scaling * i + nodes_scaling,
             ] = diag_part
 
-        return new_J, new_h
+        return new_J, new_h, replica_strength
 
     def translate_state(self, state_split: np.ndarray, nodes_scaling: int) -> np.ndarray:
         """Translates the states from the split version to the original version. Each spin takes
@@ -165,5 +173,8 @@ class CombineNodesStage(Stage):
                 result[i] = state_split[nodes_scaling * i]
         else:
             for i in range(len(result)):
-                result[i] = np.bincount(state_split[nodes_scaling * i : nodes_scaling * i + nodes_scaling].argmax())
+                spins, counts = np.unique(
+                    state_split[nodes_scaling * i : nodes_scaling * i + nodes_scaling], return_counts=True
+                )
+                result[i] = spins[np.argmax(counts)]
         return result
