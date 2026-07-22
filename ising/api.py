@@ -48,7 +48,7 @@ def get_hamiltonian_energy(
         parser_stage = QKPParserStage
     elif problem_type == "Biqmac":
         parser_stage = BiqMacParserStage
-    if problem_type == "MPPI":
+    elif problem_type == "MPPI":
         parser_stage = MPPIParserStage
     else:
         logging.error(f"Parser for {problem_type} is not implemented.")
