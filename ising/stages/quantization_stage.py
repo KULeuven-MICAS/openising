@@ -48,7 +48,6 @@ class QuantizationStage(Stage):
             original_precision = max(original_int_j_precision, original_int_h_precision)
 
         if self.config.quantization:
-            # TODO: nakijken
             if self.config.combine_nodes:
                 # Each node will be split into a number of replica nodes. Some different steps need to be undertaken.
                 # The values will be scaled to their respective integers and the quantization precision is recalculated.
