@@ -35,7 +35,7 @@ if simulation:
     )
 
     # Output summary file
-    output_file = base_path / f"simulation_summary_{ans.benchmark}.pkl"
+    output_file = base_path / f"simulation_summary_{ans.benchmark}.txt"
     summarize_runs(output_file, ans, problem_type, config_path)
 
 

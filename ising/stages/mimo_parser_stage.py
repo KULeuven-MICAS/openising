@@ -103,6 +103,7 @@ class MIMOParserStage(Stage):
             ans_all.BER[solver] = np.mean(ans_all.ber_of_users[solver])
         ans_all.operation_count = ans.operation_count
         ans_all.SNR = snr
+        ans_all.x_tilde = x_tilde
         ans_all.benchmark = ans.benchmark
         ans_all.config = self.config
         LOGGER.info("BER/case: %s, BER/user: %s, mean: %s", ans_all.ber_of_trials, ans_all.ber_of_users, ans_all.BER)

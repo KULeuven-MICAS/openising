@@ -1,0 +1,280 @@
+
+=================================================
+======= Simulation point 0 =======
+
+=====================
+results of running G1 with config_pareto_curve_Maxcut_point0.yaml:
+logfile discriminator: None
+reference energy -11624.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -11555.0000 -11458.0000 -10494.0000 -10155.0000 -10935.0000 -11468.0000 -11443.0000
+energy min| -11623.0000 -11611.0000 -10707.0000 -10430.0000 -11172.0000 -11569.0000 -11570.0000
+energy avg| -11593.3496 -11535.3496 -10600.4902 -10314.2500 -11034.1699 -11517.2598 -11506.3799
+computation time| 3.9455e+00s 3.1607e+00s 3.3416e+00s 4.4826e+00s 2.6537e+00s 1.1000e-07s 0.0000e+00s
+TTT 0.9| 3.9455e+00s 3.1607e+00s 3.3416e+00s -infs 2.6537e+00s 1.1000e-07s 0.0000e+00s
+operation count| 643603000 643602500 1284491200 2800500 128680200.0 6412000000 2859503260535
+operation count / it| 1287206.0 1287205.0 1284491.2 5601.0 1286802.0 1282400.0 57190065.2107
+Relative error| 0.00 0.01 0.09 0.11 0.05 0.01 0.01
+Approximation value| 99.74% 99.24% 91.19% 88.73% 94.93% 99.08% 98.99%
+
+
+=====================
+results of running G6 with config_pareto_curve_Maxcut_point0.yaml:
+logfile discriminator: None
+reference energy -2175.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -2099.0000 -2091.0000 -1002.0000 -703.0000 -1447.0000 -2020.0000 -1994.0000
+energy min| -2174.0000 -2178.0000 -1244.0000 -992.0000 -1675.0000 -2143.0000 -2140.0000
+energy avg| -2150.1201 -2136.9600 -1111.4000 -833.2800 -1578.5000 -2081.6101 -2063.5701
+computation time| 1.9644e-02s 2.2701e-02s 1.6223e-02s 5.2389e-02s 8.0573e-02s 1.1000e-07s 0.0000e+00s
+TTT 0.9| 1.9644e-02s 2.2701e-02s -infs -infs -infs 1.1000e-07s 0.0000e+00s
+operation count| 643603000 643602500 1284491200 2800500 128680200.0 6412000000 2901641642135
+operation count / it| 1287206.0 1287205.0 1284491.2 5601.0 1286802.0 1282400.0 58032832.8427
+Relative error| 0.01 0.02 0.49 0.62 0.27 0.04 0.05
+Approximation value| 98.86% 98.25% 51.10% 38.31% 72.57% 95.71% 94.88%
+
+
+=====================
+results of running G14 with config_pareto_curve_Maxcut_point0.yaml:
+logfile discriminator: None
+reference energy -3064.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -3014.0000 -3026.0000 -2661.0000 -2607.0000 -2697.0000 -2965.0000 -2988.0000
+energy min| -3040.0000 -3052.0000 -2782.0000 -2720.0000 -2794.0000 -3010.0000 -3025.0000
+energy avg| -3027.8401 -3039.2500 -2728.5500 -2664.0000 -2737.8201 -2987.5300 -3005.4700
+computation time| 1.9758e-02s 2.2512e-02s 1.4314e-02s 5.2788e-02s 8.3806e-02s 1.1000e-07s 0.0000e+00s
+TTT 0.9| 1.9758e-02s 2.2512e-02s 1.6148e+00s -infs 2.0713e+00s 1.1000e-07s 0.0000e+00s
+operation count| 643603000 643602500 1284491200 2800500 128680200.0 6412000000 3206064166135
+operation count / it| 1287206.0 1287205.0 1284491.2 5601.0 1286802.0 1282400.0 64121283.3227
+Relative error| 0.01 0.01 0.11 0.13 0.11 0.02 0.02
+Approximation value| 98.82% 99.19% 89.05% 86.95% 89.35% 97.50% 98.09%
+
+=================================================
+======= Simulation point 1 =======
+
+=====================
+results of running G1 with config_pareto_curve_Maxcut_point1.yaml:
+logfile discriminator: None
+reference energy -11624.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -11550.0000 -11497.0000 -11144.0000 -10553.0000 -11245.0000 -11460.0000 -11457.0000
+energy min| -11623.0000 -11595.0000 -11295.0000 -10788.0000 -11436.0000 -11615.0000 -11586.0000
+energy avg| -11599.5400 -11543.7900 -11221.8496 -10651.9199 -11343.4697 -11536.3496 -11518.2598
+computation time| 7.3287e+00s 6.9291e+00s 1.6006e+01s 9.4998e+00s 1.4021e+01s 2.2000e-07s 0.0000e+00s
+TTT 0.9| 7.3287e+00s 6.9291e+00s 1.6006e+01s 9.4998e+00s 1.4021e+01s 2.2000e-07s 0.0000e+00s
+operation count| 1287206000 1287205000 6417323200 5601000 643401000.0 12824000000 4369025300261
+operation count / it| 1287206.0 1287205.0 1283464.64 5601.0 1286802.0 1282400.0 87380506.00522
+Relative error| 0.00 0.01 0.03 0.08 0.02 0.01 0.01
+Approximation value| 99.79% 99.31% 96.54% 91.64% 97.59% 99.25% 99.09%
+
+
+=====================
+results of running G6 with config_pareto_curve_Maxcut_point1.yaml:
+logfile discriminator: None
+reference energy -2175.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -2104.0000 -2103.0000 -1671.0000 -1055.0000 -1787.0000 -2039.0000 -2017.0000
+energy min| -2174.0000 -2178.0000 -1908.0000 -1299.0000 -1984.0000 -2153.0000 -2146.0000
+energy avg| -2153.8401 -2150.0300 -1768.8800 -1170.0200 -1906.5400 -2098.8000 -2079.0000
+computation time| 3.8759e-02s 4.5230e-02s 8.1081e-02s 1.0397e-01s 4.0365e-01s 2.2000e-07s 0.0000e+00s
+TTT 0.9| 3.8759e-02s 4.5230e-02s -infs -infs 2.5615e+01s 2.2000e-07s 0.0000e+00s
+operation count| 1287206000 1287205000 6417323200 5601000 643401000.0 12824000000 4442837679461
+operation count / it| 1287206.0 1287205.0 1283464.64 5601.0 1286802.0 1282400.0 88856753.58922
+Relative error| 0.01 0.01 0.19 0.46 0.12 0.04 0.04
+Approximation value| 99.03% 98.85% 81.33% 53.79% 87.66% 96.50% 95.59%
+
+
+=====================
+results of running G14 with config_pareto_curve_Maxcut_point1.yaml:
+logfile discriminator: None
+reference energy -3064.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -3014.0000 -3028.0000 -2902.0000 -2738.0000 -2851.0000 -2973.0000 -2991.0000
+energy min| -3044.0000 -3057.0000 -2950.0000 -2816.0000 -2908.0000 -3013.0000 -3044.0000
+energy avg| -3028.1699 -3044.0200 -2925.1101 -2776.3201 -2879.8799 -2991.7900 -3012.1599
+computation time| 3.9443e-02s 4.5409e-02s 7.2515e-02s 1.0644e-01s 4.3311e-01s 2.2000e-07s 0.0000e+00s
+TTT 0.9| 3.9443e-02s 4.5409e-02s 7.2515e-02s 2.2207e-01s 4.3311e-01s 2.2000e-07s 0.0000e+00s
+operation count| 1287206000 1287205000 6417323200 5601000 643401000.0 12824000000 4809096249061
+operation count / it| 1287206.0 1287205.0 1283464.64 5601.0 1286802.0 1282400.0 96181924.98122
+Relative error| 0.01 0.01 0.05 0.09 0.06 0.02 0.02
+Approximation value| 98.83% 99.35% 95.47% 90.61% 93.99% 97.64% 98.31%
+
+=================================================
+======= Simulation point 2 =======
+
+=====================
+results of running G1 with config_pareto_curve_Maxcut_point2.yaml:
+logfile discriminator: None
+reference energy -11624.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -11569.0000 -11537.0000 -11294.0000 -11183.0000 -11381.0000 -11507.0000 -11478.0000
+energy min| -11623.0000 -11624.0000 -11443.0000 -11315.0000 -11507.0000 -11615.0000 -11593.0000
+energy avg| -11602.9697 -11576.5801 -11370.1797 -11248.7305 -11432.7002 -11567.0195 -11529.2002
+computation time| 1.9225e-01s 2.2337e-01s 1.4331e-01s 5.1457e-01s 8.0966e-01s 1.1000e-06s 0.0000e+00s
+TTT 0.9| 1.9225e-01s 2.2337e-01s 1.4331e-01s 5.1457e-01s 8.0966e-01s 1.1000e-06s 0.0000e+00s
+operation count| 6436030000 6436025000 12833363200 28005000 1286802000.0 64120000000 5436678466393
+operation count / it| 1287206.0 1287205.0 1283336.32 5601.0 1286802.0 1282400.0 108733569.32786
+Relative error| 0.00 0.00 0.02 0.03 0.02 0.00 0.01
+Approximation value| 99.82% 99.59% 97.82% 96.77% 98.35% 99.51% 99.18%
+
+
+=====================
+results of running G6 with config_pareto_curve_Maxcut_point2.yaml:
+logfile discriminator: None
+reference energy -2175.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -2105.0000 -2138.0000 -1815.0000 -1651.0000 -1893.0000 -2075.0000 -1998.0000
+energy min| -2174.0000 -2178.0000 -2004.0000 -1886.0000 -2066.0000 -2158.0000 -2171.0000
+energy avg| -2159.0000 -2169.1201 -1907.0000 -1781.8300 -1986.9000 -2126.2400 -2083.1101
+computation time| 1.9274e-01s 2.2447e-01s 1.6134e-01s 5.1939e-01s 7.9107e-01s 1.1000e-06s 0.0000e+00s
+TTT 0.9| 1.9274e-01s 2.2447e-01s 5.3354e+00s -infs 2.2635e+00s 1.1000e-06s 0.0000e+00s
+operation count| 6436030000 6436025000 12833363200 28005000 1286802000.0 64120000000 5602091395193
+operation count / it| 1287206.0 1287205.0 1283336.32 5601.0 1286802.0 1282400.0 112041827.90386
+Relative error| 0.01 0.00 0.12 0.18 0.09 0.02 0.04
+Approximation value| 99.26% 99.73% 87.68% 81.92% 91.35% 97.76% 95.78%
+
+
+=====================
+results of running G14 with config_pareto_curve_Maxcut_point2.yaml:
+logfile discriminator: None
+reference energy -3064.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -3012.0000 -3040.0000 -2950.0000 -2909.0000 -2893.0000 -2982.0000 -2989.0000
+energy min| -3044.0000 -3059.0000 -2997.0000 -2971.0000 -2951.0000 -3003.0000 -3035.0000
+energy avg| -3028.3301 -3051.3301 -2967.1399 -2948.3401 -2922.4099 -2999.8000 -3015.2000
+computation time| 1.9032e-01s 2.1951e-01s 1.5991e-01s 5.1820e-01s 8.1547e-01s 1.1000e-06s 0.0000e+00s
+TTT 0.9| 1.9032e-01s 2.1951e-01s 1.5991e-01s 5.1820e-01s 8.1547e-01s 1.1000e-06s 0.0000e+00s
+operation count| 6436030000 6436025000 12833363200 28005000 1286802000.0 64120000000 6412128331993
+operation count / it| 1287206.0 1287205.0 1283336.32 5601.0 1286802.0 1282400.0 128242566.63986
+Relative error| 0.01 0.00 0.03 0.04 0.05 0.02 0.02
+Approximation value| 98.84% 99.59% 96.84% 96.23% 95.38% 97.90% 98.41%
+
+=================================================
+======= Simulation point 3 =======
+
+=====================
+results of running G1 with config_pareto_curve_Maxcut_point3.yaml:
+logfile discriminator: None
+reference energy -11624.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -11577.0000 -11543.0000 -11429.0000 -11288.0000 -11497.0000 -11534.0000 -11454.0000
+energy min| -11623.0000 -11624.0000 -11559.0000 -11435.0000 -11607.0000 -11618.0000 -11609.0000
+energy avg| -11603.7998 -11581.8398 -11488.8799 -11356.0000 -11539.8096 -11573.9102 -11531.3096
+computation time| 3.7777e-01s 4.3576e-01s 8.0698e-01s 1.0186e+00s 4.0385e+00s 2.2000e-06s 0.0000e+00s
+TTT 0.9| 3.7777e-01s 4.3576e-01s 8.0698e-01s 1.0186e+00s 4.0385e+00s 2.2000e-06s 0.0000e+00s
+operation count| 12872060000 12872050000 64161683200 56010000 6434010000.0 128240000000 7559367242125
+operation count / it| 1287206.0 1287205.0 1283233.664 5601.0 1286802.0 1282400.0 151187344.8425
+Relative error| 0.00 0.00 0.01 0.02 0.01 0.00 0.01
+Approximation value| 99.83% 99.64% 98.84% 97.69% 99.28% 99.57% 99.20%
+
+
+=====================
+results of running G6 with config_pareto_curve_Maxcut_point3.yaml:
+logfile discriminator: None
+reference energy -2175.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -2115.0000 -2144.0000 -1973.0000 -1790.0000 -2042.0000 -2089.0000 -2021.0000
+energy min| -2174.0000 -2178.0000 -2118.0000 -1989.0000 -2155.0000 -2148.0000 -2158.0000
+energy avg| -2159.4199 -2174.0000 -2040.8700 -1901.2800 -2107.3601 -2130.6699 -2089.1001
+computation time| 3.7872e-01s 4.4056e-01s 7.1360e-01s 1.0213e+00s 3.9251e+00s 2.2000e-06s 0.0000e+00s
+TTT 0.9| 3.7872e-01s 4.4056e-01s 7.1360e-01s 7.6010e+01s 3.9251e+00s 2.2000e-06s 0.0000e+00s
+operation count| 12872060000 12872050000 64161683200 56010000 6434010000.0 128240000000 7349929521325
+operation count / it| 1287206.0 1287205.0 1283233.664 5601.0 1286802.0 1282400.0 146998590.4265
+Relative error| 0.01 0.00 0.06 0.13 0.03 0.02 0.04
+Approximation value| 99.28% 99.95% 93.83% 87.42% 96.89% 97.96% 96.05%
+
+
+=====================
+results of running G14 with config_pareto_curve_Maxcut_point3.yaml:
+logfile discriminator: None
+reference energy -3064.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -3014.0000 -3042.0000 -2999.0000 -2951.0000 -2961.0000 -3002.0000 -3002.0000
+energy min| -3042.0000 -3061.0000 -3028.0000 -2999.0000 -3011.0000 -3005.0000 -3040.0000
+energy avg| -3029.0601 -3053.3000 -3013.3101 -2976.5200 -2990.0601 -3004.7600 -3018.8501
+computation time| 3.9617e-01s 4.6156e-01s 8.3428e-01s 1.1107e+00s 4.6663e+00s 2.2000e-06s 0.0000e+00s
+TTT 0.9| 3.9617e-01s 4.6156e-01s 8.3428e-01s 1.1107e+00s 4.6663e+00s 2.2000e-06s 0.0000e+00s
+operation count| 12872060000 12872050000 64161683200 56010000 6434010000.0 128240000000 8015160414925
+operation count / it| 1287206.0 1287205.0 1283233.664 5601.0 1286802.0 1282400.0 160303208.2985
+Relative error| 0.01 0.00 0.02 0.03 0.02 0.02 0.01
+Approximation value| 98.86% 99.65% 98.35% 97.14% 97.59% 98.07% 98.53%
+
+=================================================
+======= Simulation point 4 =======
+
+=====================
+results of running G1 with config_pareto_curve_Maxcut_point4.yaml:
+logfile discriminator: None
+reference energy -11624.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -11569.0000 -11563.0000 -11478.0000 -11412.0000 -11525.0000 -11547.0000 -11458.0000
+energy min| -11623.0000 -11624.0000 -11575.0000 -11551.0000 -11612.0000 -11614.0000 -11600.0000
+energy avg| -11604.2100 -11589.4805 -11522.6504 -11487.1904 -11562.6104 -11577.0801 -11536.3799
+computation time| 5.7919e-01s 6.6838e-01s 1.4541e+00s 5.1641e+00s 8.0761e+00s 1.1000e-05s 0.0000e+00s
+TTT 0.9| 5.7919e-01s 6.6838e-01s 1.4541e+00s 5.1641e+00s 8.0761e+00s 1.1000e-05s 0.0000e+00s
+operation count| 19308090000 19308075000 128322083200 280050000 12868020000.0 641200000000 9161270813055
+operation count / it| 1287206.0 1287205.0 1283220.832 5601.0 1286802.0 1282400.0 183225416.2611
+Relative error| 0.00 0.00 0.01 0.01 0.01 0.00 0.01
+Approximation value| 99.83% 99.70% 99.13% 98.82% 99.47% 99.60% 99.25%
+
+
+=====================
+results of running G6 with config_pareto_curve_Maxcut_point4.yaml:
+logfile discriminator: None
+reference energy -2175.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -2115.0000 -2144.0000 -2018.0000 -1957.0000 -2082.0000 -2131.0000 -2007.0000
+energy min| -2174.0000 -2178.0000 -2160.0000 -2151.0000 -2172.0000 -2141.0000 -2161.0000
+energy avg| -2160.1599 -2174.3201 -2080.3701 -2042.3199 -2133.8101 -2139.7800 -2091.1799
+computation time| 5.8165e-01s 6.7899e-01s 1.4519e+00s 5.2290e+00s 8.7195e+00s 1.1000e-05s 0.0000e+00s
+TTT 0.9| 5.8165e-01s 6.7899e-01s 1.4519e+00s 5.2290e+00s 8.7195e+00s 1.1000e-05s 0.0000e+00s
+operation count| 19308090000 19308075000 128322083200 280050000 12868020000.0 641200000000 8250040974655
+operation count / it| 1287206.0 1287205.0 1283220.832 5601.0 1286802.0 1282400.0 165000819.4931
+Relative error| 0.01 0.00 0.04 0.06 0.02 0.02 0.04
+Approximation value| 99.32% 99.97% 95.65% 93.90% 98.11% 98.38% 96.15%
+
+
+=====================
+results of running G14 with config_pareto_curve_Maxcut_point4.yaml:
+logfile discriminator: None
+reference energy -3064.0
+=====================
+Simulation results:
+solver| bSB dSB SA inSituSA SCA BRIM Multiplicative
+energy max| -3014.0000 -3044.0000 -3003.0000 -2969.0000 -2984.0000 -2994.0000 -2998.0000
+energy min| -3041.0000 -3062.0000 -3041.0000 -3029.0000 -3027.0000 -2996.0000 -3038.0000
+energy avg| -3028.4399 -3054.2500 -3023.5200 -3008.8201 -3005.3000 -2994.5200 -3019.6001
+computation time| 5.7995e-01s 6.7713e-01s 1.6594e+00s 5.2178e+00s 8.6393e+00s 1.1000e-05s 0.0000e+00s
+TTT 0.9| 5.7995e-01s 6.7713e-01s 1.6594e+00s 5.2178e+00s 8.6393e+00s 1.1000e-05s 0.0000e+00s
+operation count| 19308090000 19308075000 128322083200 280050000 12868020000.0 641200000000 9618192497855
+operation count / it| 1287206.0 1287205.0 1283220.832 5601.0 1286802.0 1282400.0 192363849.9571
+Relative error| 0.01 0.00 0.01 0.02 0.02 0.02 0.01
+Approximation value| 98.84% 99.68% 98.68% 98.20% 98.08% 97.73% 98.55%

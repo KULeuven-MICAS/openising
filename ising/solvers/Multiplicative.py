@@ -243,6 +243,9 @@ class Multiplicative(SolverBase):
         @return: the final state, final energy, total computation time, number of operations, and number of iterations\
               until convergence.
         """
+        if seed == 0:
+            seed = int(time.time())
+        np.random.seed(seed)
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
             new_model:IsingModel = model.transform_to_no_h()
@@ -318,7 +321,6 @@ class Multiplicative(SolverBase):
         )
 
         # make sure the correct random seed is used
-        np.random.seed(seed)
         self.generator = np.random.choice
 
         # Set up the bias node and add noise to the initial voltages

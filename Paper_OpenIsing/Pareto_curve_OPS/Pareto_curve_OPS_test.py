@@ -101,7 +101,7 @@ markers = ["s", "d", "^", "o", "p", "v"]
 fig_op, axes = plt.subplots(1, len(problem_types), figsize=(28, 5))
 labels = dict()
 for problem_type, ax in zip(problem_types, axes):
-    output_file = base_path / f"simulation_summary_{problem_type}.pkl"
+    output_file = base_path / f"simulation_summary_{problem_type}.txt"
     mean_en = {solver: [] for solver in solvers}
     std_en = {solver: [] for solver in solvers}
     ops = {solver: [] for solver in solvers}
