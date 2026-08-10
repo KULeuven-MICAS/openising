@@ -261,6 +261,7 @@ class QuantizationStage(Stage):
         # Add half a step size to the lower bound to minimize the quantization error.
         quantization_lower_bound = quantization_lower_bound + step_size / 2.0
         quantization_upper_bound = np.abs(quantization_lower_bound)
+        step_size = quantization_upper_bound/step_num*2
         nonzero_mask = (matrix != 0) & (matrix > quantization_lower_bound) & (matrix < quantization_upper_bound)
 
         quantized_matrix[nonzero_mask] = (
