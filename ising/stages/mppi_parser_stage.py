@@ -51,7 +51,7 @@ class MPPIParserStage(Stage):
         self.benchmark = Namespace(**benchmark)
 
     def parse_benchmark_trajectory(self):
-        scene = generate_random_scene(seed=self.benchmark.seed)
+        scene = generate_random_scene(nb_control_points=self.benchmark.nb_control_points, seed=self.benchmark.seed)
         env, control_pts, bc_headings = create_environment(scene)
         x_ref = create_reference_trajectory(env, control_pts, bc_headings,
                                             v=self.benchmark.velocity, dt=self.benchmark.delta_t)

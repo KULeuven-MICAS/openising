@@ -73,6 +73,8 @@ class QuantizationStage(Stage):
             if self.config.scale_h and np.max(np.abs(original_h)) != 0:
                 h_scale_factor_real = np.max(np.abs(original_h)) / np.max(np.abs(original_J))
                 h_scale_factor = int(np.round(h_scale_factor_real))
+                if h_scale_factor == 0:
+                    h_scale_factor = 1
             else:
                 # Don't scale h after quantization
                 h_scale_factor_real = 1
