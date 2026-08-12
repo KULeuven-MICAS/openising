@@ -361,7 +361,7 @@ def create_reference_trajectory(env, control_pts, bc_headings, v, dt):
 #             slen_end = slen_end_new
 #     return cx, cy
 
-def generate_random_scene(seed=None):
+def generate_random_scene(nb_control_points:int = 7, seed=None, ):
     """
     Generate a random scene in the following format:
     {'start':           (0, 0),
@@ -391,7 +391,7 @@ def generate_random_scene(seed=None):
     first_heading = None
     last_heading = None
 
-    for _ in range(7):
+    for _ in range(nb_control_points):
         # The next control point should be within a certain distance from the last one
         last_cp = control_pts[-1]
         # Generate a random angle
