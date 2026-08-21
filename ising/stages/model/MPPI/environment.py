@@ -335,32 +335,6 @@ def create_reference_trajectory(env, control_pts, bc_headings, v, dt):
         )
     )
 
-# def calc_c2_traj(x, y, bc_headings, eps=0.005):
-#     '''
-#     Iteratively compute spline coefficients until spline length of first and last segment converges
-#     '''
-
-#     # Start with euclidean dist as slen approx for first and last segments
-#     slen_start = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2)
-#     slen_end = np.sqrt((x[-1] - x[-2])**2 + (y[-1] - y[-2])**2)
-
-#     while True:
-#         cx, cy = gen_c2_spline(x, y, bc_headings, slen_start, slen_end)
-#         coeffs_x_start = np.flip(cx.c[:, 0])
-#         coeffs_y_start = np.flip(cy.c[:, 0])
-#         coeffs_x_end = np.flip(cx.c[:, -1])
-#         coeffs_y_end = np.flip(cy.c[:, -1])
-
-#         slen_start_new = calc_spline_length(coeffs_x_start, coeffs_y_start)
-#         slen_end_new = calc_spline_length(coeffs_x_end, coeffs_y_end)
-
-#         if abs(slen_start_new - slen_start) < eps and abs(slen_end_new - slen_end) < eps:
-#             break
-#         else:
-#             slen_start = slen_start_new
-#             slen_end = slen_end_new
-#     return cx, cy
-
 def generate_random_scene(nb_control_points:int = 7, seed=None, ):
     """
     Generate a random scene in the following format:
