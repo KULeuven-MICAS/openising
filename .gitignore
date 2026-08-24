@@ -34,3 +34,4 @@ ising/*/*.pdf
 
 # Experiments
 **/experiments/*
+'.idea' 
