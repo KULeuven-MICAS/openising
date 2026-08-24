@@ -66,7 +66,8 @@ class DynamicsModel:
 
     @partial(jax.jit, static_argnums=(3,))
     def _rollout(self, init_state: jnp.ndarray, actions: jnp.ndarray, return_jacobian: bool = True
-                 )-> tuple[tuple[jnp.ndarray, jnp.ndarray], tuple[jnp.ndarray, jnp.ndarray]] | tuple[jnp.ndarray, jnp.ndarray]:
+                 )-> tuple[tuple[jnp.ndarray, jnp.ndarray], tuple[jnp.ndarray, jnp.ndarray]] | \
+                     tuple[jnp.ndarray, jnp.ndarray]:
         """! Scans over actions, returning the trajectory and the explicit forces
 
         @type init_state: jnp.ndarray
@@ -76,7 +77,8 @@ class DynamicsModel:
         @type return_jacobian: bool
         @param return_jacobian: whether to return jacobians (defaults to True)
 
-        @rtype: tuple[tuple[jnp.ndarray, jnp.ndarray], tuple[jnp.ndarray, jnp.ndarray]] | tuple[jnp.ndarray, jnp.ndarray]
+        @rtype: tuple[tuple[jnp.ndarray, jnp.ndarray], tuple[jnp.ndarray, jnp.ndarray]] |
+         tuple[jnp.ndarray, jnp.ndarray]
         @return: Whole trajectory and forces and optional flagged Jacobians
         """
 
@@ -105,14 +107,15 @@ class DynamicsModel:
 
     @jax.jit
     def rollout(self, init_state: jnp.ndarray, actions: jnp.ndarray, dx: jnp.ndarray, du: jnp.ndarray,
-                return_jacobian: bool = True) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, Any]:
+                return_jacobian: bool = True) -> \
+            tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, Any]:
         """
         Linearized rollout that returns f(x), vjp_fn(dx, du).
         vjp_fn(dx, du) = Adx + Bdu
         """
         # Standard *return_jacobians* is True
-        (full_trajectory, forces), vjp_fn, (A_seq, B_seq) = jax.linearize(self._rollout, init_state, actions,
-                                                                          has_aux=return_jacobian)
+        (full_trajectory, forces), vjp_fn, (A_seq, B_seq) = jax.linearize(
+            self._rollout, init_state, actions, has_aux=return_jacobian)
         # Return
         return full_trajectory, forces, A_seq, B_seq, jax.vmap(vjp_fn, in_axes=(0, 0))(dx, du)
 
