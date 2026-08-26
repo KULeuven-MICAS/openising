@@ -5,6 +5,10 @@ import numpy as np
 from ising.utils.flow import compute_ttt, relative_to_best_found, approximation_to_best_found
 from ising.utils.problem_difficulty import compute_ruggedness
 from ising.stages.simulation_stage import Ans
+from ising.stages.model.MPPI.environment import create_environment
+
+from .plot_mppi_trajectory import plot_results
+
 
 def summarize_workload(output_file: Path, problem_type: str, config_path: str, ans_list: list[Ans]):
     accuracies = {solver: [] for solver in ans_list[0].config.solvers}
@@ -27,6 +31,7 @@ def summarize_workload(output_file: Path, problem_type: str, config_path: str, a
             f.write("=====Summary of all runs=====\n")
             f.write(f"mean approximation value| {mean_acc}\n")
             f.write(f"mean TTT 0.9| {mean_tts}\n")
+
     else:
         mean_ber = " ".join([f"{np.mean(bers[solver])}" for solver in ans_list[0].config.solvers])
         with Path.open(output_file, "a") as f:
@@ -73,6 +78,25 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
                 f.write(f"operation count| {operation_str}\n")
                 f.write(f"operation count / it| {operation_it_str}\n")
         return None
+
+    elif problem_type == 'MPPI':
+        env, _, _ = create_environment(ans.scene)
+        x_ref = ans.reference_trajectory
+        output_dir = output_file.parent
+        Path.mkdir(output_dir, parents=True, exist_ok=True)
+        plot_results(
+            env, x_ref, ans.executed_trajectory, ans.predicted_trajectory, savefile=output_dir / "mppi_results.png"
+        )
+        res = ans.executed_trajectory - ans.reference_trajectory
+        rmse = np.sqrt(res ** 2).mean()
+        r2 = 1 - (res ** 2 / np.maximum((res ** 2).mean(), 10e-4)).mean()
+
+        with Path.open(output_file, "a") as f:
+            f.write("=====Accuracy of solution =====\n")
+            f.write(f"rMSE: {rmse:.4f} \n")
+            f.write(f"r-squared: {r2:.4f} \n")
+
+
     elif not ans.config.dummy_creator:
         benchmark = ans.benchmark
         ising_energies = ans.energies
