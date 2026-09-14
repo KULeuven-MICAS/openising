@@ -83,13 +83,17 @@ class QuantizationStage(Stage):
             LOGGER.info(f"original h scaling factor is {h_scale_factor_real}, rounded scale factor is {h_scale_factor}")
 
             # Quantize J and h.
-            quantized_matrix = self.quantize_matrix(
-                matrix=original_J,
-                original_precision=original_int_j_precision,
-                quantization_precision=quantization_precision,
-                scale_to_integer=scale_to_integer,
-                max_quant_val=max_quant_valJ,
-            )
+            if original_int_j_precision != 0:
+                quantized_matrix = self.quantize_matrix(
+                    matrix=original_J,
+                    original_precision=original_int_j_precision,
+                    quantization_precision=quantization_precision,
+                    scale_to_integer=scale_to_integer,
+                    max_quant_val=max_quant_valJ,
+                )
+            else:
+                # case that J only has one value
+                quantized_matrix = np.sign(original_J)
             if np.max(np.abs(original_h)) != 0:
                 quantized_h = self.quantize_matrix(
                     matrix=original_h,

@@ -61,7 +61,9 @@ class MIMOParserStage(Stage):
         else:
             diff = {solver: np.zeros((2 * user_num, case_num)) for solver in self.config.solvers}
         y = np.zeros((ant_num, case_num), dtype=np.complex128)
+        base_logfile_discriminitation = self.config.logfile_discrimination
         for run in range(case_num):
+            self.config.logfile_discrimination = base_logfile_discriminitation + f"case{run}"
             xi = x[:, run]
             ising_model, x_tilde, yi = self.MIMO_to_Ising(
                 H, xi, snr, user_num, ant_num, M, mimo_seed, is_hamming_encoding=self.is_hamming_encoding
@@ -103,7 +105,7 @@ class MIMOParserStage(Stage):
             ans_all.BER[solver] = np.mean(ans_all.ber_of_users[solver])
         ans_all.operation_count = ans.operation_count
         ans_all.SNR = snr
-        ans_all.x_tilde = x_tilde
+        ans_all.x = x
         ans_all.benchmark = ans.benchmark
         ans_all.config = self.config
         LOGGER.info("BER/case: %s, BER/user: %s, mean: %s", ans_all.ber_of_trials, ans_all.ber_of_users, ans_all.BER)

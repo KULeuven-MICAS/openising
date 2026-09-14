@@ -237,7 +237,7 @@ def approximation_to_best_found(energy: np.ndarray[float], best_found:float) -> 
     @return np.ndarray[float]: the approximation in percentage.
     """
     if best_found != 0.0:
-        return 100*(1 - relative_to_best_found(energy, best_found))
+        return 100*(energy/ best_found)
     else:
         return 1/np.array([en if en != 0 else 1 for en in energy]) * 100
 

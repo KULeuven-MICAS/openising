@@ -153,7 +153,7 @@ class SimulationStage(Stage):
             else:
                 initial_state = np.random.uniform(-1, 1, (self.ising_model.num_variables,))
             for solver in self.config.solvers:
-                if self.gen_logfile and self.benchmark_abbreviation != "MIMO":
+                if self.gen_logfile:
                     logfile = (
                         logpath
                         / f"{solver}_{self.benchmark_abbreviation}_run{trail_id + start_run_id}{
