@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pathlib
 
-from ising.flow import TOP
+from ising.stages import TOP
 from ising.postprocessing.helper_functions import get_metadata_from_logfiles, compute_averages_energies
 
 

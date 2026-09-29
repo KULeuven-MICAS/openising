@@ -109,3 +109,6 @@ def get_data_from_logfiles(
         else:
             data[solver][x] = np.append(data[solver][x], y, axis=0)
     return data
+
+def get_string(data:dict[str: any], solvers, apply_func: callable):
+    return " ".join([f"{apply_func(data[solver]):.4e}" for solver in solvers])

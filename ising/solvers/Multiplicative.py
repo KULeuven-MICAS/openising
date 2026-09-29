@@ -158,7 +158,7 @@ class Multiplicative(SolverBase):
                 logging.log(
                     time=i * self.dt,
                     state=np.sign(new_state[: model.num_variables]),
-                    energy=model.evaluate(np.sign(new_state[: model.num_variables]).astype(np.float32)),
+                    energy_convergence=model.evaluate(np.sign(new_state[: model.num_variables]).astype(np.float32)),
                     voltages=new_state[: model.num_variables],
                 )
             if i * self.dt - time_zero >= self.tau_system:
@@ -191,7 +191,7 @@ class Multiplicative(SolverBase):
         delay_offset: float = 0.0,
         combine_nodes: bool = False,
         nb_splits: int = 2,
-        # sigma_J: float = -1.0,
+        sigma_J: float = -1.0,
         file: pathlib.Path | None = None,
     ) -> tuple[np.ndarray, float, float, int, int]:
         """Solves the given problem using a multiplicative coupling scheme.
@@ -257,14 +257,9 @@ class Multiplicative(SolverBase):
         self.freeze_nodes = model.freeze_spins
         coupling = triu_to_symm(new_model.J)
         # Include J mismatch
-        # if sigma_J != -1.0:
-        #     self.mismatch = True
-        #     coupling_pos = coupling * (1 + np.random.normal(0.0, sigma_J, coupling.shape))
-        #     coupling_neg = coupling * (1 + np.random.normal(0.0, sigma_J, coupling.shape))
-        # else:
-        #     self.mismatch = False
-        #     coupling_pos = coupling
-        #     coupling_neg = coupling
+        if sigma_J != -1.0:
+            coupling = coupling + np.random.normal(0.0, sigma_J, coupling.shape)
+            np.fill_diagonal(coupling, 0)
 
         # Change time step according to parameters of system
         dtMult = 0.1 * capacitance / (current * np.max(np.abs(np.sum(coupling, axis=1))))
@@ -334,8 +329,13 @@ class Multiplicative(SolverBase):
         if nb_flipping == 1:
             schema = {
                 "time": np.float32,
+                "energy_best": np.float32,
+                "energy_convergence": np.float32,
                 "energy": np.float32,
                 "state": (np.int8, (num_variables,)),
+                "state_in": (np.int8, (num_variables,)),
+                "state_out": (np.int8, (num_variables,)),
+                "cluster": (np.int8, (num_variables,)),
                 "voltages": (np.float32, (num_variables,)),
             }
         else:
@@ -350,6 +350,8 @@ class Multiplicative(SolverBase):
         # Define cluster function
         if cluster_choice == "random":
             find_cluster = self.find_cluster_random
+        elif cluster_choice == "test":
+            find_cluster = self.test_cluster
         else:
             raise ValueError(
                 f" Unknown cluster choice: {cluster_choice}. \
@@ -373,14 +375,13 @@ class Multiplicative(SolverBase):
                     cluster_choice=cluster_choice,
                     exponent=exponent,
                 )
-                if nb_flipping > 1:
-                    log.log(
-                        energy_best=np.inf,
-                        energy=np.inf,
-                        state_in=np.sign(v[: num_variables]),
-                        state_out=np.zeros(num_variables, dtype=np.int8),
-                        cluster=np.zeros(num_variables, dtype=np.int8),
-                    )
+                log.log(
+                    energy_best=np.inf,
+                    energy=np.inf,
+                    state_in=np.sign(v[: num_variables]),
+                    state_out=np.zeros(num_variables, dtype=np.int8),
+                    cluster=np.zeros(num_variables, dtype=np.int8),
+                )
             best_energy = np.inf
             best_sample = v[: num_variables].copy()
             if nb_flipping == 1:
@@ -409,24 +410,29 @@ class Multiplicative(SolverBase):
                 # if counter >= int(nb_flipping / 4):
                 #     restart = int(it / 2)
                 #     counter = 0
-                cluster, operations = find_cluster(
-                    self.size_function(
-                        iteration=it - restart,
-                        total_iterations=nb_flipping + int(nb_flipping == 1),
-                        init_size=init_size,
-                        end_size=end_size,
-                        exponent=exponent,
-                    ),
-                    combine_nodes=combine_nodes,
-                    nb_splits=nb_splits,
-                    **additional_information,
-                )
+                additional_information["flip_amount"] = init_size
+                if init_size == 0:
+                    cluster = []
+                    operations = 0
+                else:
+                    cluster, operations = find_cluster(
+                        self.size_function(
+                            iteration=it - restart,
+                            total_iterations=nb_flipping + int(nb_flipping == 1),
+                            init_size=init_size,
+                            end_size=end_size,
+                            exponent=exponent,
+                        ),
+                        combine_nodes=combine_nodes,
+                        nb_splits=nb_splits,
+                        **additional_information,
+                    )
                 v = best_sample.copy()
                 v[cluster] *= np.float32(-1.0)
                 if self.bias:
                     v = np.block([v, np.float32(1.0)])
                 # Log everything
-                if log.filename is not None and nb_flipping > 1:
+                if log.filename is not None:
                     log.log(
                         energy_best=best_energy,
                         energy=energy,
@@ -493,6 +499,10 @@ class Multiplicative(SolverBase):
     #     if combine_nodes:
     #         cluster = np.array([nb_splits * cluster_elem + i for cluster_elem in cluster for i in range(nb_splits)])
     #     return cluster
+
+    def test_cluster(self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information):
+            cluster = np.arange(additional_information["flip_amount"], dtype=int)
+            return cluster, 0
 
     def find_cluster_random(
         self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information

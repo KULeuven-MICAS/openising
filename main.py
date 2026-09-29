@@ -18,8 +18,8 @@ logging_format = "%(asctime)s - %(filename)s - %(funcName)s +%(lineno)s - %(leve
 logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdout)
 
 # Input file directory
-problem_type = "MPPI"  # Specify the problem type [Maxcut, TSP, ATSP, MIMO, MPPI]
-config_path = "ising/inputs/config/example_mppi.yaml"
+problem_type = "Maxcut"  # Specify the problem type [Maxcut, TSP, ATSP, MIMO, MPPI]
+config_path = "ising/inputs/config/example.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
