@@ -26,7 +26,7 @@ eigenvalue_start: False
 
 # Logging or not
 gen_logfile: False
-logfile_discrimination: None
+logfile_discrimination: ""
 
 #################################
 ## Solvers hyperparameters
@@ -83,6 +83,15 @@ dtbSB: 0.01
 dtdSB: 0.01
 a0: 1.0
 c0: 0.0
+
+## Multi-core Solver hyperparameters
+
+# Parameters for Hierarchical solver
+nb_sweeps: 1
+core_solver: "Multiplicative"
+partitioning_technique: "modularity"
+nb_partitions: 2
+nb_meta_nodes: 1
 
 #################################
 ## Problems hyperparameters

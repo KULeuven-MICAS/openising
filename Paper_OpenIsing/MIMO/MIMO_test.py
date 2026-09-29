@@ -29,13 +29,13 @@ with config_file.open("rb") as f:
     config = yaml.safe_load(f)
 snr_list = config["dummy_snr"]
 solvers = config["solvers"]
-nb_problems = 10
+nb_problems = 50
 
 ber_results = {snr: {solver: [] for solver in solvers + ["ZF"]} for snr in snr_list}
 for snr in snr_list:
     config["dummy_snr"] = snr
     for problem in range(nb_problems):
-        data_file = data_path / f"{snr}_problem{problem+40}_ber.pkl"
+        data_file = data_path / f"{snr}_problem{problem}_ber.pkl"
         data_file_zf = data_path / f"{snr}_problem{problem}_ber_zf.pkl"
         if data_file.exists():
             with data_file.open("rb") as f:

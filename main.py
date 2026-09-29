@@ -20,7 +20,7 @@ logging.basicConfig(level=logging_level, format=logging_format, stream=sys.stdou
 
 # Input file directory
 problem_type = "Maxcut"  # Specify the problem type [Maxcut, TSP, ATSP, MIMO, MPPI]
-config_path = "ising/inputs/config/example_mppi.yaml"
+config_path = "ising/inputs/config/example.yaml"
 
 # Run the Ising model simulation
 ans, debug_info = api.get_hamiltonian_energy(
@@ -32,4 +32,4 @@ ans, debug_info = api.get_hamiltonian_energy(
 # Output summary file
 output_file = Path(f"./simulation_summary_{ans.benchmark}.pkl")
 summarize_runs(output_file, ans, problem_type, config_path)
-summarize_mppi(Path("./"), ans)
+# summarize_mppi(Path("./"), ans)
