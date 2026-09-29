@@ -32,4 +32,4 @@ ans, debug_info = api.get_hamiltonian_energy(
 # Output summary file
 output_file = Path(f"./simulation_summary_{ans.benchmark}.pkl")
 summarize_runs(output_file, ans, problem_type, config_path)
-# summarize_mppi(Path("./"), ans)
+summarize_mppi(Path("./"), ans)
