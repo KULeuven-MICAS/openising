@@ -54,8 +54,8 @@ num_iterations_inSituSA: 1
 nb_flips: 1
 
 # Parameters for Multiplicative
-num_iterations_Multiplicative: 100
-nb_flipping: 100
+num_iterations_Multiplicative: 1
+nb_flipping: 1
 cluster_threshold: 0.3
 init_cluster_size: 0.8
 end_cluster_size: 0.0625
@@ -107,6 +107,7 @@ quantization: True
 quantization_precision: 4
 scale_to_integer: True
 h_scale_factor: 1.0
+scale_h: 1.0
 
 # Parameters for npmos stage
 offset_type: others

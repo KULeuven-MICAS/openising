@@ -33,6 +33,7 @@ def summarize_workload(output_file: Path, problem_type: str, config_path: str, a
             f.write("=====Summary of all runs=====\n")
             f.write(f"mean approximation value| {mean_acc}\n")
             f.write(f"mean TTT 0.9| {mean_tts}\n")
+
     else:
         mean_ber = get_string(bers, ans_list[0].config.solvers, np.mean)
         with Path.open(output_file, "a") as f:
