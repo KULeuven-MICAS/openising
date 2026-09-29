@@ -7,6 +7,9 @@ from ising.utils.problem_difficulty import compute_ruggedness
 from ising.stages.simulation_stage import Ans
 from ising.postprocessing.helper_functions import get_string
 from ising.postprocessing.plot_model import plot_model, plot_model_distribution
+from ising.stages.model.MPPI.environment import create_environment
+
+from ising.postprocessing.plot_mppi_trajectory import plot_results
 
 
 def summarize_workload(output_file: Path, problem_type: str, config_path: str, ans_list: list[Ans]):
@@ -58,6 +61,21 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             "MIMO results:", f"SNR|BER  {solver_str}",
             f"{ans.SNR}|     {get_string(ans.BER, solvers, lambda x: x)}",
         ])
+    elif problem_type == 'MPPI':
+        env, _, _ = create_environment(ans.scene)
+        x_ref = ans.reference_trajectory
+        output_dir = output_file.parent
+        Path.mkdir(output_dir, parents=True, exist_ok=True)
+        plot_results(
+            env, x_ref, ans.executed_trajectory, ans.predicted_trajectory, savefile=output_dir / "mppi_results.png"
+        )
+        res = ans.executed_trajectory - ans.reference_trajectory
+        rmse = np.sqrt(res ** 2).mean()
+        r2 = 1 - (res ** 2 / np.maximum((res ** 2).mean(), 10e-4)).mean()
+
+        lines.append("=====Accuracy of solution =====\n")
+        lines.append(f"rMSE: {rmse:.4f} \n")
+        lines.append(f"r-squared: {r2:.4f} \n")
     else:
         energy_stats = {
             label: {solver: reduce(ans.energies[solver]) for solver in solvers}
