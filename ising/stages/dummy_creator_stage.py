@@ -33,7 +33,7 @@ class DummyCreatorStage(Stage):
                 LOGGER.info(f"size: {N}, seed: {seed}")
                 nb_bits = round(self.config.dummy_precision) if hasattr(self.config, "dummy_precision")\
                     else 2
-                dummy_dict = self.generate_dummy_maxcut(N, nb_bits, seed)
+                dummy_dict = self.generate_dummy_maxcut(N, nb_bits, seed, connectivity=self.config.dummy_connectivity)
             elif self.problem_type in ["TSP", "ATSP"]:
                 N = self.config.dummy_size
                 weight_constant = (
@@ -132,7 +132,7 @@ class DummyCreatorStage(Stage):
         return dummy_dict
 
     @staticmethod
-    def generate_dummy_maxcut(N: int, dummy_bits: int = 2, seed: int = 0) -> dict:
+    def generate_dummy_maxcut(N: int, dummy_bits: int = 2, seed: int = 0, connectivity: float = 1.0) -> dict:
         """! Generates a random Max Cut Ising model.
 
         @type N: int
@@ -147,7 +147,15 @@ class DummyCreatorStage(Stage):
 
         np.random.seed(seed)
         name = f"DummyMaxCut_N{N}_seed{seed}"
-        J = np.random.choice(np.arange(int(-(2 ** (dummy_bits - 1)-1)), int(2 ** (dummy_bits - 1))), (N, N))
+        values = np.arange(int(-(2 ** (dummy_bits - 1)-1)), int(2 ** (dummy_bits - 1)))
+        ind = np.flatnonzero(values == 0)
+        if connectivity == 1.0:
+            values = np.delete(values, ind)
+            p = [1/len(values) for _ in values]
+        else:
+            p = [connectivity/(len(values)-1) for _ in values]
+            p[ind] = 1.0 - connectivity
+        J = np.random.choice(values, (N, N), p=p)
 
         # Map the J matrix to a graph
         graph = nx.Graph(name=name)

@@ -146,7 +146,7 @@ class HierarchicalSolver(SolverBase):
             )
 
             for _ in range(nb_sweeps):
-                self.upper_state, en, time_upper, operations_upper, num_iterations = core_solver.solve(
+                self.upper_state, en, time_upper, operations_upper, num_iterations = core_solver(
                     model=self.upper_model, initial_state=self.upper_state, **core_solver_args
                 )
                 if singleton_case:
@@ -163,7 +163,7 @@ class HierarchicalSolver(SolverBase):
                     local_model = self.get_influence(subproblem)
                     # An unbiased singleton has constant energy; retain its spin.
                     if local_model.num_variables != 1 or local_model.h[0] != 0:
-                        subproblem.state, en, time, operations, num_iterations = core_solver.solve(
+                        subproblem.state, en, time, operations, num_iterations = core_solver(
                             model=local_model, initial_state=subproblem.state, **core_solver_args
                         )
                         times.append(time)
@@ -188,11 +188,10 @@ class HierarchicalSolver(SolverBase):
                         state=final_state,
                         energy=energy,
                     )
-                if logger.filename is None:
-                    final_state = self.assemble_state()
-                    energy = model.evaluate(final_state)
-                else:
-                    logger.write_metadata(solution_state=final_state, solution_energy=energy, total_time=time)
+            final_state = self.assemble_state()
+            energy = model.evaluate(final_state)
+            if logger.filename is not None:
+                logger.write_metadata(solution_state=final_state, solution_energy=energy, total_time=time)
         return (final_state, energy, time, operations, nb_sweeps)
 
     def make_hierarchy(self, original_model: IsingModel, partitioning: np.ndarray, nb_meta_nodes: int | None) -> None:
