@@ -130,7 +130,7 @@ class SimulationStage(Stage):
     def partial_runs(self, nb_runs: int, logpath: pathlib.Path, initialization_seed: int, start_run_id: int = 0):
         start_time = datetime.datetime.now()
         LOGGER.info(f"Simulation started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        hyperparameters = parse_hyperparameters(self.config)
+        hyperparameters = parse_hyperparameters(self.config, self.ising_model)
 
         optim_state_collect = {solver: [] for solver in self.config.solvers}
         optim_energy_collect = {solver: [] for solver in self.config.solvers}
@@ -270,7 +270,7 @@ class SimulationStage(Stage):
             "bSB": (ballisticSB().solve, ["c0", "dtbSB", "a0", "seed"]),
             "dSB": (discreteSB().solve, ["c0", "dtdSB", "a0", "seed"]),
         }
-        hierarchical_solvers = {
+        multi_core_solvers = {
             "Hierarchical_solver": (
                 HierarchicalSolver().solve,
                 [
@@ -297,11 +297,15 @@ class SimulationStage(Stage):
                 file=logfile,
                 **chosen_hyperparameters,
             )
-        elif solver in hierarchical_solvers:
-            func, params = solvers[solver]
+        elif solver in multi_core_solvers:
+            func, params = multi_core_solvers[solver]
             core_solver = hyperparameters["core_solver"]
             chosen_hyperparameters = {key: hyperparameters[key] for key in params if key in hyperparameters}
-            chosen_hyperparameters["core_solver"], chosen_hyperparameters["core_solver_args"] = solvers[core_solver]
+            core_func, core_params = solvers[core_solver]
+            chosen_hyperparameters["core_solver_args"] = {
+                key: hyperparameters[key] for key in core_params if key in hyperparameters
+            }
+            chosen_hyperparameters["core_solver"] = core_func
             if core_solver in ["SA", "SCA", "bSB", "dSB", "inSituSA"]:
                 chosen_hyperparameters["core_solver_args"]["stop_criterion"] = stop_criterion_it
             chosen_hyperparameters["core_solver_args"]["num_iterations"] = hyperparameters[
@@ -322,7 +326,7 @@ class SimulationStage(Stage):
                 model=model,
                 initial_state=s_init,
                 file_multi_core=logfile,
-                nb_sweeps="nb_sweeps_" + solver,
+                nb_sweeps=hyperparameters["nb_sweeps_" + solver],
                 **chosen_hyperparameters,
             )
         else:

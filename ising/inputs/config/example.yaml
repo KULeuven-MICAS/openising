@@ -149,6 +149,7 @@ dummy_case_num: 10
 
 # Parameters for dummy Biqmac/Maxcut
 dummy_precision: 6
+dummy_connectivity: 1.0
 
 # Parameters for dummy MaxCut/TSP/ATSP/Knapsack
 dummy_size: 20

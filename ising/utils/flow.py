@@ -2,6 +2,7 @@ import pathlib
 import numpy as np
 from argparse import Namespace
 import scipy.sparse.linalg as spalg
+from copy import deepcopy
 
 from ising.utils.HDF5Logger import return_metadata
 
@@ -10,7 +11,7 @@ from ising.utils.helper_functions import return_rx
 from ising.utils.numpy import triu_to_symm
 
 
-def parse_hyperparameters(args: Namespace) -> dict[str:]:
+def parse_hyperparameters(args: Namespace, model: IsingModel) -> dict[str:]:
     """Parses the arguments needed for the solvers.
 
     Args:
@@ -119,6 +120,16 @@ def parse_hyperparameters(args: Namespace) -> dict[str:]:
     if"bSB" in args.solvers:
         hyperparameters["dtbSB"] = float(args.dtbSB)
 
+    if "Hierarchical_solver" in args.solvers:
+        hyperparameters["nb_sweeps_Hierarchical_solver"] = int(args.nb_sweeps_Hierarchical_solver)
+        hyperparameters["core_solver"] = args.core_solver
+        hyperparameters["partitioning_technique"] = args.partitioning_technique
+        hyperparameters["nb_partitions"] = int(args.nb_partitions)
+        hyperparameters["nb_meta_nodes"] = int(model.num_variables / args.nb_meta_nodes)
+        new_args = deepcopy(args)
+        new_args.solvers = args.core_solver
+        new_hyperparameters = parse_hyperparameters(new_args, model)
+        hyperparameters.update(new_hyperparameters)
     return hyperparameters
 
 
