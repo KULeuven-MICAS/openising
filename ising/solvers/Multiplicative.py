@@ -192,6 +192,7 @@ class Multiplicative(SolverBase):
         combine_nodes: bool = False,
         nb_splits: int = 2,
         sigma_J: float = -1.0,
+        size_function: str = "exponential",
         file: pathlib.Path | None = None,
     ) -> tuple[np.ndarray, float, float, int, int]:
         """Solves the given problem using a multiplicative coupling scheme.
@@ -248,10 +249,10 @@ class Multiplicative(SolverBase):
         np.random.seed(seed)
         # Transform the model to one with no h and mean variance of J
         if np.linalg.norm(model.h) >= 1e-10:
-            new_model:IsingModel = model.transform_to_no_h()
+            new_model: IsingModel = model.transform_to_no_h()
             self.bias = np.int8(1)
         else:
-            new_model:IsingModel = model
+            new_model: IsingModel = model
             self.bias = np.int8(0)
         num_variables = model.num_variables
         self.freeze_nodes = model.freeze_spins
@@ -314,6 +315,13 @@ class Multiplicative(SolverBase):
             # coupling_neg,
             voltage_delay_idx=voltage_delay_idx if (total_delay > 0) else None,
         )
+        if size_function == "exponential":
+            annealing_function = self.size_function_exponential
+        elif size_function == "linear":
+            annealing_function = self.size_function_linear
+        else:
+            annealing_function = self.size_function_exponential_old
+
 
         # make sure the correct random seed is used
         self.generator = np.random.choice
@@ -378,12 +386,12 @@ class Multiplicative(SolverBase):
                 log.log(
                     energy_best=np.inf,
                     energy=np.inf,
-                    state_in=np.sign(v[: num_variables]),
+                    state_in=np.sign(v[:num_variables]),
                     state_out=np.zeros(num_variables, dtype=np.int8),
                     cluster=np.zeros(num_variables, dtype=np.int8),
                 )
             best_energy = np.inf
-            best_sample = v[: num_variables].copy()
+            best_sample = v[:num_variables].copy()
             if nb_flipping == 1:
                 logging = log
             else:
@@ -416,7 +424,7 @@ class Multiplicative(SolverBase):
                     operations = 0
                 else:
                     cluster, operations = find_cluster(
-                        self.size_function(
+                        annealing_function(
                             iteration=it - restart,
                             total_iterations=nb_flipping + int(nb_flipping == 1),
                             init_size=init_size,
@@ -438,14 +446,15 @@ class Multiplicative(SolverBase):
                         energy=energy,
                         state_out=sample,
                         state_in=best_sample,
-                        cluster=np.where(v[: num_variables] == best_sample, 0, 1).astype(np.int8),
+                        cluster=np.where(v[:num_variables] == best_sample, 0, 1).astype(np.int8),
                     )
                 tot_time += ana_time + time.time() - start
                 tot_ops += (
-                    ana_ops +                                                   # analog operation count
-                    2 * num_variables**2 + 3 * num_variables +      # operation count for energy calculation
-                    operations +                                                # cluster choice operation count
-                    len(cluster)                                                # set cluster operation count
+                    ana_ops  # analog operation count
+                    + 2 * num_variables**2
+                    + 3 * num_variables  # operation count for energy calculation
+                    + operations  # cluster choice operation count
+                    + len(cluster)  # set cluster operation count
                 )
             if log.filename is not None:
                 log.write_metadata(
@@ -455,19 +464,37 @@ class Multiplicative(SolverBase):
                 )
         return best_sample, best_energy, tot_time, tot_ops, nb_flipping
 
-    def size_function(
+    def size_function_exponential_old(self,
+            iteration: int,
+            total_iterations: int,
+            init_size: int,
+            end_size: int,
+            exponent: float = 3.0,):
+        result = np.floor(
+            (((end_size - 1) / init_size) ** (iteration * exponent / (total_iterations - 1))) * (init_size - end_size)
+            + end_size)
+        return int(result)
+
+    def size_function_exponential(
         self,
         iteration: int,
         total_iterations: int,
         init_size: int,
         end_size: int,
-        exponent: float = 3.0,
+        exponent: float = 1.0,
     ):
-        result = np.floor(
-            (((end_size - 1) / init_size) ** (iteration * exponent / (total_iterations - 1))) * (init_size - end_size)
-            + end_size
+        if exponent <= 0 or exponent > 1.0:
+            raise ValueError("Exponent should be between 0 and 1")
+        result = np.round(
+            init_size*(end_size/init_size)**((iteration/(total_iterations-1))**exponent)
         )
 
+        return int(result)
+
+    def size_function_linear(
+        self, iteration: int, total_iterations: int, init_size: int, end_size: int, exponent: float = 3.0
+    ):
+        result = np.floor((end_size - init_size) / total_iterations * iteration + init_size)
         return int(result)
 
     # def find_cluster_gradient(
@@ -501,8 +528,8 @@ class Multiplicative(SolverBase):
     #     return cluster
 
     def test_cluster(self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information):
-            cluster = np.arange(additional_information["flip_amount"], dtype=int)
-            return cluster, 0
+        cluster = np.arange(additional_information["flip_amount"], dtype=int)
+        return cluster, 0
 
     def find_cluster_random(
         self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
