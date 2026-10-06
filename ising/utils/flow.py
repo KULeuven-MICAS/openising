@@ -46,6 +46,7 @@ def parse_hyperparameters(args: Namespace, model: IsingModel) -> dict[str:]:
         # hyperparameters["sigma_J"] = float(args.sigma_J)
         hyperparameters["combine_nodes"] = bool(args.combine_nodes)
         hyperparameters["nb_splits"] = int(args.nodes_scaling) if hasattr(args, "nodes_scaling") else 1
+        hyperparameters["size_function"] = args.size_function if hasattr(args, "size_function") else ""
 
     # BRIM parameters
     if "BRIM" in args.solvers:

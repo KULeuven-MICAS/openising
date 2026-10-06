@@ -258,6 +258,7 @@ class SimulationStage(Stage):
                     "sigma_C",
                     "combine_nodes",
                     "nb_splits",
+                    "size_function",
                 ],
             ),
             "inSituSA": (
