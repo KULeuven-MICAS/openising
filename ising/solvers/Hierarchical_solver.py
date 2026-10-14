@@ -1,5 +1,6 @@
 import pathlib
 from dataclasses import dataclass, field
+from collections import defaultdict
 
 import numpy as np
 
@@ -237,10 +238,21 @@ class HierarchicalSolver(SolverBase):
         upper_members = [np.flatnonzero(original_to_upper == i) for i in range(num_upper_nodes)]
         upper_J = np.zeros((num_upper_nodes, num_upper_nodes))
         upper_h = np.zeros(num_upper_nodes)
+
+        # Upper h is just the mean of the biases of the nodes in that meta node
         for i, members_i in enumerate(upper_members):
             upper_h[i] = original_model.h[members_i].mean()
+
+        pairs_by_shape = defaultdict(list)
+        for i in range(num_upper_nodes):
             for j in range(i + 1, num_upper_nodes):
-                upper_J[i, j] = original_coupling[np.ix_(members_i, upper_members[j])].mean()
+                pairs_by_shape[len(upper_members[i]), len(upper_members[j])].append((i, j))
+
+        for pairs in pairs_by_shape.values():
+            i, j = np.array(pairs).T
+            rows = np.array([upper_members[k] for k in i])
+            cols = np.array([upper_members[k] for k in j])
+            upper_J[i, j] = original_coupling[rows[:, :, None], cols[:, None, :]].mean(axis=(1, 2))
 
         self.original_model = original_model
         self.original_coupling = original_coupling
