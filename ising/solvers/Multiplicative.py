@@ -254,6 +254,9 @@ class Multiplicative(SolverBase):
         else:
             new_model: IsingModel = model
             self.bias = np.int8(0)
+        if self.bias and init_cluster_size > 0.5:
+            init_cluster_size *= 0.5
+            end_cluster_size *= 0.5
         num_variables = model.num_variables
         self.freeze_nodes = model.freeze_spins
         coupling = triu_to_symm(new_model.J)
