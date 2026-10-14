@@ -2,11 +2,94 @@ import numpy as np
 import pathlib
 import time
 
+from numba import njit
+
 # from ising.stages import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
 from ising.utils.numpy import triu_to_symm
+
+@njit(cache=True)
+def _inner_loop_FE_numba(
+        coupling,
+        state,
+        dv,
+        dt,
+        dv_scale,
+        freeze_nodes,
+        bias,
+        num_iterations,
+        stop_criterion,
+        tau_system,
+        ops_per_tau
+    ):
+    """
+    Fast implementation of the inner FE loop for the Multiplicative solver.
+
+    This is path is *only* taken if total_delay = 0.
+
+    Optimization is done by compiling to machine code via Numba.
+    """
+    # set up the simulation
+    i = 0
+    max_change = np.inf
+
+    # Set up new voltages
+    n = state.shape[0]
+    state = state.copy()
+    new_state = state.copy()
+
+    # previous_states with total_delay = 0 is a single row
+    prev_sign = np.sign(state)
+    counter = 1
+    time_zero = 0.0
+    nb_operations = 0
+    dt64 = np.float64(dt)
+
+    while i < num_iterations and max_change > stop_criterion:
+        if counter < 1:
+            dv = coupling @ np.sign(state)
+            dv *= dv_scale
+            counter += 1
+            if bias:
+                dv[-1] = 0.0
+
+        for k in freeze_nodes:
+            dv[k] = 0.0
+
+        # Forward Euler step and clip to [-1, 1] and check if any spin is flipped
+        flipped = False
+        for k in range(n):
+            v = state[k] + dt * dv[k]
+            v = min(max(v, np.float32(-1.0)), np.float32(1.0))
+            if np.sign(v) != np.sign(state[k]):
+                flipped = True
+            new_state[k] = v
+        if flipped:
+            counter = 0
+
+        # convergence check every 10 iterations
+        if i > 0 and i % 10 == 0:
+            largest = np.float32(0.0)
+            sq = np.float32(0.0)
+            for k in range(n):
+                largest = max(largest, abs(new_state[k] - prev_sign[k]))
+                sq += prev_sign[k] * prev_sign[k]
+            norm_prev = np.sqrt(sq)
+            max_change = largest / (norm_prev if norm_prev != 0 else np.float32(1.0))
+
+        # Update log and move to next step
+        for k in range(n):
+            prev_sign[k] = np.sign(new_state[k])
+        state, new_state = new_state, state
+        i += 1
+
+        if i * dt64 - time_zero >= tau_system:
+            time_zero = i * dt64
+            nb_operations += ops_per_tau
+
+    return state, i, nb_operations
 
 
 class Multiplicative(SolverBase):
@@ -107,6 +190,10 @@ class Multiplicative(SolverBase):
         @rtype: tuple[np.ndarray, float]
         @return: the new state and new energy.
         """
+        # Take fast path if possible
+        if logging is None and total_delay == 0:
+            return self.inner_loop_FE_fast(model, state)
+
         # set up the simulation
         i = 0
         max_change = np.inf
@@ -151,7 +238,13 @@ class Multiplicative(SolverBase):
                 norm_prev = np.linalg.norm(previous_states[-1])
                 max_change = np.max(diff) / (norm_prev if norm_prev != 0 else 1)
 
-            previous_states = np.block([[np.sign(new_state)], [previous_states]])[:-1, :]
+            # The below implementation replaces:
+            # previous_states = np.block([[np.sign(new_state)], [previous_states]])[:-1, :]
+            # np.block is slow as it copies and creates a new matrix. Instead we modify the same matrix
+            # sliding the states and setting the first entry to the newest state
+            previous_states[1:] = previous_states[:-1]
+            previous_states[0] = np.sign(new_state)
+
             state = new_state.copy()
             i += 1
             if logging is not None:
@@ -170,6 +263,29 @@ class Multiplicative(SolverBase):
             i * self.dt,
             nb_operations,
         )
+
+    def inner_loop_FE_fast(
+        self,
+        model: IsingModel,
+        state: np.ndarray
+    ):
+        dv = self.coupling @ np.sign(state) * self.current / self.capacitance
+        final_state, i, nb_operations = _inner_loop_FE_numba(
+            self.coupling,
+            state,
+            dv,
+            self.dt,
+            np.float32(self.current / self.capacitance),
+            np.asarray(self.freeze_nodes, dtype=np.int64),
+            bool(self.bias),
+            self.num_iterations,
+            self.stop_criterion,
+            self.tau_system,
+            2 * model.num_variables**2 + 3 * model.num_variables,
+        )
+        sample = np.where(final_state[:model.num_variables] >= 0, 1, -1).astype(np.float32)
+        return sample, model.evaluate(sample), i * self.dt, nb_operations
+
 
     def solve(
         self,
