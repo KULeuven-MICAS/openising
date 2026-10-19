@@ -40,9 +40,7 @@ def _inner_loop_event_numba(coupling, state, frozen, s_ref, f_ref, t_max):
     """
     n = state.shape[0]                          # number of spins
     v = state.astype(np.float64)                # starting voltages
-    s = np.empty(n)                             # signs
-    for j in range(n):                          # a voltage at the threshold counts as +1
-        s[j] = 1.0 if v[j] >= 0 else -1.0
+    s = np.where(v >= 0.0, 1.0, -1.0)           # set the signs from the voltages
 
     f = f_ref.copy()                            # The "local field" for the best spin state found
     for k in range(n):                          # Iterate all spins
