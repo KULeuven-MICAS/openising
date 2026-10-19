@@ -18,7 +18,7 @@ def _time_to_zero(v, s, f):
 
 
 @njit(cache=True)
-def _inner_loop_event_numba(coupling_T, state, frozen, s_ref, f_ref, t_max):
+def _inner_loop_event_numba(coupling, state, frozen, s_ref, f_ref, t_max):
     """
     Event-based multiplactive solver that computes the slope of all sigmas, their intersection
     with the threshold and then skips to that "event".
@@ -26,7 +26,7 @@ def _inner_loop_event_numba(coupling_T, state, frozen, s_ref, f_ref, t_max):
     Between flips all the voltage change for the sigmas is linear.
 
     Args:
-        - coupling_T: coupling matrix
+        - coupling: coupling matrix
         - state: starting voltages
         - frozen: mask that freezes nodes so they get no current
         - s_ref: best sigmas found so far
@@ -39,14 +39,13 @@ def _inner_loop_event_numba(coupling_T, state, frozen, s_ref, f_ref, t_max):
     for j in range(n):                          # a voltage at the threshold counts as +1
         s[j] = 1.0 if v[j] >= 0 else -1.0
 
-
     f = f_ref.copy()                            # The "local field" for the best spin state found
     for k in range(n):                          # Iterate all spins
         if s[k] != s_ref[k]:                    # spin k is different from the best state
             d = s[k] - s_ref[k]                 # difference (+-2 for flip)
             for j in range(n):                  # update local fields related to the flip
                 if not frozen[j]:
-                    f[j] += coupling_T[k, j] * d
+                    f[j] += coupling[k, j] * d
 
     t_next = np.inf                             # time when the next spin crosses the threshld
     k = -1                                      # index of first spin that crosses the threshold
@@ -79,7 +78,7 @@ def _inner_loop_event_numba(coupling_T, state, frozen, s_ref, f_ref, t_max):
             if reached:
                 v[j] = 0.0                                              # if the spin crossed thr, force v to 0.0
             if not frozen[j]:
-                f[j] += coupling_T[k_flip, j] * d                       # update local fields from flipped spin
+                f[j] += coupling[k_flip, j] * d                       # update local fields from flipped spin
             t_j = _time_to_zero(v[j], s[j], f[j])                       # when does this spin cross the threshold
             if t_j < t_next:                                            # save if earliest crossing found so far
                 t_next = t_j
@@ -117,7 +116,6 @@ class MultiplicativeEvent(Multiplicative):
 
     def set_params(self, *args, **kwargs):
         super().set_params(*args, **kwargs)                             # run Multiplactive's set_params
-        self.coupling_T = np.ascontiguousarray(self.coupling.T)         # faster memory access
 
         self.frozen = np.zeros(self.coupling.shape[0], dtype=np.bool_)  # just build a boolean mask
         self.frozen[self.freeze_nodes] = True
@@ -161,7 +159,7 @@ class MultiplicativeEvent(Multiplicative):
 
         # Run the solver
         s, f, t = _inner_loop_event_numba(
-            self.coupling_T, state, self.frozen, self.cache_s, self.cache_f, self.t_max
+            self.coupling, state, self.frozen, self.cache_s, self.cache_f, self.t_max
         )
         t /= self.dv_scale
         nb_operations = int(t / self.time_per_ops) * (2 * model.num_variables**2 + 3 * model.num_variables)
