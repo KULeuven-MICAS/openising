@@ -25,13 +25,18 @@ def _inner_loop_event_numba(coupling, state, frozen, s_ref, f_ref, t_max):
 
     Between flips all the voltage change for the sigmas is linear.
 
-    Args:
-        - coupling: coupling matrix
-        - state: starting voltages
-        - frozen: mask that freezes nodes so they get no current
-        - s_ref: best sigmas found so far
-        - f_ref: fields for those best sigmas
-        - t_max: time limit of a run
+    @type coupling: np.ndarray
+    @param coupling: coupling matrix. MUST be symmetric.
+    @type state: np.ndarray
+    @param state: starting voltages
+    @type frozen: np.ndarray
+    @param frozen: mask that freezes nodes so they get no current
+    @type s_ref: np.ndarray
+    @param s_ref: best sigmas found so far
+    @type f_ref: np.ndarray
+    @param f_ref: fields for those best sigmas
+    @type t_max: float
+    @param t_max: time limit of a run
     """
     n = state.shape[0]                          # number of spins
     v = state.astype(np.float64)                # starting voltages
