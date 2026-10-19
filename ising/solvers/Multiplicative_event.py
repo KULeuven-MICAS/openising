@@ -73,14 +73,15 @@ def _inner_loop_event_numba(coupling_T, state, frozen, s_ref, f_ref, t_max):
         t_next = np.inf                                                 # reset t_next, we will find the next
         k = -1                                                          # reset k, we will find the next
         for j in range(n):
-            reached = v[j] * f[j] < 0 and -v[j] / f[j] <= dt_event      # is the v headed for thr, and does it cross within dt_event?
+            reached = v[j] * f[j] < 0 and -v[j] / f[j] <= dt_event      # is the spin headed for the threshold and
+                                                                        # will it pass the threshold within dt_event ?
             v[j] = min(1.0, max(-1.0, v[j] + dt_event * f[j]))          # update the voltage after dt_event
             if reached:
                 v[j] = 0.0                                              # if the spin crossed thr, force v to 0.0
             if not frozen[j]:
                 f[j] += coupling_T[k_flip, j] * d                       # update local fields from flipped spin
             t_j = _time_to_zero(v[j], s[j], f[j])                       # when does this spin cross the threshold
-            if t_j < t_next:                                            # save if it has the earliest crossing found so far
+            if t_j < t_next:                                            # save if earliest crossing found so far
                 t_next = t_j
                 k = j
 
