@@ -26,13 +26,21 @@ def parse_hyperparameters(args: Namespace, model: IsingModel) -> dict[str:]:
     # seed hyperparameter
     hyperparameters["seed"] = int(args.seed)
 
-    if "Multiplicative" in args.solvers or "BRIM" in args.solvers:
+    if "Multiplicative" in args.solvers or "MultiplicativeEvent" in args.solvers or "BRIM" in args.solvers:
         hyperparameters["capacitance"] = float(args.capacitance)
         hyperparameters["stop_criterion"] = float(args.stop_criterion)
 
     # Multiplicative parameters
     if "Multiplicative" in args.solvers:
         hyperparameters["num_iterations_Multiplicative"] = int(args.num_iterations_Multiplicative)
+    if "MultiplicativeEvent" in args.solvers:
+        # The event solver is cheap, so by default it runs until every run converges
+        hyperparameters["num_iterations_MultiplicativeEvent"] = (
+            int(args.num_iterations_MultiplicativeEvent)
+            if hasattr(args, "num_iterations_MultiplicativeEvent")
+            else 10**12
+        )
+    if "Multiplicative" in args.solvers or "MultiplicativeEvent" in args.solvers:
         hyperparameters["nb_flipping"] = int(args.nb_flipping)
         hyperparameters["cluster_threshold"] = float(args.cluster_threshold)
         hyperparameters["init_cluster_size"] = float(args.init_cluster_size)
