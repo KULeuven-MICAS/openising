@@ -20,6 +20,7 @@ from ising.solvers.SA import SASolver
 from ising.solvers.DSA import DSASolver
 from ising.solvers.inSitu_SA import InSituSASolver
 from ising.solvers.Multiplicative import Multiplicative
+from ising.solvers.Multiplicative_event import MultiplicativeEvent
 from ising.solvers.Hierarchical_solver import HierarchicalSolver
 
 
@@ -271,6 +272,8 @@ class SimulationStage(Stage):
             "bSB": (ballisticSB().solve, ["c0", "dtbSB", "a0", "seed"]),
             "dSB": (discreteSB().solve, ["c0", "dtdSB", "a0", "seed"]),
         }
+        # The event solver takes the same parameters as Multiplicative
+        solvers["MultiplicativeEvent"] = (MultiplicativeEvent().solve, solvers["Multiplicative"][1])
         multi_core_solvers = {
             "Hierarchical_solver": (
                 HierarchicalSolver().solve,

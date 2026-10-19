@@ -375,6 +375,8 @@ class Multiplicative(SolverBase):
             end_cluster_size *= 0.5
         num_variables = model.num_variables
         self.freeze_nodes = model.freeze_spins
+        # Only compute this once instead of twice
+        self.non_frozen_nodes = np.setdiff1d(np.arange(num_variables), self.freeze_nodes)
         coupling = triu_to_symm(new_model.J)
         # Include J mismatch
         if sigma_J != -1.0:
@@ -523,9 +525,7 @@ class Multiplicative(SolverBase):
             for it in range(nb_flipping):
                 sample, energy, ana_time, ana_ops = self.inner_loop_FE(model, v, total_delay, logging)
                 start = time.time()
-                additional_information["current_state"] = sample[
-                    np.setdiff1d(np.arange(num_variables), self.freeze_nodes)
-                ]
+                additional_information["current_state"] = sample[self.non_frozen_nodes]
 
                 if energy < best_energy:
                     best_energy = energy
@@ -557,7 +557,7 @@ class Multiplicative(SolverBase):
                 v = best_sample.copy()
                 v[cluster] *= np.float32(-1.0)
                 if self.bias:
-                    v = np.block([v, np.float32(1.0)])
+                    v = np.append(v, np.float32(1.0))
                 # Log everything
                 if log.filename is not None:
                     log.log(
@@ -683,7 +683,7 @@ class Multiplicative(SolverBase):
             cluster = np.array(cluster_nodes, dtype=int)
         else:
             cluster = self.generator(
-                np.setdiff1d(np.arange(int(self.num_variables)), self.freeze_nodes),
+                self.non_frozen_nodes,
                 size=(cluster_size,),
                 replace=False,
             )
