@@ -240,7 +240,6 @@ class QKPParserStage(Stage):
 
         constant += alpha * (capacity**2)
 
-        coupling = np.triu(coupling, 1)
         model = IsingModel(coupling, h, constant, name="Knapsack")
 
         return model

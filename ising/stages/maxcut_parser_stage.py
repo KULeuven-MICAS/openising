@@ -48,9 +48,8 @@ class MaxcutParserStage(Stage):
         """
         N = len(graph.nodes)
         coupling = -nx.adjacency_matrix(graph, weight="weight").toarray() / 2
-        coupling = np.triu(coupling)
         h = np.zeros((N,))
-        c = np.sum(coupling)
+        c = -np.sum(nx.adjacency_matrix(graph, weight="weight").toarray())/4
         return IsingModel(coupling, h, c, name=graph.name)
 
     @staticmethod

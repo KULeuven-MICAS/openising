@@ -95,7 +95,7 @@ class ballisticSB(SB):
         np.random.seed(seed)
 
         # Set up the model and initial states with the correct data type
-        J = np.array(triu_to_symm(model.J), dtype=np.float32)
+        J = np.array(model.J, dtype=np.float32)
         h = np.array(model.h)
         initial_state = np.array(initial_state)
         x = np.zeros_like(initial_state, dtype=np.float32)
@@ -225,7 +225,7 @@ class discreteSB(SB):
         np.random.seed(seed)
 
         # Set up the model and initial states with the correct data type
-        J = np.array(triu_to_symm(model.J), dtype=np.float32)
+        J = np.array(model.J, dtype=np.float32)
         h = np.array(model.h)
         initial_state = np.array(initial_state)
         x = np.zeros_like(initial_state, dtype=np.float32)

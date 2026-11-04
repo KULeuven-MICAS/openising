@@ -165,7 +165,6 @@ class DummyCreatorStage(Stage):
                 if J[i, j] != 0:
                     graph.add_edge(i + 1, j + 1, weight=-J[i, j] * 2)
 
-        J = np.triu(J, k=1)  # Keep only upper triangle
         h = np.zeros((N,))  # No external field
         c = np.sum(J)  # Constant term for the Max Cut problem
         ising_model = IsingModel(J, h, c, name=name)

@@ -66,7 +66,7 @@ class SCA(SolverBase):
             self.zero_en_length = num_iterations
         N = model.num_variables
         hs = np.zeros((N,))
-        J = triu_to_symm(model.J)
+        J = model.J
         flipped_states = []
         state = np.copy(np.sign(initial_state))
         if seed is None:

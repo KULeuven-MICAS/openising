@@ -144,7 +144,8 @@ class Multiplicative(SolverBase):
         # self.coupling_pos = coupling_pos.astype(np.float32)
         # self.coupling_neg = coupling_neg.astype(np.float32)
         self.voltage_delay_idx = voltage_delay_idx
-        self.tau_system = capacitance / (current * np.mean(np.sum(coupling, axis=1)))
+        mean_sum_coupling = np.mean(np.sum(coupling, axis=1))
+        self.tau_system = capacitance / ((current * mean_sum_coupling) if (current*mean_sum_coupling != 0) else 1e-8)
 
     def construct_voltage_delay(self, previous_states: np.ndarray) -> np.ndarray:
         """Generates a matrix of voltages taking into account what each voltage sees at the current time step.
@@ -296,6 +297,8 @@ class Multiplicative(SolverBase):
         cluster_threshold: float,
         init_cluster_size: float,
         end_cluster_size: float,
+        # T_init_Mult: float,
+        # cooling_rate_Mult: float,
         exponent: float = 3.0,
         cluster_choice: str = "random",
         current: float = 1.0,
@@ -305,8 +308,6 @@ class Multiplicative(SolverBase):
         accumulation_delay: float = 0.0,
         broadcast_delay: float = 0.0,
         delay_offset: float = 0.0,
-        combine_nodes: bool = False,
-        nb_splits: int = 2,
         sigma_J: float = -1.0,
         size_function: str = "exponential",
         file: pathlib.Path | None = None,
@@ -350,10 +351,6 @@ class Multiplicative(SolverBase):
         @param delay_offset: amount of delay due to the comparator, which offsets all the delays.
         @type sigma_J: float
         @param sigma_J: the standard deviation of mismatch in the coupling.
-        @type combine_nodes: bool
-        @param combine_nodes: whether nodes need to be flipped together.
-        @type nb_splits: int
-        @param nb_splits: if combine_nodes is True, the number of nodes that need to be flipped together.
         @type file: pathlib.Path|None
         @param file: the path to the logfile
         @rtype: tuple[np.ndarray, float, float, int, int]
@@ -377,7 +374,7 @@ class Multiplicative(SolverBase):
         self.freeze_nodes = model.freeze_spins
         # Only compute this once instead of twice
         self.non_frozen_nodes = np.setdiff1d(np.arange(num_variables), self.freeze_nodes)
-        coupling = triu_to_symm(new_model.J)
+        coupling = new_model.J
         # Include J mismatch
         if sigma_J != -1.0:
             coupling = coupling + np.random.normal(0.0, sigma_J, coupling.shape)
@@ -415,13 +412,8 @@ class Multiplicative(SolverBase):
                     )
 
         # Set the parameters for easy calling
-        if combine_nodes:
-            num_var = int((num_variables - len(self.freeze_nodes)) / nb_splits)
-            init_size = int(init_cluster_size * num_var)
-            end_size = int(end_cluster_size * num_var)
-        else:
-            init_size = int(init_cluster_size * model.num_non_frozen_variables)
-            end_size = int(end_cluster_size * model.num_non_frozen_variables)
+        init_size = int(init_cluster_size * model.num_non_frozen_variables)
+        end_size = int(end_cluster_size * model.num_non_frozen_variables)
         if end_size < 1:
             end_size = 1
         self.set_params(
@@ -512,7 +504,9 @@ class Multiplicative(SolverBase):
                     cluster=np.zeros(num_variables, dtype=np.int8),
                 )
             best_energy = np.inf
+            prev_energy = np.inf
             best_sample = v[:num_variables].copy()
+            prev_sample = best_sample
             if nb_flipping == 1:
                 logging = log
             else:
@@ -550,8 +544,6 @@ class Multiplicative(SolverBase):
                             end_size=end_size,
                             exponent=exponent,
                         ),
-                        combine_nodes=combine_nodes,
-                        nb_splits=nb_splits,
                         **additional_information,
                     )
                 v = best_sample.copy()
@@ -651,7 +643,7 @@ class Multiplicative(SolverBase):
         return cluster, 0
 
     def find_cluster_random(
-        self, cluster_size: int, combine_nodes: bool, nb_splits: int, **additional_information
+        self, cluster_size: int,**additional_information
     ) -> tuple[np.ndarray, int]:
         """Finds a random cluster of nodes to flip.
 
@@ -660,33 +652,11 @@ class Multiplicative(SolverBase):
         @rtype: tuple[np.ndarray, int]
         @return: the indices of the nodes in the cluster and the amount of operations.
         """
-        if combine_nodes:
-            cluster = self.generator(
-                np.setdiff1d(np.arange(int(self.num_variables / nb_splits)), self.freeze_nodes[::nb_splits]),
-                size=(cluster_size,),
-                replace=False,
-            )
-            state = additional_information["current_state"]
-            cluster_nodes = []
-            for cluster_elem in cluster:
-                replica_indices = nb_splits * cluster_elem + np.arange(nb_splits)
-                replica_states = state[replica_indices]
-                if np.all(replica_states == replica_states[0]) or not self.adjustments:
-                    # Replicas agree: flip the whole group.
-                    cluster_nodes.extend(replica_indices)
-                else:
-                    # Replicas disagree: flip the minority so the group ends up agreeing.
-                    target = np.sign(np.sum(replica_states))
-                    if target == 0:  # perfect tie: fall back to a reference replica
-                        target = replica_states[0]
-                    cluster_nodes.extend(replica_indices[replica_states != target])
-            cluster = np.array(cluster_nodes, dtype=int)
-        else:
-            cluster = self.generator(
-                self.non_frozen_nodes,
-                size=(cluster_size,),
-                replace=False,
-            )
+        cluster = self.generator(
+            self.non_frozen_nodes,
+            size=(cluster_size,),
+            replace=False,
+        )
         return cluster, self.num_variables
 
     # def find_cluster_weighted_mean(

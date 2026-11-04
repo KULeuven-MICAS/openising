@@ -31,8 +31,8 @@ class IsingModel:
             raise ValueError("h must be a vector")
         if not isinstance(J, np.ndarray) or not npu.is_square(J):
             raise ValueError("J must be a square matrix")
-        # if not npu.is_triu(J, k=1):
-        #     raise ValueError("J must be a strictly upper triangular matrix")
+        if not np.linalg.norm(J - J.T) <= 1e-10:
+            raise ValueError("J must be symmetric")
         if not len(h) == J.shape[0]:
             raise ValueError(f"h ({h.shape}) and J ({J.shape}) are not compatible")
         self.J = J.astype(np.float32)
@@ -126,8 +126,7 @@ class IsingModel:
         Args:
             displacement (float): The value to add to both the J and h matrices, as well as the constant term.
         """
-        triu = np.triu_indices(self.num_variables, k=1)
-        self.J[triu] = np.add(self.J[triu], displacement, casting="safe")
+        self.J = np.add(self.J, displacement, casting="safe")
         self.h = np.add(self.h, displacement, casting="safe")
         self.c = np.add(self.c, displacement, casting="safe")
         if track:
@@ -140,8 +139,7 @@ class IsingModel:
         Args:
             factor (float): The scaling factor to apply to J, h, and c.
         """
-        triu = np.triu_indices(self.num_variables, k=1)
-        self.J[triu] = np.multiply(self.J[triu], factor, casting="safe")
+        self.J = np.multiply(self.J, factor, casting="safe")
         self.h = np.multiply(self.h, factor, casting="safe")
         self.c = np.multiply(self.c, factor, casting="safe")
         if track:
@@ -187,7 +185,7 @@ class IsingModel:
             IsingModel: the new Ising Model.
         """
         new_h = np.reshape(self.h, (-1, 1))
-        new_J = np.block([[self.J, new_h],[np.zeros_like(new_h.T), 0]])
+        new_J = np.block([[self.J, new_h],[new_h.T, 0]])
         return IsingModel(new_J, np.zeros(self.num_variables + 1), c=self.c)
 
     def evaluate(self, sample: np.ndarray) -> float:
@@ -202,7 +200,7 @@ class IsingModel:
         """
         # sample = sample.astype(np.float32)
         # return evaluate_ising(sample, self.J, self.h, self.c)
-        return -np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
+        return -1/2*np.dot(sample, np.dot(self.J, sample)) - np.dot(self.h, sample) + self.c
 
     @classmethod
     def from_qubo(cls, Q: np.ndarray) -> IsingModel:
@@ -215,10 +213,10 @@ class IsingModel:
         Returns:
             IsingModel: The corresponding IsingModel instance.
         """
-        if not isinstance(Q, np.ndarray) or not npu.is_square(Q) or not np.linalg.norm(Q - Q.T) < 1e-8:
+        if not isinstance(Q, np.ndarray) or not npu.is_square(Q) or not np.linalg.norm(Q - Q.T) < 1e-10:
             raise ValueError("Q must be a square symmetric matrix")
         J = -(1 / 2) * Q
-        J = np.triu(J, k=1)
+        np.fill_diagonal(J, 0)
         h = -1/2*(np.ones((1,Q.shape[0] ))@Q).flatten()
         c = (1 / 4) * np.sum(Q) + (1 / 4) * np.sum(Q.diagonal())
         return cls(J, h, c)
@@ -230,10 +228,9 @@ class IsingModel:
         Returns:
             tuple[np.ndarray, float]: The QUBO matrix and the constant term c.
         """
-        new_J = npu.triu_to_symm(self.J)
-        Q = (-2) * new_J
-        np.fill_diagonal(Q, 2 * (np.sum(new_J, axis=1) - self.h))
-        c = -np.sum(new_J)/2 + np.sum(self.h) + self.c
+        Q = (-2) * self.J
+        np.fill_diagonal(Q, 2 * (np.sum(self.J, axis=1) - self.h))
+        c = -np.sum(self.J)/2 + np.sum(self.h) + self.c
         return Q, c
 
     @classmethod
@@ -265,7 +262,7 @@ class IsingModel:
 
         """
         with h5py.File(file) as f:
-            f.create_dataset("J", data=self.J[np.triu_indices(self.num_variables, k=1)])
+            f.create_dataset("J", data=self.J)
             f.create_dataset("h", data=self.h)
             f.create_dataset("c", data=self.c)
             f.attrs["size"] = self.num_variables
@@ -299,7 +296,6 @@ class IsingModel:
             raise ValueError("bias_generator is neither a valid numpy scalar, nor a Callable, nor a Generator")
 
         adj = adj.astype(bool)
-        adj[np.tril_indices_from(adj)] = False
 
         J = np.zeros_like(adj, dtype=float)
         J[adj] = np.array([f() for _ in range(np.sum(adj))])

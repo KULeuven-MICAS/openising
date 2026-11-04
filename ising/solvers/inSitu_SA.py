@@ -63,7 +63,7 @@ class InSituSASolver(SolverBase):
             seed = int(time.time() * 1000)
         random.seed(seed)
 
-        coupling = -(np.diag(model.h) + model.J + model.J.T)
+        coupling = -(np.diag(model.h) + model.J)
 
         # Set up schema and metadata for logging
         schema = {

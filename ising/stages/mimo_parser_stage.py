@@ -246,6 +246,5 @@ class MIMOParserStage(Stage):
         bias = bias.T @ Htilde @ T
         coupling = -2 * T.T @ Htilde.T @ Htilde @ T
         constant -= np.sum(np.diag(coupling)) / 2
-
-        coupling = np.triu(coupling, k=1)
+        np.fill_diagonal(coupling, 0)
         return IsingModel(coupling, bias, constant, name=f"MIMO_{SNR}"), xtilde, y

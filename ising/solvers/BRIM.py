@@ -166,7 +166,7 @@ class BRIM(SolverBase):
         else:
             new_model = model
             self.bias = False
-        coupling = triu_to_symm(new_model.J).astype(np.float32) / resistance
+        coupling = new_model.J.astype(np.float32) / resistance
 
         res_average = np.mean(np.sum(coupling, axis=1))
         tau = capacitance/res_average
