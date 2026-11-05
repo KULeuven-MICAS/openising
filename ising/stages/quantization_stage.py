@@ -48,7 +48,7 @@ class QuantizationStage(Stage):
             original_precision = max(original_int_j_precision, original_int_h_precision)
 
         if self.config.quantization:
-            if self.config.combine_nodes:
+            if getattr(self.config, "combine_nodes", False):  # combine nodes is deprecated
                 # Each node will be split into a number of replica nodes. Some different steps need to be undertaken.
                 # The values will be scaled to their respective integers and the quantization precision is recalculated.
                 LOGGER.info("Combine nodes is enabled, setting scale_to_integer to True.")
@@ -259,7 +259,7 @@ class QuantizationStage(Stage):
         quantized_matrix = copy.deepcopy(matrix.astype(np.float64))
 
         # Now calculate the step size based on whether the nodes will be split.
-        if 2 ** (quantization_precision - 1) - 1 > max_quant_val and self.config.combine_nodes:
+        if 2 ** (quantization_precision - 1) - 1 > max_quant_val and getattr(self.config, "combine_nodes", False):
             step_size = max(np.abs(J_max), np.abs(J_min)) / max_quant_val
         else:
             step_size = 2 * max(np.abs(J_max), np.abs(J_min)) / step_num
