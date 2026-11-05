@@ -8,7 +8,6 @@ from numba import njit
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
-from ising.utils.numpy import triu_to_symm
 
 @njit(cache=True)
 def _inner_loop_FE_numba(
@@ -504,9 +503,9 @@ class Multiplicative(SolverBase):
                     cluster=np.zeros(num_variables, dtype=np.int8),
                 )
             best_energy = np.inf
-            prev_energy = np.inf
+            # prev_energy = np.inf
             best_sample = v[:num_variables].copy()
-            prev_sample = best_sample
+            # prev_sample = best_sample
             if nb_flipping == 1:
                 logging = log
             else:

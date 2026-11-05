@@ -57,9 +57,9 @@ nb_flips: 1
 num_iterations_Multiplicative: 1
 nb_flipping: 100
 cluster_threshold: 0.3
-init_cluster_size: 0.8
-end_cluster_size: 0.0625
-exponent: 3.0
+init_cluster_size: 0.9
+end_cluster_size: 0.1
+exponent: 1.0
 cluster_choice: "random"
 current: 1.0
 capacitance: 1

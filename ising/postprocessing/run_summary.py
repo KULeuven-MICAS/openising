@@ -82,8 +82,6 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             label: {solver: reduce(ans.energies[solver]) for solver in solvers}
             for label, reduce in (("max", np.max), ("min", np.min), ("avg", np.mean))
         }
-        ruggedness = compute_ruggedness(ans.ising_model, ans.ising_model.num_variables * 500)
-        lines.append(f"ruggedness {ans.benchmark}| {ruggedness}")
         best_found = None if ans.config.dummy_creator else ans.best_found
         if ans.config.dummy_creator:
             lines.append(f"Dummy problem of size {ans.ising_model.num_variables}")
@@ -105,8 +103,8 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
             metrics = {"TTT 0.9": tts, "Relative error": relative, "Approximation value": approximation}
             ret = tts, approximation
         logging.info(
-            "benchmark: %s, \n ruggedness: %s, \n reference: %s,\n energy max: %s, \n min: %s, \n avg: %s",
-            ans.benchmark, ruggedness, best_found,
+            "benchmark: %s, \n reference: %s,\n energy max: %s, \n min: %s, \n avg: %s",
+            ans.benchmark, best_found,
             energy_stats["max"], energy_stats["min"], energy_stats["avg"],
         )
         plot_model(ans.ising_model, f"{ans.benchmark}_model")
@@ -118,7 +116,7 @@ def summarize_runs(output_file: Path, ans: Ans, problem_type: str, config_path: 
     lines.extend([separator, "Simulation results:", f"solver| {solver_str}"])
     for label, values in metrics.items():
         lines.append(add_metric(solvers, label, values))
-    if problem_type != "MIMO":
+    if problem_type not in ["MIMO", "MPPI"]:
         for label, values in energy_stats.items():
             lines.append(add_metric(solvers, f"energy {label}", values))
         lines.append("")

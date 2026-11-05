@@ -5,7 +5,6 @@ import pathlib
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
-from ising.utils.numpy import triu_to_symm
 
 ###
 # This code is adapted from the code of the BRIM paper: https://ieeexplore.ieee.org/document/9407038/,

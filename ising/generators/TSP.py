@@ -90,7 +90,7 @@ def TSP(graph: nx.DiGraph, weight_constant: float = 1.0) -> IsingModel:
     constant += 2*N*((N/2 - 1)**2)*constraint_weight
     constant -= np.sum(np.diag(J))/2
     J = (J + J.T)/2
-    J = np.triu(J, 1)
+    np.fill_diagonal(J, 0)
     return IsingModel(J, h, constant, name=graph.name)
 
 

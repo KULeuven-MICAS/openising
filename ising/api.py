@@ -18,7 +18,7 @@ from ising.stages.simulation_stage import SimulationStage
 from ising.stages.initialization_stage import InitializationStage
 from ising.stages.quantization_stage import QuantizationStage
 from ising.stages.mismatch_stage import MismatchStage
-from ising.stages.combine_nodes_stage import CombineNodesStage
+# from ising.stages.combine_nodes_stage import CombineNodesStage
 # from ising.stages.npmos_stage import NpmosStage
 
 def get_hamiltonian_energy(
@@ -70,7 +70,7 @@ def get_hamiltonian_energy(
         energy_calc_stage,  # Calculates the energy for the problems
         # NpmosStage,  # Injects NMOS/PMOS imbalance if needed
         QuantizationStage,  # Quantizes the Ising model if needed
-        CombineNodesStage,  # Combines nodes in the Ising model if needed
+        # CombineNodesStage,  # Combines nodes in the Ising model if needed
         MismatchStage, # Injects mismatch into the Ising model
         SimulationStage,  # Runs the simulation on the Ising model
         InitializationStage,  # Initializes the Ising spins and model

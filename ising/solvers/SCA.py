@@ -7,7 +7,6 @@ from ising.stages import LOGGER
 from ising.solvers.base import SolverBase
 from ising.stages.model.ising import IsingModel
 from ising.utils.HDF5Logger import HDF5Logger
-from ising.utils.numpy import triu_to_symm
 from ising.utils.flow import return_q
 
 
