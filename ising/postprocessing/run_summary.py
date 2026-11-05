@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 
 from ising.utils.flow import compute_ttt, relative_to_best_found, approximation_to_best_found
-from ising.utils.problem_difficulty import compute_ruggedness
 from ising.stages.simulation_stage import Ans
 from ising.postprocessing.helper_functions import get_string
 from ising.postprocessing.plot_model import plot_model, plot_model_distribution
