@@ -8,6 +8,7 @@ from ising.stages.stage import Stage, StageCallable
 from ising.stages.simulation_stage import Ans
 from ising.stages.model.ising import IsingModel
 from ising.solvers.MIMO.ZF import ZF
+from ising.stages.mimo_ber_calc_stage import gray_bit_errors
 
 
 class MIMOParserStage(Stage):
@@ -56,10 +57,9 @@ class MIMOParserStage(Stage):
         ans_all.MIMO = []
         ans_all.computation_time = {solver: [] for solver in self.config.solvers}
         is_bpsk = M == 2
-        if is_bpsk:
-            diff = {solver: np.zeros((user_num, case_num)) for solver in self.config.solvers}
-        else:
-            diff = {solver: np.zeros((2 * user_num, case_num)) for solver in self.config.solvers}
+        nb_real_symbols = user_num if is_bpsk else 2 * user_num
+        diff = {solver: np.zeros((nb_real_symbols, case_num)) for solver in self.config.solvers}
+        bit_errors = {solver: np.zeros((nb_real_symbols, case_num), dtype=int) for solver in self.config.solvers}
         y = np.zeros((ant_num, case_num), dtype=np.complex128)
         base_logfile_discriminitation = self.config.logfile_discrimination
         for run in range(case_num):
@@ -82,27 +82,29 @@ class MIMOParserStage(Stage):
             for solver in self.config.solvers:
                 ans_all.computation_time[solver] += ans.computation_time[solver]
                 diff[solver][:, run] = ans.difference[solver]
+                bit_errors[solver][:, run] = ans.bit_errors[solver]
+
+        bits_per_case = np.log2(M) * user_num
         if self.config.use_ZF:
             x_hat_ZF = ZF().solve(H, y, M)
-            diff_ZF = x[:, :case_num] - x_hat_ZF
-            ans_all.ber_of_trials["ZF"] = np.sum(
-                np.abs(np.real(diff_ZF)) / 2 + np.abs(np.imag(diff_ZF)) / 2, axis=0
-            ) / (np.log2(M) * user_num)
-            ans_all.ber_of_users["ZF"] = np.sum((np.abs(np.real(diff_ZF)) + np.abs(np.imag(diff_ZF))) / 2, axis=1) / (
-                np.log2(M) * case_num
-            )
+            x_tx = x[:, :case_num]
+            bit_errors_ZF = gray_bit_errors(np.real(x_tx), np.real(x_hat_ZF), M)  # (user_num, case_num)
+            if not is_bpsk:
+                bit_errors_ZF = bit_errors_ZF + gray_bit_errors(np.imag(x_tx), np.imag(x_hat_ZF), M)
+            ans_all.ber_of_trials["ZF"] = np.sum(bit_errors_ZF, axis=0) / bits_per_case
+            ans_all.ber_of_users["ZF"] = np.sum(bit_errors_ZF, axis=1) / (np.log2(M) * case_num)
             ans_all.BER["ZF"] = np.mean(ans_all.ber_of_users["ZF"])
 
         for solver in self.config.solvers:
-            # calc ber per trail
-            ans_all.ber_of_trials[solver] = np.sum(np.abs(diff[solver]) / 2, axis=0) / (np.log2(M) * user_num)
-            # calc ber per user
-            array_mid = diff[solver].shape[0] // 2
-            diff_real_half = diff[solver][0:array_mid, :]
-            diff_imag_half = diff[solver][array_mid:, :]
-            diff_of_users = np.hstack((diff_real_half, diff_imag_half))
-            ans_all.ber_of_users[solver] = np.sum(np.abs(diff_of_users) / 2, axis=1) / (np.log2(M) * case_num)
+            # BER per case
+            ans_all.ber_of_trials[solver] = np.sum(bit_errors[solver], axis=0) / bits_per_case
+            # BER per user
+            errors_of_users = bit_errors[solver]
+            if not is_bpsk:
+                errors_of_users = errors_of_users[:user_num, :] + errors_of_users[user_num:, :]
+            ans_all.ber_of_users[solver] = np.sum(errors_of_users, axis=1) / (np.log2(M) * case_num)
             ans_all.BER[solver] = np.mean(ans_all.ber_of_users[solver])
+            # Previous approximation (|diff|/2 level errors counted as bit errors), kept for comparison
         ans_all.operation_count = ans.operation_count
         ans_all.SNR = snr
         ans_all.x = x
