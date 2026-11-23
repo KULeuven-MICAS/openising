@@ -15,12 +15,10 @@ class ZF(SolverBase):
 
         if M == 2:
             # BPSK scheme
-            symbols = np.repeat(np.array([-1, 1]), x_hat.shape[0],axis=1).T
+            symbols = np.array([-1.0, 1.0])
         else:
-            r = int(np.ceil(np.log2(np.sqrt(M))))
-            symbols = np.concatenate(
-                ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
-            )
+            L = int(round(np.sqrt(M)))
+            symbols = np.arange(-(L - 1), L, 2, dtype=float)
 
         symbols_repeated = np.repeat(symbols.reshape(-1,1), x_hat.shape[0], axis=1).T
         for i in range(x_hat.shape[1]):
