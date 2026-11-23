@@ -104,7 +104,6 @@ class MIMOParserStage(Stage):
                 errors_of_users = errors_of_users[:user_num, :] + errors_of_users[user_num:, :]
             ans_all.ber_of_users[solver] = np.sum(errors_of_users, axis=1) / (np.log2(M) * case_num)
             ans_all.BER[solver] = np.mean(ans_all.ber_of_users[solver])
-            # Previous approximation (|diff|/2 level errors counted as bit errors), kept for comparison
         ans_all.operation_count = ans.operation_count
         ans_all.SNR = snr
         ans_all.x = x
