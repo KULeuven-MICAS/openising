@@ -293,12 +293,9 @@ class DummyCreatorStage(Stage):
         if M == 2:
             # BPSK scheme
             symbols = np.array([-1, 1])
-            r = 1
         else:
-            r = int(np.ceil(np.log2(np.sqrt(M))))
-            symbols = np.concatenate(
-                ([-np.sqrt(M) + i for i in range(1, 2 + 2 * r, 2)], [np.sqrt(M) - i for i in range(1, 2 + 2 * r, 2)])
-            )
+            L = int(round(np.sqrt(M)))
+            symbols = np.arange(-(L - 1), L, 2, dtype=float)
 
         mean_phi = 120 * np.pi / 180 * (np.random.random((user_num,)) - 0.5)
         mean_phi.sort()
