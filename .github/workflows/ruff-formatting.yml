@@ -26,12 +26,10 @@ jobs:
           echo "PYTHON=python" >> $GITHUB_ENV
           echo "PYDEVD_WARN_EVALUATION_TIMEOUT=10" >> $GITHUB_ENV
 
-      - name: Install requirements
+      - name: Install Ruff
         run: |
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-            pip install ruff
-          fi 
+          python -m pip install --upgrade pip
+          python -m pip install ruff
 
       - name: Run Ruff Check
         run: ruff check . 
